@@ -137,7 +137,7 @@ export function settingsPendingImportMarkup(pendingImport, statusHtml) {
   `;
 }
 
-export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, pendingImportMarkup }) {
+export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, releaseStatusHtml, pendingImportMarkup }) {
   return `
     <section class="panel-stack">
       <article class="info-panel">
@@ -156,6 +156,14 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, pending
           <input type="file" class="settings-file-input" accept="application/json,.json" data-settings-input="import-json">
         </div>
         ${importStatusHtml}
+      </article>
+      <article class="info-panel">
+        <h2 class="section-title">更新反映</h2>
+        <p class="section-text">このサイトだけ最新版を確認して読み直します。他サイトのデータやキャッシュには触れません。</p>
+        <div class="settings-actions">
+          <button type="button" class="detail-action-button settings-button" data-settings-action="refresh-release">最新状態に更新</button>
+        </div>
+        ${releaseStatusHtml}
       </article>
       <article class="info-panel">
         <h2 class="section-title">アプリ初期化</h2>

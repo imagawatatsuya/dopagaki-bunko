@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616052324';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616053658';
 import {
   buildHomeTimelineEvents,
   buildSavedItems,
@@ -9,26 +9,26 @@ import {
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords
-} from './state.js?v=20260616052324';
-import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616052324';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260616052324';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616052324';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616052324';
+} from './state.js?v=20260616053658';
+import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616053658';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260616053658';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616053658';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616053658';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260616052324';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616052324';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260616052324';
-import { derivePreviewFromText } from './import-preview.js?v=20260616052324';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616052324';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616052324';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616052324';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616052324';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616052324';
+} from './app-actions.js?v=20260616053658';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616053658';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260616053658';
+import { derivePreviewFromText } from './import-preview.js?v=20260616053658';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616053658';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616053658';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616053658';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616053658';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616053658';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -37,7 +37,7 @@ import {
   bindSettingsInteractions,
   bindWorkHeaderActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260616052324';
+} from './ui-bindings.js?v=20260616053658';
 import {
   breakCardMarkup,
   collectionBodyMarkup,
@@ -55,7 +55,7 @@ import {
   timelineCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260616052324';
+} from './views.js?v=20260616053658';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -76,6 +76,7 @@ const state = {
   quoteRecords: [],
   exportStatus: '',
   importStatus: '',
+  releaseStatus: '',
   pendingImport: null,
   importWorkStatus: '',
   importPreview: null,
@@ -740,6 +741,7 @@ function renderSettings() {
     body: settingsBodyMarkup({
       exportStatusHtml: state.exportStatus ? `<p class="settings-status">${escapeHtml(state.exportStatus)}</p>` : '',
       importStatusHtml: state.importStatus ? `<p class="settings-status">${escapeHtml(state.importStatus)}</p>` : '',
+      releaseStatusHtml: state.releaseStatus ? `<p class="settings-status">${escapeHtml(state.releaseStatus)}</p>` : '',
       pendingImportMarkup: pendingImportSummary
     })
   });

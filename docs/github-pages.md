@@ -29,6 +29,14 @@ pwsh ./verify-pages.ps1
 pwsh ./publish-pages.ps1
 ```
 
+Windows の `cmd.exe` やダブルクリックでは、以下の `.bat` ラッパーも使える。
+
+```bat
+update-release-stamp.bat
+verify-pages.bat
+publish-pages.bat
+```
+
 `publish-pages.ps1` は `origin/main` への push を前提とする。
 ローカル repository に remote が無い場合は公開を止める。
 

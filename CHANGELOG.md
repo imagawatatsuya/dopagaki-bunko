@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a settings-screen `最新状態に更新` action that checks `release.json` with `no-store` and reloads only this site with a cache-busting query, avoiding browser-wide cache clearing on iPhone/iOS browsers.
+- Added Windows `.bat` wrappers for the release stamp, verification, and publish scripts so the same GitHub Pages flow can be launched from `cmd.exe` or Explorer without typing `pwsh`.
 - Changed the GitHub Pages bootstrap so `index.html` fetches `release.json` with `no-store` and then loads versioned CSS/JS dynamically, reducing the need for manual browser cache clearing after each publish.
 - Added heading-note conversion that keeps large/medium/small headings visible in imported text and stores outline metadata for future table-of-contents navigation, while capping indentation notes to small display steps instead of reproducing large raw offsets.
 - Restored Aozora gaiji conversion for JIS X 0213 plane-row-cell notes and symbol notes, so local import preview and saved fragments now resolve entries like `第3水準1-87-52` to actual characters while unknown notes stay source-visible.

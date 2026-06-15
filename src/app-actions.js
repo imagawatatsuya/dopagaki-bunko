@@ -243,6 +243,48 @@ export function createSettingsActions({
   ensureSampleData,
   pickImportInput
 }) {
+  async function refreshRelease() {
+    state.releaseStatus = '最新版を確認しています。';
+    renderSettings();
+
+    const currentVersion = document.documentElement.dataset.releaseVersion || '';
+
+    try {
+      const response = await fetch(`./release.json?ts=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const release = await response.json();
+      const latestVersion = typeof release?.version === 'string' ? release.version : '';
+      if (!latestVersion) {
+        throw new Error('release.json に version がありません。');
+      }
+
+      if (latestVersion === currentVersion) {
+        state.releaseStatus = `この端末ではすでに最新状態です。版: ${latestVersion}`;
+        renderSettings();
+        return;
+      }
+
+      state.releaseStatus = `最新版 ${latestVersion} を読み直します。`;
+      renderSettings();
+
+      const refreshUrl = new URL(window.location.href);
+      refreshUrl.searchParams.set('reload', latestVersion);
+      window.location.replace(refreshUrl.toString());
+    } catch (error) {
+      console.error(error);
+      const refreshUrl = new URL(window.location.href);
+      refreshUrl.searchParams.set('reload', String(Date.now()));
+      state.releaseStatus = '最新版の確認に失敗したため、このサイトだけ読み直します。';
+      renderSettings();
+      window.location.replace(refreshUrl.toString());
+    }
+  }
+
   async function handleExportJson() {
     state.exportStatus = 'JSONを書き出しています。';
     renderSettings();
@@ -337,6 +379,11 @@ export function createSettingsActions({
 
     if (action === 'pick-import') {
       pickImportInput();
+      return;
+    }
+
+    if (action === 'refresh-release') {
+      await refreshRelease();
       return;
     }
 

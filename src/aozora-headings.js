@@ -1,4 +1,4 @@
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616052324';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616053658';
 
 const HEADING_INLINE_PATTERN = /^(.*?)[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;
 const HEADING_NOTE_ONLY_PATTERN = /^[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;

@@ -28,12 +28,29 @@ pwsh ./verify-pages.ps1
 pwsh ./publish-pages.ps1
 ```
 
+Windows の `cmd.exe` やダブルクリック向けに、同名の `.bat` ラッパーも置いてあります。
+
+```bat
+update-release-stamp.bat
+verify-pages.bat
+publish-pages.bat
+```
+
 - `update-release-stamp.ps1`
   `index.html` の fallback release version、`src/*.js` のローカル参照、`release.json` を更新します。
 - `verify-pages.ps1`
   GitHub Pages 公開に必要なファイル、相対参照、`manifest.webmanifest`、`main` ブランチ、`origin` 設定を検証します。
 - `publish-pages.ps1`
   stamp、verify、commit、`origin/main` への push をまとめて実行します。
+
+`publish-pages.ps1` / `publish-pages.bat` の主なオプション:
+
+- `-SkipStamp`
+  すでに版番号更新済みなら stamp を飛ばします。
+- `-SkipVerify`
+  verify を飛ばします。
+- `-CommitMessage "..."`
+  commit message を明示します。
 
 `origin` が未設定の clone では publish は失敗します。先に GitHub リポジトリの remote を追加してください。
 
