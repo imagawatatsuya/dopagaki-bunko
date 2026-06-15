@@ -81,7 +81,7 @@ export function searchBodyMarkup({
     <section class="panel-stack">
       <article class="info-panel">
         <h2 class="section-title">青空文庫から検索</h2>
-        <p class="section-text">同梱の作品一覧から作品名や著者名で探し、そのままZIPを取り込めます。本文ZIPの直接取得が難しいときは図書カードと手動取り込みへ切り替えます。</p>
+        <p class="section-text">同梱の作品一覧から作品名や著者名で探せます。項目を開いて図書カードへ進み、ZIPを保存して下の手動ZIP取り込みへ追加してください。</p>
         <div class="search-toolbar">
           <input
             type="search"
@@ -119,29 +119,20 @@ export function aozoraSearchResultsMarkup(results, options = {}) {
   const emptyMessage = options.emptyMessage || '作品名または著者名で検索してください。';
 
   return `
-    <div class="preview-list" aria-label="青空文庫検索結果">
+    <div class="preview-list aozora-results-list" aria-label="青空文庫検索結果">
       ${results.length > 0 ? results.map((result) => `
-        <article class="fragment-card preview-card">
-          <h3 class="fragment-work-title">${result.title}</h3>
-          <p class="section-text">${result.author}</p>
-          <p class="settings-status settings-status-subtle">
-            ${result.kanaType || '文字遣い種別なし'}
-            ${result.copyrightWarning ? '<br>著作権に注意が必要な作品です。' : ''}
-          </p>
-          <div class="settings-button-grid">
-            <button
-              type="button"
-              class="detail-action-button settings-button"
-              data-search-action="import-aozora-result"
-              data-work-id="${result.workId}"
-              data-title="${result.title}"
-              data-text-zip-url="${result.textZipUrl}"
-              data-card-url="${result.cardUrl}"
-              data-source-file-name="${result.workId}.zip"
-              data-copyright-warning="${result.copyrightWarning ? 'true' : 'false'}"
-            >取り込む</button>
-            <a class="detail-action-button detail-action-link" href="${result.cardUrl}" target="_blank" rel="noreferrer">図書カード</a>
-          </div>
+        <article class="fragment-card aozora-result-card">
+          <a class="aozora-result-link" href="${result.cardUrl}" target="_blank" rel="noreferrer">
+            <div class="aozora-result-body">
+              <h3 class="fragment-work-title aozora-result-title">${result.title}</h3>
+              <p class="aozora-result-author">${result.author}</p>
+            </div>
+            <p class="settings-status settings-status-subtle aozora-result-meta">
+              ${result.kanaType || '文字遣い種別なし'}
+              ${result.copyrightWarning ? '<br>著作権に注意が必要な作品です。' : ''}
+            </p>
+            <p class="aozora-result-hint">項目を開いて図書カードへ進む</p>
+          </a>
         </article>
       `).join('') : `
         <article class="info-panel info-panel-muted">

@@ -369,6 +369,58 @@ rt {
   padding: 18px;
 }
 
+.aozora-results-list {
+  gap: 10px;
+}
+
+.aozora-result-card {
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+.aozora-result-link {
+  display: block;
+  padding: 14px 16px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.aozora-result-link:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.aozora-result-body {
+  min-width: 0;
+}
+
+.aozora-result-title {
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.aozora-result-author {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.aozora-result-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.aozora-result-hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .fragment-card-break {
   padding: 14px 18px;
   background: rgba(255, 253, 248, 0.55);
@@ -650,6 +702,18 @@ rt {
   .info-panel,
   .preview-card {
     padding: 14px;
+  }
+
+  .aozora-result-link {
+    padding: 12px 13px;
+  }
+
+  .aozora-result-title {
+    font-size: 15px;
+  }
+
+  .aozora-result-author {
+    font-size: 13px;
   }
 
   .search-toolbar,

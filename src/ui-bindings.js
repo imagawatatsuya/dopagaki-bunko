@@ -83,13 +83,7 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
   root.querySelectorAll('[data-search-action]').forEach((button) => {
     button.addEventListener('click', async () => {
       await onAction(button.dataset.searchAction, {
-        query: catalogQueryInput?.value ?? '',
-        workId: button.dataset.workId ?? '',
-        title: button.dataset.title ?? '',
-        textZipUrl: button.dataset.textZipUrl ?? '',
-        cardUrl: button.dataset.cardUrl ?? '',
-        sourceFileName: button.dataset.sourceFileName ?? '',
-        copyrightWarning: button.dataset.copyrightWarning ?? 'false'
+        query: catalogQueryInput?.value ?? ''
       });
     });
   });

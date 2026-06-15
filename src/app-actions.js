@@ -181,43 +181,6 @@ export function createSearchActions({
     }
   }
 
-  async function handleAozoraZipUrl(url, sourceMeta = {}) {
-    const fetchUrl = String(url ?? '').trim();
-    if (!fetchUrl) {
-      state.importWorkStatus = '作品ZIPのURLが見つかりませんでした。';
-      renderSearch();
-      return;
-    }
-
-    resetImportPreview();
-    state.importWorkStatus = '青空文庫のZIPを取得しています。';
-    renderSearch();
-
-    try {
-      const response = await fetch(fetchUrl, {
-        cache: 'no-store'
-      });
-
-      if (!response.ok) {
-        state.importWorkStatus = `作品ZIPの取得に失敗しました: HTTP ${response.status}`;
-        renderSearch();
-        return;
-      }
-
-      await handleAozoraZipArrayBuffer(await response.arrayBuffer(), {
-        ...sourceMeta,
-        sourceType: 'aozora-catalog',
-        sourceLabel: sourceMeta.title || '青空文庫ZIP',
-        sourceUrl: sourceMeta.cardUrl || sourceMeta.sourceUrl || '',
-        textZipUrl: fetchUrl
-      });
-    } catch (error) {
-      console.error(error);
-      state.importWorkStatus = 'ブラウザから青空文庫のZIPを直接取得できませんでした。図書カードを開いてZIPを保存し、下の手動取り込みを使ってください。';
-      renderSearch();
-    }
-  }
-
   async function refreshAozoraCatalog(options = {}) {
     const shouldRender = options.render !== false;
     state.aozoraCatalogStatus = '同梱の作品一覧を読み直しています。';
@@ -300,17 +263,6 @@ export function createSearchActions({
       return;
     }
 
-    if (action === 'import-aozora-result') {
-      await handleAozoraZipUrl(payload.textZipUrl, {
-        aozoraWorkId: payload.workId,
-        title: payload.title,
-        cardUrl: payload.cardUrl,
-        sourceFileName: payload.sourceFileName,
-        copyrightWarning: payload.copyrightWarning === 'true'
-      });
-      return;
-    }
-
     if (action === 'save-imported-work') {
       try {
         await saveImportedWork();
@@ -332,7 +284,6 @@ export function createSearchActions({
   return {
     handleAozoraZipArrayBuffer,
     handleAozoraZipFile,
-    handleAozoraZipUrl,
     handleSearchAction,
     initializeAozoraCatalogState
   };
