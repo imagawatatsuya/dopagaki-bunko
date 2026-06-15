@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Removed the fixed `縦スクロール読書` eyebrow from every screen header and reduced the shared page-title scale so top bars read as navigation context rather than a second hero.
+- Tightened the work-page header by removing the fixed `縦スクロール読書` eyebrow there and reducing the title scale so the reading view starts with less ornamental header weight.
+- Made the Aozora catalog auto-retry when opening the add screen with no local catalog ready, so first-time users see automatic loading instead of being told to manually refresh before search works.
 - Added a `先頭へ戻る` action at the bottom of long Aozora result lists, and fixed the floating `ZIPを追加` launcher alignment so it stays on the lower-right side instead of drifting left.
 - Changed Aozora catalog search results from a fixed 50-item cap to progressive display: 25 items initially, then `さらに25件表示` until all matched works are shown.
 - Moved the search-screen manual ZIP import UI into a fixed `ZIPを追加` bottom-sheet launcher, so long Aozora result lists no longer force users to scroll to a distant dropzone before importing.

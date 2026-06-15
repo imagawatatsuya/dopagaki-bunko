@@ -69,8 +69,19 @@ select {
 
 .page-title {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
+  line-height: 1.35;
   font-weight: 700;
+}
+
+.page-header-compact .page-title {
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.page-header-compact .page-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
 }
 
 .page-subtitle {
@@ -722,7 +733,11 @@ rt {
   }
 
   .page-title {
-    font-size: 22px;
+    font-size: 18px;
+  }
+
+  .page-header-compact .page-title {
+    font-size: 18px;
   }
 
   .page-subtitle {

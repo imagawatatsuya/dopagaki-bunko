@@ -11,10 +11,10 @@ export function navMarkup(current) {
   `).join('')}</nav>`;
 }
 
-export function layoutMarkup({ current, title, subtitle, body, headerMetaHtml = '' }) {
+export function layoutMarkup({ current, title, subtitle, body, headerMetaHtml = '', headerClassName = '', eyebrowHtml = '' }) {
   return `
-    <header class="page-header">
-      <p class="page-eyebrow">縦スクロール読書</p>
+    <header class="page-header ${headerClassName}">
+      ${eyebrowHtml}
       <h1 class="page-title">${title}</h1>
       <p class="page-subtitle">${subtitle}</p>
       ${headerMetaHtml}

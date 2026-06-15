@@ -54,6 +54,12 @@ export function createSearchActions({
 }) {
   const SEARCH_RESULTS_BATCH_SIZE = 25;
 
+  function resetCatalogSearchSession() {
+    state.aozoraCatalogQuery = '';
+    state.aozoraCatalogResults = [];
+    state.aozoraCatalogVisibleCount = SEARCH_RESULTS_BATCH_SIZE;
+  }
+
   function applyCatalogSearchResults(query) {
     state.aozoraCatalogQuery = String(query ?? '');
     state.aozoraCatalogResults = searchAozoraCatalog(state.aozoraCatalogRecords, state.aozoraCatalogQuery);
@@ -161,7 +167,8 @@ export function createSearchActions({
     await putRecord('works', workRecord);
     await putRecords('fragments', fragmentRecords);
     await loadStateFromDb();
-    state.importWorkStatus = `${state.importPreview.title} を作品アカウントとして保存しました。`;
+    resetCatalogSearchSession();
+    state.importWorkStatus = `${state.importPreview.title} を保存しました。別の作品を探すか、ZIPを追加してください。`;
     state.importPreview = null;
     state.importSheetOpen = false;
   }
@@ -187,6 +194,14 @@ export function createSearchActions({
 
   async function refreshAozoraCatalog(options = {}) {
     const shouldRender = options.render !== false;
+    if (state.aozoraCatalogLoading) {
+      if (shouldRender) {
+        renderSearch();
+      }
+      return;
+    }
+
+    state.aozoraCatalogLoading = true;
     state.aozoraCatalogStatus = '同梱の作品一覧を読み直しています。';
     if (shouldRender) {
       renderSearch();
@@ -219,6 +234,8 @@ export function createSearchActions({
     } catch (error) {
       console.error(error);
       state.aozoraCatalogStatus = `作品一覧の更新に失敗しました: ${error?.message ?? '不明なエラー'}`;
+    } finally {
+      state.aozoraCatalogLoading = false;
     }
 
     if (shouldRender) {
@@ -240,11 +257,21 @@ export function createSearchActions({
     await refreshAozoraCatalog({ render: false });
   }
 
+  async function ensureAozoraCatalogReady() {
+    if (state.aozoraCatalogRecords.length > 0 || state.aozoraCatalogLoading) {
+      return;
+    }
+
+    await refreshAozoraCatalog({ render: true });
+  }
+
   function runCatalogSearch(query) {
     if (state.aozoraCatalogRecords.length === 0) {
       state.aozoraCatalogQuery = String(query ?? '');
       state.aozoraCatalogResults = [];
-      state.aozoraCatalogStatus = '先に作品一覧を更新してください。';
+      state.aozoraCatalogStatus = state.aozoraCatalogLoading
+        ? '作品一覧を読み込んでいます。少し待ってから検索してください。'
+        : '作品一覧を読み込めませんでした。少し待って再度お試しください。';
       renderSearch();
       return;
     }
@@ -315,6 +342,7 @@ export function createSearchActions({
   }
 
   return {
+    ensureAozoraCatalogReady,
     handleAozoraZipArrayBuffer,
     handleAozoraZipFile,
     handleSearchAction,
