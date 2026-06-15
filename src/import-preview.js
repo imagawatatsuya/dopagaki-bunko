@@ -1,0 +1,120 @@
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260616044322';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616044322';
+import { fragmentText } from './fragmenter.js?v=20260616044322';
+
+function stripInlineAozoraNotation(text) {
+  return String(text)
+    .replace(/｜/gu, '')
+    .replace(/《[^》]+》/gu, '')
+    .replace(/[［\[]＃[^］\]]+[］\]]/gu, '')
+    .trim();
+}
+
+function preserveLeadingFullWidthIndent(html) {
+  return String(html).replace(/(^|<br>)(　+)/gu, (_match, prefix, spaces) => {
+    return `${prefix}<span class="line-indent">${spaces}</span>`;
+  });
+}
+
+function trimForMetadata(text) {
+  return String(text).replace(/^[\t \u00a0]+|[\t \u00a0]+$/gu, '');
+}
+
+function stripBodyDirectiveTokens(text) {
+  return String(text)
+    .replace(/[［\[]＃[^］\]]+[］\]]/gu, '')
+    .replace(/[-―—─－]+/gu, '')
+    .replace(/[\t \u00a0]/gu, '');
+}
+
+function isDirectiveOnlyLine(line) {
+  return stripBodyDirectiveTokens(line) === '';
+}
+
+function findBodyStartIndex(lines, authorLineIndex) {
+  let index = Math.max(authorLineIndex + 1, 0);
+
+  while (index < lines.length) {
+    const line = lines[index] ?? '';
+    if (!trimForMetadata(line) || isDirectiveOnlyLine(line)) {
+      index += 1;
+      continue;
+    }
+
+    break;
+  }
+
+  return index;
+}
+
+function guessTitle(lines) {
+  const candidate = lines.find((line) => trimForMetadata(line)) ?? '';
+  return stripInlineAozoraNotation(candidate) || '無題';
+}
+
+function guessAuthor(lines) {
+  const candidate = lines.slice(1, 6).find((line) => trimForMetadata(line)) ?? '';
+  return stripInlineAozoraNotation(candidate) || '著者不明';
+}
+
+export function derivePreviewFromText(rawText, encoding) {
+  const cleanedText = cleanAozoraText(rawText);
+  const lines = cleanedText.split('\n');
+  const nonEmptyLines = lines.filter((line) => trimForMetadata(line));
+  const title = guessTitle(lines);
+  const author = guessAuthor(lines);
+  const titleLineIndex = lines.findIndex((line) => trimForMetadata(line));
+  const authorLineIndex = lines.findIndex((line, index) => {
+    return index > titleLineIndex && trimForMetadata(line);
+  });
+  const bodyStartIndex = findBodyStartIndex(lines, authorLineIndex);
+  const fallbackBodyText = nonEmptyLines.slice(Math.max(authorLineIndex, titleLineIndex) + 1).join('\n');
+  const bodyText = lines.slice(bodyStartIndex).join('\n') || fallbackBodyText || cleanedText;
+  const displayHtml = preserveLeadingFullWidthIndent(convertAozoraRubyAndEmphasisToHtml(bodyText));
+
+  let fragmentIndex = 0;
+  const fragments = [];
+
+  for (const fragment of fragmentText(displayHtml)) {
+    if (fragment.type === 'break') {
+      if (fragments.length > 0) {
+        fragments.push({
+          type: 'break',
+          breakCount: fragment.breakCount
+        });
+      }
+      continue;
+    }
+
+    const plainText = fragment.displayHtml
+      .replace(/<rt>[\s\S]*?<\/rt>/gu, '')
+      .replace(/<[^>]+>/gu, '')
+      .trim();
+
+    if (!stripInlineAozoraNotation(plainText)) {
+      continue;
+    }
+
+    fragmentIndex += 1;
+    fragments.push({
+      type: 'fragment',
+      id: '',
+      index: fragmentIndex,
+      plainText,
+      displayHtml: fragment.displayHtml
+    });
+  }
+
+  while (fragments.at(-1)?.type === 'break') {
+    fragments.pop();
+  }
+
+  return {
+    title,
+    author,
+    encoding,
+    fragments,
+    textFragmentCount: fragmentIndex,
+    cleanedText
+  };
+}

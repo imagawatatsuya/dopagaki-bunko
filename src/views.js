@@ -216,3 +216,117 @@ export function workBodyMarkup({
     ${moreLinkHtml}
   `;
 }
+
+export function breakCardMarkup() {
+  return `
+    <article class="fragment-card fragment-card-break">
+      <p class="break-label">原文空行</p>
+    </article>
+  `;
+}
+
+export function timelineCardMarkup({ fragmentId, detailHref, workTitle, metaLabel, displayHtml, ariaLabel }) {
+  return `
+    <article class="fragment-card" data-fragment-id="${fragmentId}">
+      <a class="fragment-card-link" href="${detailHref}" aria-label="${ariaLabel}">
+        <span class="fragment-card-link-inner">
+          <h2 class="fragment-work-title">${workTitle}</h2>
+          ${metaLabel ? `<p class="fragment-meta-label">${metaLabel}</p>` : ''}
+          <p class="fragment-body">${displayHtml}</p>
+        </span>
+      </a>
+    </article>
+  `;
+}
+
+export function workFragmentCardMarkup({
+  fragmentId,
+  fragmentIndex,
+  detailHref,
+  displayHtml,
+  bookmarkedClassName,
+  overlayRiskClassName,
+  ariaLabel,
+  ariaPressed
+}) {
+  return `
+    <article class="fragment-card" data-fragment-id="${fragmentId}" data-work-fragment-index="${fragmentIndex}">
+      <a class="fragment-card-link" href="${detailHref}">
+        <span class="fragment-card-link-inner">
+          <div class="fragment-body">
+            ${displayHtml}
+          </div>
+        </span>
+      </a>
+      <div class="fragment-overlay-meta">
+        <button
+          type="button"
+          class="fragment-overlay-bookmark ${bookmarkedClassName} ${overlayRiskClassName}"
+          data-work-action="bookmark"
+          data-fragment-id="${fragmentId}"
+          data-fragment-index="${fragmentIndex}"
+          aria-label="${ariaLabel}"
+          aria-pressed="${ariaPressed}"
+        >断片 ${fragmentIndex}</button>
+      </div>
+    </article>
+  `;
+}
+
+export function savedItemCardMarkup({
+  workTitle,
+  workAuthor,
+  savedDateHtml,
+  excerpt,
+  fragmentIndexHtml,
+  openFragmentHtml,
+  openTimelineHtml,
+  removeButtonHtml
+}) {
+  return `
+    <article class="fragment-card preview-card">
+      <h2 class="fragment-work-title">${workTitle}</h2>
+      <p class="section-text">${workAuthor}</p>
+      ${savedDateHtml}
+      <p class="fragment-body">${excerpt}</p>
+      ${fragmentIndexHtml}
+      <div class="settings-button-grid">
+        ${openFragmentHtml}
+        ${openTimelineHtml}
+        ${removeButtonHtml}
+      </div>
+    </article>
+  `;
+}
+
+export function fragmentDetailBodyMarkup({
+  author,
+  readerScaleControlsHtml,
+  displayHtml,
+  previousLinkHtml,
+  nextLinkHtml,
+  likeButtonHtml,
+  bookmarkButtonHtml,
+  quoteButtonHtml,
+  workLinkHtml,
+  backLinkHtml
+}) {
+  return `
+    <article class="detail-card">
+      <p class="detail-author">${author}</p>
+      ${readerScaleControlsHtml}
+      <div class="detail-body">${displayHtml}</div>
+    </article>
+    <div class="detail-nav-row" aria-label="断片移動">
+      ${previousLinkHtml}
+      ${nextLinkHtml}
+    </div>
+    <div class="detail-actions" aria-label="断片の操作">
+      ${likeButtonHtml}
+      ${bookmarkButtonHtml}
+      ${quoteButtonHtml}
+      ${workLinkHtml}
+      ${backLinkHtml}
+    </div>
+  `;
+}

@@ -6,6 +6,12 @@
 - Split shared layout and key screen template markup out of `src/main.js` into the new dependency-free `src/views.js`, while keeping hash routes and GitHub Pages relative-path behavior intact.
 - Moved the settings screen and import-preview template assembly into `src/views.js` as well, and softened settings copy so backup/import language stays user-facing.
 - Moved work-page and saved-collection body templates into `src/views.js`, leaving `main.js` focused more on route state, event wiring, and data selection.
+- Moved timeline cards, saved-item cards, work-fragment cards, break cards, and fragment-detail body markup into `src/views.js` so `main.js` carries less raw HTML assembly.
+- Split hash-route helpers into `src/router.js` and moved Aozora import-preview derivation into `src/import-preview.js`, removing more pure transformation code from `main.js`.
+- Extracted DOM event wiring for detail, search, settings, collection, reader-scale, and work-overlay interactions into `src/ui-bindings.js`, further shrinking `main.js` toward render/state orchestration.
+- Extracted bookmark/detail/search/settings/collection action handlers into `src/app-actions.js`, so `main.js` no longer carries most UI mutation flows inline.
+- Moved bookmark canonicalization, home-timeline event derivation, saved-item derivation, and related selectors into `src/state.js`, reducing `main.js` state-shaping logic.
+- Revised Aozora gaiji handling to avoid unverified JIS X 0213 auto-mapping: only explicit `U+....` notes are converted, and `第3/4水準` plane-row-cell notes stay source-visible until dictionary-backed fixtures are added.
 - Removed duplicate `.text-link` CSS and the unused `.fragment-inline-index` rule, and updated README wording to match the visible `追加` import screen label.
 - Replaced the uncertain per-work `progress` store with a single latest bookmark per work, so new bookmarks automatically overwrite the older bookmark within the same work.
 - Reframed bookmarks as restart markers and likes as multi-fragment reading tabs, updated the library/work-page resume links, and normalized older multi-bookmark data down to the latest bookmark per work.

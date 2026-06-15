@@ -1,4 +1,5 @@
-import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260616040318';
+import { replaceAozoraGaijiNotation } from './aozora-gaiji.js?v=20260616044322';
+import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260616044322';
 
 function emphasisStyleFromNote(note) {
   if (note.includes('白丸傍点')) {
@@ -77,7 +78,7 @@ function wrapWithEmphasis(contentHtml, spec) {
 }
 
 function convertWithRenderer(text, renderChunk) {
-  const source = String(text ?? '');
+  const source = replaceAozoraGaijiNotation(String(text ?? ''));
   const notePattern = /[［\[]＃([^］\]]+)[］\]]/gu;
   let output = '';
   let lastIndex = 0;
