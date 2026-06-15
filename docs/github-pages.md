@@ -25,8 +25,8 @@ GitHub公式ドキュメントでは、GitHub Pagesは特定ブランチへのpu
 
 ```powershell
 pwsh ./scripts/update-release-stamp.ps1
-pwsh ./scripts/verify-pages.ps1
-pwsh ./scripts/publish-pages.ps1
+pwsh ./verify-pages.ps1
+pwsh ./publish-pages.ps1
 ```
 
 `publish-pages.ps1` は `origin/main` への push を前提とする。

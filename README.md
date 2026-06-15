@@ -24,8 +24,8 @@ python -m http.server 8000 --bind 0.0.0.0
 
 ```powershell
 pwsh ./scripts/update-release-stamp.ps1
-pwsh ./scripts/verify-pages.ps1
-pwsh ./scripts/publish-pages.ps1
+pwsh ./verify-pages.ps1
+pwsh ./publish-pages.ps1
 ```
 
 - `update-release-stamp.ps1`
@@ -35,7 +35,7 @@ pwsh ./scripts/publish-pages.ps1
 - `publish-pages.ps1`
   stamp、verify、commit、`origin/main` への push をまとめて実行します。
 
-現在のローカル Git には `origin` が未設定だと publish は失敗します。先に GitHub リポジトリの remote を追加してください。
+`origin` が未設定の clone では publish は失敗します。先に GitHub リポジトリの remote を追加してください。
 
 ## GitHub Pages 公開
 
@@ -50,7 +50,7 @@ pwsh ./scripts/publish-pages.ps1
 初回設定後の更新は、ローカルで次を実行すれば足ります。
 
 ```powershell
-pwsh ./scripts/publish-pages.ps1
+pwsh ./publish-pages.ps1
 ```
 
 アプリはハッシュルーティングを使うため、個別ページ遷移は `#/fragment/...` で維持されます。`404.html` はルートへの復帰用です。

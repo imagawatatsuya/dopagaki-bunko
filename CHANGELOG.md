@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added local PowerShell automation for GitHub Pages publishing with release stamping, preflight verification, and `origin/main` push orchestration, plus a `release.json` marker file for release identification.
+- Added root-level publish/verify wrappers and a `.nojekyll` marker so GitHub Pages updates are easier to trigger and static files are served without Jekyll processing.
 - Updated manifest/docs for GitHub Pages root publishing and documented the current publish blocker when no git remote is configured locally.
 - Initial Codex-ready project skeleton.
 - Added the dependency-free initial screen shell with bottom navigation for Home TL, Library, Search, and Settings.
