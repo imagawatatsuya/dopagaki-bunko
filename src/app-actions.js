@@ -88,6 +88,16 @@ export function createSearchActions({
       };
     });
 
+    const fragmentIdByIndex = new Map(
+      fragmentRecords
+        .filter((fragment) => fragment.type === 'fragment')
+        .map((fragment) => [fragment.index, fragment.id])
+    );
+    workRecord.outline = (state.importPreview.outline ?? []).map((entry) => ({
+      ...entry,
+      fragmentId: entry.fragmentIndex ? fragmentIdByIndex.get(entry.fragmentIndex) ?? null : null
+    }));
+
     await putRecord('works', workRecord);
     await putRecords('fragments', fragmentRecords);
     await loadStateFromDb();

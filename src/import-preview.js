@@ -1,6 +1,7 @@
-import { cleanAozoraText } from './aozora-cleaner.js?v=20260616050738';
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616050738';
-import { fragmentText } from './fragmenter.js?v=20260616050738';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260616052324';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616052324';
+import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260616052324';
+import { fragmentText } from './fragmenter.js?v=20260616052324';
 
 function stripInlineAozoraNotation(text) {
   return String(text)
@@ -31,6 +32,10 @@ function isDirectiveOnlyLine(line) {
   return stripBodyDirectiveTokens(line) === '';
 }
 
+function hasReadableMetadataLine(line) {
+  return trimForMetadata(line) && !isDirectiveOnlyLine(line);
+}
+
 function findBodyStartIndex(lines, authorLineIndex) {
   let index = Math.max(authorLineIndex + 1, 0);
 
@@ -48,29 +53,43 @@ function findBodyStartIndex(lines, authorLineIndex) {
 }
 
 function guessTitle(lines) {
-  const candidate = lines.find((line) => trimForMetadata(line)) ?? '';
+  const candidate = lines.find((line) => hasReadableMetadataLine(line)) ?? '';
   return stripInlineAozoraNotation(candidate) || '無題';
 }
 
 function guessAuthor(lines) {
-  const candidate = lines.slice(1, 6).find((line) => trimForMetadata(line)) ?? '';
+  const candidate = lines.slice(1, 6).find((line) => hasReadableMetadataLine(line)) ?? '';
   return stripInlineAozoraNotation(candidate) || '著者不明';
 }
 
+function buildOutlineWithFragmentIndex(outline, fragments) {
+  return (outline ?? []).map((entry) => {
+    const fragment = fragments.find((item) => {
+      return item.type === 'fragment' && item.displayHtml.includes(`data-heading-id="${entry.id}"`);
+    });
+
+    return {
+      ...entry,
+      fragmentIndex: fragment?.index ?? null
+    };
+  });
+}
+
 export function derivePreviewFromText(rawText, encoding) {
-  const cleanedText = cleanAozoraText(rawText);
+  const cleanedText = cleanAozoraText(rawText, { preserveAnnotationOnlyLines: true });
   const lines = cleanedText.split('\n');
-  const nonEmptyLines = lines.filter((line) => trimForMetadata(line));
+  const nonEmptyLines = lines.filter((line) => hasReadableMetadataLine(line));
   const title = guessTitle(lines);
   const author = guessAuthor(lines);
-  const titleLineIndex = lines.findIndex((line) => trimForMetadata(line));
+  const titleLineIndex = lines.findIndex((line) => hasReadableMetadataLine(line));
   const authorLineIndex = lines.findIndex((line, index) => {
-    return index > titleLineIndex && trimForMetadata(line);
+    return index > titleLineIndex && hasReadableMetadataLine(line);
   });
   const bodyStartIndex = findBodyStartIndex(lines, authorLineIndex);
   const fallbackBodyText = nonEmptyLines.slice(Math.max(authorLineIndex, titleLineIndex) + 1).join('\n');
   const bodyText = lines.slice(bodyStartIndex).join('\n') || fallbackBodyText || cleanedText;
-  const displayHtml = preserveLeadingFullWidthIndent(convertAozoraRubyAndEmphasisToHtml(bodyText));
+  const renderedBody = renderAozoraBodyWithHeadings(bodyText, fragmentText);
+  const displayHtml = preserveLeadingFullWidthIndent(renderedBody.html || convertAozoraRubyAndEmphasisToHtml(bodyText));
 
   let fragmentIndex = 0;
   const fragments = [];
@@ -114,6 +133,7 @@ export function derivePreviewFromText(rawText, encoding) {
     author,
     encoding,
     fragments,
+    outline: buildOutlineWithFragmentIndex(renderedBody.outline, fragments),
     textFragmentCount: fragmentIndex,
     cleanedText
   };

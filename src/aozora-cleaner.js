@@ -70,11 +70,13 @@ function trimExtraSpace(text) {
     .replace(/\n+$/u, '');
 }
 
-export function cleanAozoraText(text) {
+export function cleanAozoraText(text, options = {}) {
   const normalized = normalizeNewlines(text);
   const withoutGuide = stripGuideSection(normalized);
   const withoutHeader = stripHeader(withoutGuide);
   const withoutFooter = stripFooter(withoutHeader);
-  const withoutAnnotationOnlyLines = stripAnnotationOnlyLines(withoutFooter);
+  const withoutAnnotationOnlyLines = options.preserveAnnotationOnlyLines
+    ? withoutFooter
+    : stripAnnotationOnlyLines(withoutFooter);
   return trimExtraSpace(withoutAnnotationOnlyLines);
 }
