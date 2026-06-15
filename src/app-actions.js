@@ -56,6 +56,7 @@ export function createSearchActions({
 
   function resetCatalogSearchSession() {
     state.aozoraCatalogQuery = '';
+    state.aozoraCatalogStatus = '';
     state.aozoraCatalogResults = [];
     state.aozoraCatalogVisibleCount = SEARCH_RESULTS_BATCH_SIZE;
   }
@@ -437,7 +438,8 @@ export function createSettingsActions({
   loadStateFromDb,
   clearAllStores,
   ensureSampleData,
-  pickImportInput
+  pickImportInput,
+  saveWorkLoadMode
 }) {
   async function refreshRelease() {
     state.releaseStatus = '最新版を確認しています。';
@@ -581,6 +583,18 @@ export function createSettingsActions({
 
     if (action === 'refresh-release') {
       await refreshRelease();
+      return;
+    }
+
+    if (action === 'set-work-load-mode-auto' || action === 'set-work-load-mode-manual') {
+      const mode = action === 'set-work-load-mode-manual' ? 'manual' : 'auto';
+      state.workLoadMode = mode;
+      try {
+        await saveWorkLoadMode(mode);
+      } catch (error) {
+        console.error(error);
+      }
+      renderSettings();
       return;
     }
 

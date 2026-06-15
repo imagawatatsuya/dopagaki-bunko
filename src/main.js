@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616084537';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616085734';
 import {
   buildHomeTimelineEvents,
   buildSavedItems,
@@ -9,30 +9,30 @@ import {
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords
-} from './state.js?v=20260616084537';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616084537';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260616084537';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616084537';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616084537';
+} from './state.js?v=20260616085734';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260616085734';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260616085734';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616085734';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616085734';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260616084537';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616084537';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260616084537';
-import { derivePreviewFromText } from './import-preview.js?v=20260616084537';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616084537';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616084537';
-import { repairAozoraHeadingNotesInHtml } from './aozora-headings.js?v=20260616084537';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616084537';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260616084537';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616084537';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616084537';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260616084537';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260616084537';
+} from './app-actions.js?v=20260616085734';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616085734';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260616085734';
+import { derivePreviewFromText } from './import-preview.js?v=20260616085734';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616085734';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616085734';
+import { repairAozoraHeadingNotesInHtml } from './aozora-headings.js?v=20260616085734';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616085734';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260616085734';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616085734';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616085734';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260616085734';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260616085734';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -41,7 +41,7 @@ import {
   bindSettingsInteractions,
   bindWorkHeaderActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260616084537';
+} from './ui-bindings.js?v=20260616085734';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -61,12 +61,13 @@ import {
   timelineCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260616084537';
+} from './views.js?v=20260616085734';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
 const SEARCH_RESULTS_BATCH_SIZE = 25;
 const READER_FONT_SCALE_STORAGE_KEY = 'dopagaki-reader-font-scale';
+const WORK_LOAD_MODE_SETTING_ID = 'setting:work-load-mode';
 const READER_FONT_SCALES = [
   { value: 0.92, label: 'A-' },
   { value: 1, label: '標準' },
@@ -95,8 +96,10 @@ const state = {
   aozoraCatalogRecords: [],
   aozoraCatalogResults: [],
   aozoraCatalogVisibleCount: SEARCH_RESULTS_BATCH_SIZE,
+  workLoadMode: 'auto',
   readerFontScale: 1,
-  workHeaderProgressCleanup: null
+  workHeaderProgressCleanup: null,
+  workAutoLoadCleanup: null
 };
 
 function escapeHtml(value) {
@@ -170,6 +173,10 @@ function renderLayout({ current, title, subtitle, body, headerMetaHtml = '' }) {
     state.workHeaderProgressCleanup();
     state.workHeaderProgressCleanup = null;
   }
+  if (typeof state.workAutoLoadCleanup === 'function') {
+    state.workAutoLoadCleanup();
+    state.workAutoLoadCleanup = null;
+  }
 
   app.innerHTML = layoutMarkup({
     current: escapeHtml(current),
@@ -185,6 +192,10 @@ function renderWorkLayout({ title, subtitle, body, headerMetaHtml = '' }) {
     state.workHeaderProgressCleanup();
     state.workHeaderProgressCleanup = null;
   }
+  if (typeof state.workAutoLoadCleanup === 'function') {
+    state.workAutoLoadCleanup();
+    state.workAutoLoadCleanup = null;
+  }
 
   app.innerHTML = layoutMarkup({
     current: 'library',
@@ -195,6 +206,10 @@ function renderWorkLayout({ title, subtitle, body, headerMetaHtml = '' }) {
     headerClassName: 'page-header-compact',
     eyebrowHtml: ''
   });
+}
+
+function normalizeWorkLoadMode(value) {
+  return value === 'manual' ? 'manual' : 'auto';
 }
 
 function calculateRemainingPercent(shownCount, totalCount) {
@@ -443,6 +458,40 @@ function bindWorkHeaderProgress(totalTextFragments) {
   };
 }
 
+function bindWorkAutoLoad(workId, shownTextCount, totalTextFragments) {
+  if (state.workLoadMode !== 'auto' || shownTextCount >= totalTextFragments) {
+    return;
+  }
+
+  const sentinel = app.querySelector('[data-work-auto-load-sentinel]');
+  if (!sentinel || typeof IntersectionObserver !== 'function') {
+    return;
+  }
+
+  let triggered = false;
+  const observer = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (!entry?.isIntersecting || triggered) {
+      return;
+    }
+
+    triggered = true;
+    observer.disconnect();
+    location.replace(buildWorkHash(workId, {
+      visible: shownTextCount + WORK_PAGE_BATCH_SIZE
+    }));
+  }, {
+    root: null,
+    rootMargin: '0px 0px 320px 0px',
+    threshold: 0.01
+  });
+
+  observer.observe(sentinel);
+  state.workAutoLoadCleanup = () => {
+    observer.disconnect();
+  };
+}
+
 function renderSavedItemCard(kind, item) {
   const label = savedCollectionLabel(kind);
   const collectionHash = buildCollectionHash(kind);
@@ -663,11 +712,19 @@ function renderWorkPage(workId, options = {}) {
     ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildFragmentHash(bookmark.fragmentId, { returnTo: returnToHash })}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>`
     : '';
   const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break' ? renderBreakCard() : renderWorkFragmentCard(fragment, returnToHash)).join('');
-  const moreLinkHtml = remainingTextCount > 0 ? `
-    <div class="settings-button-grid">
-      <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, { visible: shownTextCount + WORK_PAGE_BATCH_SIZE })}">もっと読む（残り ${remainingTextCount}断片）</a>
-    </div>
-  ` : '';
+  const moreLinkHtml = remainingTextCount > 0
+    ? (state.workLoadMode === 'manual'
+      ? `
+        <div class="settings-button-grid">
+          <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, { visible: shownTextCount + WORK_PAGE_BATCH_SIZE })}">もっと読む（残り ${remainingTextCount}断片）</a>
+        </div>
+      `
+      : `
+        <div class="work-auto-load-panel" data-work-auto-load-sentinel>
+          <p class="settings-status settings-status-subtle">続きを自動で読み込みます。残り ${remainingTextCount}断片</p>
+        </div>
+      `)
+    : '';
 
   renderWorkLayout({
     title: work?.title ?? '作品ページ',
@@ -723,6 +780,7 @@ function renderWorkPage(workId, options = {}) {
     });
   });
   bindWorkHeaderProgress(totalTextFragments);
+  bindWorkAutoLoad(workId, shownTextCount, totalTextFragments);
   bindWorkOverlayActions(app, async (fragmentId) => {
     await toggleBookmark(fragmentId, { rerender: false });
     app.querySelectorAll('[data-work-action="bookmark"]').forEach((item) => {
@@ -826,6 +884,8 @@ function renderSettings() {
     body: settingsBodyMarkup({
       exportStatusHtml: state.exportStatus ? `<p class="settings-status">${escapeHtml(state.exportStatus)}</p>` : '',
       importStatusHtml: state.importStatus ? `<p class="settings-status">${escapeHtml(state.importStatus)}</p>` : '',
+      readingStatusHtml: `<p class="settings-status settings-status-subtle">現在: ${escapeHtml(state.workLoadMode === 'auto' ? '自動で続ける' : '手動で続ける')}</p>`,
+      workLoadMode: state.workLoadMode,
       releaseStatusHtml: state.releaseStatus ? `<p class="settings-status">${escapeHtml(state.releaseStatus)}</p>` : '',
       pendingImportMarkup: pendingImportSummary
     })
@@ -867,6 +927,8 @@ async function loadStateFromDb() {
   state.likes = new Set(state.likeRecords.map((item) => item.fragmentId));
   state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
   state.quotes = new Set(state.quoteRecords.map((item) => item.fragmentId));
+  const workLoadModeSetting = await getRecord('settings', WORK_LOAD_MODE_SETTING_ID);
+  state.workLoadMode = normalizeWorkLoadMode(workLoadModeSetting?.value);
 }
 
 const { toggleBookmark } = createBookmarkActions({
@@ -947,6 +1009,13 @@ const { handleImportFileSelection, handleSettingsAction } = createSettingsAction
     state.importSheetOpen = false;
   },
   ensureSampleData,
+  saveWorkLoadMode: async (mode) => {
+    await putRecord('settings', {
+      id: WORK_LOAD_MODE_SETTING_ID,
+      value: normalizeWorkLoadMode(mode),
+      updatedAt: new Date().toISOString()
+    });
+  },
   pickImportInput: () => {
     app.querySelector('[data-settings-input="import-json"]')?.click();
   }

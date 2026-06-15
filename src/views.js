@@ -216,7 +216,7 @@ export function settingsPendingImportMarkup(pendingImport, statusHtml) {
   `;
 }
 
-export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, releaseStatusHtml, pendingImportMarkup }) {
+export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, releaseStatusHtml, readingStatusHtml = '', workLoadMode = 'auto', pendingImportMarkup }) {
   return `
     <section class="panel-stack">
       <article class="info-panel">
@@ -235,6 +235,15 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
           <input type="file" class="settings-file-input" accept="application/json,.json" data-settings-input="import-json">
         </div>
         ${importStatusHtml}
+      </article>
+      <article class="info-panel">
+        <h2 class="section-title">読み進め方</h2>
+        <p class="section-text">作品ページの続き読み込み方法を選べます。</p>
+        <div class="settings-button-grid">
+          <button type="button" class="detail-action-button settings-button ${workLoadMode === 'auto' ? 'is-active' : ''}" data-settings-action="set-work-load-mode-auto">自動で続ける</button>
+          <button type="button" class="detail-action-button settings-button ${workLoadMode === 'manual' ? 'is-active' : ''}" data-settings-action="set-work-load-mode-manual">手動で続ける</button>
+        </div>
+        ${readingStatusHtml}
       </article>
       <article class="info-panel">
         <h2 class="section-title">更新反映</h2>

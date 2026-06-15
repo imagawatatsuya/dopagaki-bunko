@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Changed work-timeline continuation to default to automatic loading near the bottom, added a settings toggle to switch between automatic and manual continuation, and persisted that preference in the exported `settings` store.
+- Cleared the transient catalog hit-count status after saving an imported ZIP, so finished imports no longer leave stale `x件見つかりました` search messaging on the add screen.
 - Removed the fixed `縦スクロール読書` eyebrow from every screen header and reduced the shared page-title scale so top bars read as navigation context rather than a second hero.
 - Tightened the work-page header by removing the fixed `縦スクロール読書` eyebrow there and reducing the title scale so the reading view starts with less ornamental header weight.
 - Made the Aozora catalog auto-retry when opening the add screen with no local catalog ready, so first-time users see automatic loading instead of being told to manually refresh before search works.

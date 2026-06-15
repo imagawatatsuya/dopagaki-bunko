@@ -545,6 +545,10 @@ rt {
   display: none;
 }
 
+.work-auto-load-panel {
+  padding: 4px 0 0;
+}
+
 .settings-status {
   margin: 14px 0 0;
   color: var(--accent);
