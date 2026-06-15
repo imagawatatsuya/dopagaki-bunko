@@ -38,24 +38,82 @@ export function createSearchActions({
   state,
   renderSearch,
   readFileAsArrayBuffer,
+  extractAozoraCsvFromZip,
   extractAozoraTxtFromZip,
+  buildAozoraCatalogMeta,
+  buildAozoraCatalogRecords,
   decodeAozoraText,
   derivePreviewFromText,
+  searchAozoraCatalog,
+  AOZORA_CATALOG_META_ID,
+  AOZORA_CATALOG_URL,
+  getAllRecords,
+  clearStore,
   putRecord,
   putRecords,
   loadStateFromDb
 }) {
+  function applyCatalogSearchResults(query) {
+    state.aozoraCatalogQuery = String(query ?? '');
+    state.aozoraCatalogResults = searchAozoraCatalog(state.aozoraCatalogRecords, state.aozoraCatalogQuery, {
+      limit: 50
+    });
+  }
+
+  function resetImportPreview() {
+    state.importPreview = null;
+  }
+
+  async function handleAozoraZipArrayBuffer(arrayBuffer, sourceMeta = {}) {
+    const sourceLabel = String(sourceMeta.sourceLabel ?? 'ZIP');
+    state.importWorkStatus = `${sourceLabel} を読み込んでいます。`;
+    resetImportPreview();
+    renderSearch();
+
+    try {
+      const extracted = await extractAozoraTxtFromZip(arrayBuffer);
+      const decoded = decodeAozoraText(extracted.bytes);
+      const preview = derivePreviewFromText(decoded.text, decoded.encoding);
+      if (!preview.fragments?.some((fragment) => fragment.type === 'fragment')) {
+        throw new Error('断片を作れませんでした。');
+      }
+      state.importPreview = {
+        ...preview,
+        sourceType: String(sourceMeta.sourceType ?? 'zip-upload'),
+        sourceUrl: String(sourceMeta.sourceUrl ?? sourceMeta.cardUrl ?? ''),
+        sourceFileName: String(sourceMeta.sourceFileName ?? extracted.fileName),
+        aozoraWorkId: String(sourceMeta.aozoraWorkId ?? ''),
+        textZipUrl: String(sourceMeta.textZipUrl ?? ''),
+        cardUrl: String(sourceMeta.cardUrl ?? ''),
+        copyrightWarning: Boolean(sourceMeta.copyrightWarning)
+      };
+      state.importWorkStatus = `${extracted.fileName} を読み込みました。保存前に内容を確認してください。`;
+    } catch (error) {
+      console.error(error);
+      state.importWorkStatus = `ZIP 取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
+    }
+
+    renderSearch();
+  }
+
   async function saveImportedWork() {
     if (!state.importPreview) {
       return;
     }
 
+    const importedAt = new Date().toISOString();
     const workId = `work-${Date.now()}`;
     const workRecord = {
       id: workId,
+      sourceType: state.importPreview.sourceType || 'zip-upload',
+      aozoraWorkId: state.importPreview.aozoraWorkId || '',
       title: state.importPreview.title,
       author: state.importPreview.author,
-      createdAt: new Date().toISOString()
+      sourceUrl: state.importPreview.sourceUrl || '',
+      sourceFileName: state.importPreview.sourceFileName || '',
+      importedAt,
+      fragmentCount: state.importPreview.textFragmentCount,
+      createdAt: importedAt
     };
 
     let sequence = 0;
@@ -110,29 +168,138 @@ export function createSearchActions({
       return;
     }
 
-    state.importWorkStatus = 'ZIP を読み込んでいます。';
-    state.importPreview = null;
-    renderSearch();
-
     try {
       const arrayBuffer = await readFileAsArrayBuffer(file);
-      const extracted = await extractAozoraTxtFromZip(arrayBuffer);
-      const decoded = decodeAozoraText(extracted.bytes);
-      const preview = derivePreviewFromText(decoded.text, decoded.encoding);
-      state.importPreview = {
-        ...preview,
-        sourceFileName: extracted.fileName
-      };
-      state.importWorkStatus = `${extracted.fileName} を読み込みました。保存前に内容を確認してください。`;
+      await handleAozoraZipArrayBuffer(arrayBuffer, {
+        sourceType: 'zip-upload',
+        sourceLabel: file.name || 'ZIP',
+        sourceFileName: file.name || ''
+      });
     } catch (error) {
       console.error(error);
       state.importWorkStatus = `ZIP 取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
+      renderSearch();
+    }
+  }
+
+  async function handleAozoraZipUrl(url, sourceMeta = {}) {
+    const fetchUrl = String(url ?? '').trim();
+    if (!fetchUrl) {
+      state.importWorkStatus = '作品ZIPのURLが見つかりませんでした。';
+      renderSearch();
+      return;
+    }
+
+    resetImportPreview();
+    state.importWorkStatus = '青空文庫のZIPを取得しています。';
+    renderSearch();
+
+    try {
+      const response = await fetch(fetchUrl, {
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        state.importWorkStatus = `作品ZIPの取得に失敗しました: HTTP ${response.status}`;
+        renderSearch();
+        return;
+      }
+
+      await handleAozoraZipArrayBuffer(await response.arrayBuffer(), {
+        ...sourceMeta,
+        sourceType: 'aozora-catalog',
+        sourceLabel: sourceMeta.title || '青空文庫ZIP',
+        sourceUrl: sourceMeta.cardUrl || sourceMeta.sourceUrl || '',
+        textZipUrl: fetchUrl
+      });
+    } catch (error) {
+      console.error(error);
+      state.importWorkStatus = 'ブラウザから青空文庫のZIPを直接取得できませんでした。図書カードを開いてZIPを保存し、下の手動取り込みを使ってください。';
+      renderSearch();
+    }
+  }
+
+  async function refreshAozoraCatalog() {
+    state.aozoraCatalogStatus = '作品一覧を更新しています。';
+    renderSearch();
+
+    try {
+      const response = await fetch(AOZORA_CATALOG_URL, {
+        cache: 'no-store'
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const archive = await response.arrayBuffer();
+      const extracted = await extractAozoraCsvFromZip(archive);
+      const csvText = new TextDecoder('utf-8').decode(extracted.bytes);
+      const records = buildAozoraCatalogRecords(csvText);
+
+      if (records.length === 0) {
+        throw new Error('作品一覧を読み取れませんでした。');
+      }
+
+      const metaRecord = buildAozoraCatalogMeta(records);
+      await clearStore('aozoraCatalog');
+      await putRecords('aozoraCatalog', [...records, metaRecord]);
+      state.aozoraCatalogRecords = records;
+      state.aozoraCatalogMeta = metaRecord;
+      applyCatalogSearchResults(state.aozoraCatalogQuery);
+      state.aozoraCatalogStatus = `${records.length}件の作品一覧を更新しました。`;
+    } catch (error) {
+      console.error(error);
+      state.aozoraCatalogStatus = `作品一覧の更新に失敗しました: ${error?.message ?? '不明なエラー'}`;
     }
 
     renderSearch();
   }
 
-  async function handleSearchAction(action) {
+  async function initializeAozoraCatalogState() {
+    const records = await getAllRecords('aozoraCatalog');
+    state.aozoraCatalogMeta = records.find((record) => record.id === AOZORA_CATALOG_META_ID) ?? null;
+    state.aozoraCatalogRecords = records.filter((record) => record.id !== AOZORA_CATALOG_META_ID);
+    applyCatalogSearchResults(state.aozoraCatalogQuery);
+  }
+
+  function runCatalogSearch(query) {
+    if (state.aozoraCatalogRecords.length === 0) {
+      state.aozoraCatalogQuery = String(query ?? '');
+      state.aozoraCatalogResults = [];
+      state.aozoraCatalogStatus = '先に作品一覧を更新してください。';
+      renderSearch();
+      return;
+    }
+
+    applyCatalogSearchResults(query);
+    state.aozoraCatalogStatus = state.aozoraCatalogResults.length > 0
+      ? `${state.aozoraCatalogResults.length}件見つかりました。`
+      : '一致する作品が見つかりませんでした。';
+    renderSearch();
+  }
+
+  async function handleSearchAction(action, payload = {}) {
+    if (action === 'refresh-aozora-catalog') {
+      await refreshAozoraCatalog();
+      return;
+    }
+
+    if (action === 'search-aozora-catalog') {
+      runCatalogSearch(payload.query ?? state.aozoraCatalogQuery);
+      return;
+    }
+
+    if (action === 'import-aozora-result') {
+      await handleAozoraZipUrl(payload.textZipUrl, {
+        aozoraWorkId: payload.workId,
+        title: payload.title,
+        cardUrl: payload.cardUrl,
+        sourceFileName: payload.sourceFileName,
+        copyrightWarning: payload.copyrightWarning === 'true'
+      });
+      return;
+    }
+
     if (action === 'save-imported-work') {
       try {
         await saveImportedWork();
@@ -151,7 +318,13 @@ export function createSearchActions({
     }
   }
 
-  return { handleAozoraZipFile, handleSearchAction };
+  return {
+    handleAozoraZipArrayBuffer,
+    handleAozoraZipFile,
+    handleAozoraZipUrl,
+    handleSearchAction,
+    initializeAozoraCatalogState
+  };
 }
 
 export function createDetailActions({

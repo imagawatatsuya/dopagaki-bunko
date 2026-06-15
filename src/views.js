@@ -69,9 +69,37 @@ export function libraryBodyMarkup(worksHtml, collectionsHtml) {
   `;
 }
 
-export function searchBodyMarkup(statusHtml, previewMarkup) {
+export function searchBodyMarkup({
+  catalogQuery = '',
+  catalogStatusHtml = '',
+  catalogMetaHtml = '',
+  catalogResultsMarkup = '',
+  importStatusHtml = '',
+  previewMarkup = ''
+}) {
   return `
     <section class="panel-stack">
+      <article class="info-panel">
+        <h2 class="section-title">青空文庫から検索</h2>
+        <p class="section-text">作品名や著者名で探し、そのままZIPを取り込めます。直接取得できないときは図書カードと手動取り込みへ切り替えます。</p>
+        <div class="search-toolbar">
+          <input
+            type="search"
+            class="search-input"
+            value="${catalogQuery}"
+            placeholder="作品名または著者名"
+            data-search-input="catalog-query"
+            enterkeyhint="search"
+          >
+          <div class="search-toolbar-actions">
+            <button type="button" class="detail-action-button settings-button" data-search-action="search-aozora-catalog">検索</button>
+            <button type="button" class="detail-action-button settings-button" data-search-action="refresh-aozora-catalog">作品一覧更新</button>
+          </div>
+        </div>
+        ${catalogMetaHtml}
+        ${catalogStatusHtml}
+        ${catalogResultsMarkup}
+      </article>
       <article class="info-panel">
         <h2 class="section-title">ZIP取り込み</h2>
         <p class="section-text">青空文庫のZIPを選ぶだけで、本文を読みやすい短い断片に分けます。保存前にプレビューで確認できます。</p>
@@ -80,10 +108,47 @@ export function searchBodyMarkup(statusHtml, previewMarkup) {
           <span class="dropzone-text">またはクリックしてファイルを選択</span>
           <input type="file" class="settings-file-input" accept=".zip,application/zip" data-search-input="aozora-zip">
         </label>
-        ${statusHtml}
+        ${importStatusHtml}
       </article>
       ${previewMarkup}
     </section>
+  `;
+}
+
+export function aozoraSearchResultsMarkup(results, options = {}) {
+  const emptyMessage = options.emptyMessage || '作品名または著者名で検索してください。';
+
+  return `
+    <div class="preview-list" aria-label="青空文庫検索結果">
+      ${results.length > 0 ? results.map((result) => `
+        <article class="fragment-card preview-card">
+          <h3 class="fragment-work-title">${result.title}</h3>
+          <p class="section-text">${result.author}</p>
+          <p class="settings-status settings-status-subtle">
+            ${result.kanaType || '文字遣い種別なし'}
+            ${result.copyrightWarning ? '<br>著作権に注意が必要な作品です。' : ''}
+          </p>
+          <div class="settings-button-grid">
+            <button
+              type="button"
+              class="detail-action-button settings-button"
+              data-search-action="import-aozora-result"
+              data-work-id="${result.workId}"
+              data-title="${result.title}"
+              data-text-zip-url="${result.textZipUrl}"
+              data-card-url="${result.cardUrl}"
+              data-source-file-name="${result.workId}.zip"
+              data-copyright-warning="${result.copyrightWarning ? 'true' : 'false'}"
+            >取り込む</button>
+            <a class="detail-action-button detail-action-link" href="${result.cardUrl}" target="_blank" rel="noreferrer">図書カード</a>
+          </div>
+        </article>
+      `).join('') : `
+        <article class="info-panel info-panel-muted">
+          <p class="section-text">${emptyMessage}</p>
+        </article>
+      `}
+    </div>
   `;
 }
 
@@ -96,6 +161,7 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
     <article class="info-panel">
       <h2 class="section-title">取り込みプレビュー</h2>
       <p class="section-text">作品名: ${preview.title}<br>著者名: ${preview.author}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${preview.encoding}</p>
+      ${preview.copyrightWarning ? '<p class="settings-status">この作品は著作権に注意が必要です。保存や利用前に図書カードを確認してください。</p>' : ''}
       <div class="preview-list">
         ${preview.fragments.slice(0, 8).map((fragment) => {
           if (fragment.type === 'break') {

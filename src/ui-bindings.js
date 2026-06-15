@@ -42,6 +42,7 @@ export function bindWorkHeaderActions(root, onAction) {
 
 export function bindSearchInteractions(root, { onSelectFile, onDropFile, onAction }) {
   const input = root.querySelector('[data-search-input="aozora-zip"]');
+  const catalogQueryInput = root.querySelector('[data-search-input="catalog-query"]');
   const dropzone = root.querySelector('[data-dropzone="aozora-zip"]');
 
   if (input) {
@@ -66,9 +67,30 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
     });
   }
 
+  if (catalogQueryInput) {
+    catalogQueryInput.addEventListener('keydown', async (event) => {
+      if (event.key !== 'Enter') {
+        return;
+      }
+
+      event.preventDefault();
+      await onAction('search-aozora-catalog', {
+        query: catalogQueryInput.value
+      });
+    });
+  }
+
   root.querySelectorAll('[data-search-action]').forEach((button) => {
     button.addEventListener('click', async () => {
-      await onAction(button.dataset.searchAction);
+      await onAction(button.dataset.searchAction, {
+        query: catalogQueryInput?.value ?? '',
+        workId: button.dataset.workId ?? '',
+        title: button.dataset.title ?? '',
+        textZipUrl: button.dataset.textZipUrl ?? '',
+        cardUrl: button.dataset.cardUrl ?? '',
+        sourceFileName: button.dataset.sourceFileName ?? '',
+        copyrightWarning: button.dataset.copyrightWarning ?? 'false'
+      });
     });
   });
 }

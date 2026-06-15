@@ -178,6 +178,36 @@ select {
   margin-top: 18px;
 }
 
+.search-toolbar {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.search-toolbar-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.search-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.search-input::placeholder {
+  color: var(--muted);
+}
+
+.search-input:focus-visible {
+  outline: 2px solid rgba(138, 59, 18, 0.3);
+  outline-offset: 1px;
+}
+
 .info-panel {
   padding: 18px;
   background: var(--panel-soft);
@@ -620,6 +650,11 @@ rt {
   .info-panel,
   .preview-card {
     padding: 14px;
+  }
+
+  .search-toolbar,
+  .search-toolbar-actions {
+    gap: 10px;
   }
 
   .fragment-card-link {

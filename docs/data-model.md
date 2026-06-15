@@ -9,7 +9,6 @@
   aozoraWorkId,
   title,
   author,
-  handle,
   sourceUrl,
   sourceFileName,
   importedAt,
@@ -31,6 +30,27 @@
   charCount
 }
 ```
+
+## Internal Cache
+
+```js
+{
+  id, // workId or "catalog:meta"
+  title,
+  titleReading,
+  author,
+  authorReading,
+  cardUrl,
+  textZipUrl,
+  kanaType,
+  workCopyrightFlag,
+  authorCopyrightFlags,
+  copyrightWarning,
+  searchText
+}
+```
+
+`aozoraCatalog` は検索用キャッシュであり、JSONバックアップ対象には含めない。
 
 ## Like
 

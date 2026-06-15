@@ -26,7 +26,7 @@ function findEndOfCentralDirectory(view) {
 
 function ensureSupportedArchive(entryCount, centralDirectoryOffset, centralDirectorySize) {
   if (entryCount !== 1) {
-    throw new Error('Only single-text Aozora ZIP archives are supported.');
+    throw new Error('Only single-file Aozora ZIP archives are supported.');
   }
 
   if (centralDirectoryOffset === 0xffffffff || centralDirectorySize === 0xffffffff) {
@@ -81,18 +81,19 @@ function extractStoredData(buffer, view, entry) {
   return new Uint8Array(buffer.slice(dataOffset, dataOffset + entry.compressedSize));
 }
 
-export async function extractAozoraTxtFromZip(arrayBuffer) {
+async function extractSingleFileFromZip(arrayBuffer, options = {}) {
   const view = new DataView(arrayBuffer);
   const eocdOffset = findEndOfCentralDirectory(view);
   const entryCount = readUint16(view, eocdOffset + 10);
   const centralDirectorySize = readUint32(view, eocdOffset + 12);
   const centralDirectoryOffset = readUint32(view, eocdOffset + 16);
+  const extension = String(options.extension ?? '').toLowerCase();
 
   ensureSupportedArchive(entryCount, centralDirectoryOffset, centralDirectorySize);
 
   const entry = parseCentralDirectoryEntry(arrayBuffer, view, centralDirectoryOffset);
-  if (!entry.fileName.toLowerCase().endsWith('.txt')) {
-    throw new Error('The ZIP archive does not contain a .txt file.');
+  if (!extension || !entry.fileName.toLowerCase().endsWith(extension)) {
+    throw new Error(`The ZIP archive does not contain a ${extension || 'supported'} file.`);
   }
 
   if (entry.compressionMethod !== 0 && entry.compressionMethod !== 8) {
@@ -112,4 +113,12 @@ export async function extractAozoraTxtFromZip(arrayBuffer) {
     fileName: entry.fileName,
     bytes: fileBytes
   };
+}
+
+export async function extractAozoraTxtFromZip(arrayBuffer) {
+  return extractSingleFileFromZip(arrayBuffer, { extension: '.txt' });
+}
+
+export async function extractAozoraCsvFromZip(arrayBuffer) {
+  return extractSingleFileFromZip(arrayBuffer, { extension: '.csv' });
 }

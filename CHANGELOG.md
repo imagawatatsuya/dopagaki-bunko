@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Aozora catalog search import on `#/search`: the app can fetch the official public-works CSV ZIP into IndexedDB, search by title or author, and attempt direct ZIP import with a card/manual fallback when browser fetch fails.
+- Generalized the minimal Aozora ZIP reader so the same dependency-free extractor now handles both `.txt` work archives and `.csv` catalog archives, while keeping single-file and non-ZIP64 constraints.
 - Added a settings-screen `最新状態に更新` action that checks `release.json` with `no-store` and reloads only this site with a cache-busting query, avoiding browser-wide cache clearing on iPhone/iOS browsers.
 - Added Windows `.bat` wrappers for the release stamp, verification, and publish scripts so the same GitHub Pages flow can be launched from `cmd.exe` or Explorer without typing `pwsh`.
 - Changed the GitHub Pages bootstrap so `index.html` fetches `release.json` with `no-store` and then loads versioned CSS/JS dynamically, reducing the need for manual browser cache clearing after each publish.

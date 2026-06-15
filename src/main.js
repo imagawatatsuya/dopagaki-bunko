@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616054333';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616072713';
 import {
   buildHomeTimelineEvents,
   buildSavedItems,
@@ -9,27 +9,29 @@ import {
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords
-} from './state.js?v=20260616054333';
-import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616054333';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260616054333';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616054333';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616054333';
+} from './state.js?v=20260616072713';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616072713';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260616072713';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616072713';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616072713';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260616054333';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616054333';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260616054333';
-import { derivePreviewFromText } from './import-preview.js?v=20260616054333';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616054333';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616054333';
-import { repairAozoraHeadingNotesInHtml } from './aozora-headings.js?v=20260616054333';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616054333';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616054333';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616054333';
+} from './app-actions.js?v=20260616072713';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616072713';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260616072713';
+import { derivePreviewFromText } from './import-preview.js?v=20260616072713';
+import { extractAozoraCsvFromZip, extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616072713';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616072713';
+import { repairAozoraHeadingNotesInHtml } from './aozora-headings.js?v=20260616072713';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616072713';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616072713';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616072713';
+import { AOZORA_CATALOG_META_ID, AOZORA_CATALOG_URL, buildAozoraCatalogMeta, buildAozoraCatalogRecords } from './aozora-catalog.js?v=20260616072713';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260616072713';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -38,8 +40,9 @@ import {
   bindSettingsInteractions,
   bindWorkHeaderActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260616054333';
+} from './ui-bindings.js?v=20260616072713';
 import {
+  aozoraSearchResultsMarkup,
   breakCardMarkup,
   collectionBodyMarkup,
   errorBodyMarkup,
@@ -56,7 +59,7 @@ import {
   timelineCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260616054333';
+} from './views.js?v=20260616072713';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -81,6 +84,11 @@ const state = {
   pendingImport: null,
   importWorkStatus: '',
   importPreview: null,
+  aozoraCatalogQuery: '',
+  aozoraCatalogStatus: '',
+  aozoraCatalogMeta: null,
+  aozoraCatalogRecords: [],
+  aozoraCatalogResults: [],
   readerFontScale: 1,
   workHeaderProgressCleanup: null
 };
@@ -709,22 +717,49 @@ function renderSearch() {
       <p class="break-label">原文空行</p>
     </article>
   `);
+  const fetchedAt = state.aozoraCatalogMeta?.fetchedAt
+    ? new Date(state.aozoraCatalogMeta.fetchedAt).toLocaleString('ja-JP')
+    : '';
+  const catalogMetaHtml = fetchedAt
+    ? `<p class="settings-status settings-status-subtle">最終更新: ${escapeHtml(fetchedAt)} / ${escapeHtml(String(state.aozoraCatalogMeta?.recordCount ?? 0))}件</p>`
+    : '<p class="settings-status settings-status-subtle">作品一覧はまだ取得していません。</p>';
+  const emptyMessage = state.aozoraCatalogQuery
+    ? '一致する作品が見つかりませんでした。'
+    : (state.aozoraCatalogRecords.length > 0 ? '作品名または著者名で検索してください。' : '先に作品一覧を更新してください。');
+  const catalogResultsMarkup = aozoraSearchResultsMarkup(
+    state.aozoraCatalogResults.map((result) => ({
+      ...result,
+      title: escapeHtml(result.title),
+      author: escapeHtml(result.author),
+      kanaType: escapeHtml(result.kanaType),
+      workId: escapeHtml(result.workId),
+      textZipUrl: escapeHtml(result.textZipUrl),
+      cardUrl: escapeHtml(result.cardUrl)
+    })),
+    {
+      emptyMessage: escapeHtml(emptyMessage)
+    }
+  );
 
   renderLayout({
     current: 'search',
     title: '作品を追加',
-    subtitle: '青空文庫のZIPを選ぶだけで、短い断片に分けて読めます。',
-    body: searchBodyMarkup(
-      state.importWorkStatus ? `<p class="settings-status">${escapeHtml(state.importWorkStatus)}</p>` : '',
+    subtitle: '青空文庫から探して取り込むか、手元のZIPをそのまま読み込めます。',
+    body: searchBodyMarkup({
+      catalogQuery: escapeHtml(state.aozoraCatalogQuery),
+      catalogStatusHtml: state.aozoraCatalogStatus ? `<p class="settings-status">${escapeHtml(state.aozoraCatalogStatus)}</p>` : '',
+      catalogMetaHtml,
+      catalogResultsMarkup,
+      importStatusHtml: state.importWorkStatus ? `<p class="settings-status">${escapeHtml(state.importWorkStatus)}</p>` : '',
       previewMarkup
-    )
+    })
   });
 
   bindSearchInteractions(app, {
     onSelectFile: handleAozoraZipFile,
     onDropFile: handleAozoraZipFile,
-    onAction: async (action) => {
-      await handleSearchAction(action);
+    onAction: async (action, payload) => {
+      await handleSearchAction(action, payload);
     }
   });
 }
@@ -817,13 +852,25 @@ const { handleCollectionAction } = createCollectionActions({
   removeQuote
 });
 
-const { handleAozoraZipFile, handleSearchAction } = createSearchActions({
+const {
+  handleAozoraZipFile,
+  handleSearchAction,
+  initializeAozoraCatalogState
+} = createSearchActions({
   state,
   renderSearch,
   readFileAsArrayBuffer,
+  extractAozoraCsvFromZip,
   extractAozoraTxtFromZip,
+  buildAozoraCatalogMeta,
+  buildAozoraCatalogRecords,
   decodeAozoraText,
   derivePreviewFromText,
+  searchAozoraCatalog,
+  AOZORA_CATALOG_META_ID,
+  AOZORA_CATALOG_URL,
+  getAllRecords,
+  clearStore,
   putRecord,
   putRecords,
   loadStateFromDb
@@ -838,9 +885,14 @@ const { handleImportFileSelection, handleSettingsAction } = createSettingsAction
   buildImportSummary,
   loadStateFromDb,
   clearAllStores: async () => {
-    for (const storeName of STORE_NAMES) {
+    for (const storeName of ALL_STORE_NAMES) {
       await clearStore(storeName);
     }
+    state.aozoraCatalogQuery = '';
+    state.aozoraCatalogStatus = '';
+    state.aozoraCatalogMeta = null;
+    state.aozoraCatalogRecords = [];
+    state.aozoraCatalogResults = [];
   },
   ensureSampleData,
   pickImportInput: () => {
@@ -902,6 +954,7 @@ async function startApp() {
     loadReaderFontScale();
     await ensureSampleData();
     await loadStateFromDb();
+    await initializeAozoraCatalogState();
     route();
   } catch (error) {
     console.error(error);

@@ -1,5 +1,5 @@
 const DB_NAME = 'dopagaki-bunko';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const STORE_NAMES = [
   'works',
@@ -8,6 +8,15 @@ export const STORE_NAMES = [
   'bookmarks',
   'quotes',
   'settings'
+];
+
+export const INTERNAL_STORE_NAMES = [
+  'aozoraCatalog'
+];
+
+export const ALL_STORE_NAMES = [
+  ...STORE_NAMES,
+  ...INTERNAL_STORE_NAMES
 ];
 
 let openPromise = null;
@@ -41,7 +50,7 @@ function createStore(database, storeName) {
 
 function deleteRemovedStores(database) {
   [...database.objectStoreNames].forEach((storeName) => {
-    if (!STORE_NAMES.includes(storeName)) {
+    if (!ALL_STORE_NAMES.includes(storeName)) {
       database.deleteObjectStore(storeName);
     }
   });
@@ -57,7 +66,7 @@ export function openDb() {
       request.addEventListener('upgradeneeded', () => {
         const database = request.result;
         deleteRemovedStores(database);
-        STORE_NAMES.forEach((storeName) => {
+        ALL_STORE_NAMES.forEach((storeName) => {
           createStore(database, storeName);
         });
       });
@@ -86,7 +95,7 @@ export function openDb() {
 }
 
 export async function withStore(storeName, mode, callback) {
-  if (!STORE_NAMES.includes(storeName)) {
+  if (!ALL_STORE_NAMES.includes(storeName)) {
     throw new Error(`Unknown store: ${storeName}`);
   }
 
