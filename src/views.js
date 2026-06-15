@@ -143,7 +143,7 @@ export function searchImportSheetMarkup({ isOpen = false, importStatusHtml = '' 
 export function aozoraSearchResultsMarkup(results, options = {}) {
   const emptyMessage = options.emptyMessage || '作品名または著者名で検索してください。';
   const resultSummaryHtml = options.resultSummaryHtml || '';
-  const moreActionHtml = options.moreActionHtml || '';
+  const resultActionsHtml = options.resultActionsHtml || '';
 
   return `
     <div class="preview-list aozora-results-list" aria-label="青空文庫検索結果">
@@ -160,7 +160,7 @@ export function aozoraSearchResultsMarkup(results, options = {}) {
           <p class="section-text">${emptyMessage}</p>
         </article>
       `}
-      ${moreActionHtml}
+      ${resultActionsHtml}
     </div>
   `;
 }

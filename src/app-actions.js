@@ -290,6 +290,11 @@ export function createSearchActions({
       return;
     }
 
+    if (action === 'scroll-search-results-top') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (action === 'save-imported-work') {
       try {
         await saveImportedWork();

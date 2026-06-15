@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616082704';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616083124';
 import {
   buildHomeTimelineEvents,
   buildSavedItems,
@@ -9,30 +9,30 @@ import {
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords
-} from './state.js?v=20260616082704';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616082704';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260616082704';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616082704';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616082704';
+} from './state.js?v=20260616083124';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616083124';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260616083124';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616083124';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616083124';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260616082704';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616082704';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260616082704';
-import { derivePreviewFromText } from './import-preview.js?v=20260616082704';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616082704';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616082704';
-import { repairAozoraHeadingNotesInHtml } from './aozora-headings.js?v=20260616082704';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616082704';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260616082704';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616082704';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616082704';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260616082704';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260616082704';
+} from './app-actions.js?v=20260616083124';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616083124';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260616083124';
+import { derivePreviewFromText } from './import-preview.js?v=20260616083124';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616083124';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616083124';
+import { repairAozoraHeadingNotesInHtml } from './aozora-headings.js?v=20260616083124';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616083124';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260616083124';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616083124';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616083124';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260616083124';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260616083124';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -41,7 +41,7 @@ import {
   bindSettingsInteractions,
   bindWorkHeaderActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260616082704';
+} from './ui-bindings.js?v=20260616083124';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -61,7 +61,7 @@ import {
   timelineCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260616082704';
+} from './views.js?v=20260616083124';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -752,8 +752,17 @@ function renderSearch() {
       resultSummaryHtml: totalResultCount > 0
         ? `<p class="settings-status settings-status-subtle">全 ${escapeHtml(String(totalResultCount))} 件中 ${escapeHtml(String(shownResultCount))} 件を表示</p>`
         : '',
-      moreActionHtml: totalResultCount > shownResultCount
-        ? `<div class="settings-button-grid"><button type="button" class="detail-action-button settings-button" data-search-action="show-more-aozora-results">さらに${SEARCH_RESULTS_BATCH_SIZE}件表示</button></div>`
+      resultActionsHtml: totalResultCount > 0
+        ? `
+          <div class="settings-button-grid">
+            ${totalResultCount > shownResultCount
+              ? `<button type="button" class="detail-action-button settings-button" data-search-action="show-more-aozora-results">さらに${SEARCH_RESULTS_BATCH_SIZE}件表示</button>`
+              : ''}
+            ${shownResultCount > SEARCH_RESULTS_BATCH_SIZE
+              ? '<button type="button" class="detail-action-button settings-button" data-search-action="scroll-search-results-top">先頭へ戻る</button>'
+              : ''}
+          </div>
+        `
         : ''
     }
   );
