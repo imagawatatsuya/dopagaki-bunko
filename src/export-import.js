@@ -1,4 +1,4 @@
-import { STORE_NAMES, clearStore, exportStores, putRecords } from './db.js?v=20260616035949';
+import { STORE_NAMES, clearStore, exportStores, putRecords } from './db.js?v=20260616040318';
 
 function createExportPayload(data) {
   return {

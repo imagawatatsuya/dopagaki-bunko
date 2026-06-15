@@ -168,3 +168,51 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, pending
     </section>
   `;
 }
+
+export function collectionBodyMarkup({ label, description, count, emptyTitle, emptyText, itemsHtml }) {
+  return `
+    <section class="panel-stack">
+      <article class="info-panel">
+        <h2 class="section-title">${label}一覧</h2>
+        <p class="section-text">${description}</p>
+        <p class="settings-status settings-status-subtle">${count}件</p>
+      </article>
+    </section>
+    <section class="timeline" aria-label="${label}一覧">
+      ${itemsHtml || `
+        <article class="info-panel info-panel-muted">
+          <h2 class="section-title">${emptyTitle}</h2>
+          <p class="section-text">${emptyText}</p>
+        </article>
+      `}
+    </section>
+  `;
+}
+
+export function workBodyMarkup({
+  workTitle,
+  workAuthor,
+  totalTextFragments,
+  shownTextCount,
+  bookmarkHtml,
+  readerScaleControlsHtml,
+  fragmentsHtml,
+  moreLinkHtml
+}) {
+  return `
+    <section class="panel-stack">
+      <article class="info-panel">
+        <h2 class="section-title">${workTitle}</h2>
+        <p class="section-text">${workAuthor}</p>
+        <p class="settings-status settings-status-subtle">${totalTextFragments}断片</p>
+        <p class="settings-status settings-status-subtle">表示中: ${shownTextCount}断片</p>
+        ${bookmarkHtml}
+        ${readerScaleControlsHtml}
+      </article>
+    </section>
+    <section class="timeline" aria-label="作品断片一覧">
+      ${fragmentsHtml}
+    </section>
+    ${moreLinkHtml}
+  `;
+}

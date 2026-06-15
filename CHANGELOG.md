@@ -5,6 +5,7 @@
 - Renamed the bottom navigation labels to Home / 本棚 / 追加 / Settings on screen, rewrote the import screen copy for reader-facing wording, and removed the app-shell-wide `aria-live` announcement.
 - Split shared layout and key screen template markup out of `src/main.js` into the new dependency-free `src/views.js`, while keeping hash routes and GitHub Pages relative-path behavior intact.
 - Moved the settings screen and import-preview template assembly into `src/views.js` as well, and softened settings copy so backup/import language stays user-facing.
+- Moved work-page and saved-collection body templates into `src/views.js`, leaving `main.js` focused more on route state, event wiring, and data selection.
 - Removed duplicate `.text-link` CSS and the unused `.fragment-inline-index` rule, and updated README wording to match the visible `追加` import screen label.
 - Replaced the uncertain per-work `progress` store with a single latest bookmark per work, so new bookmarks automatically overwrite the older bookmark within the same work.
 - Reframed bookmarks as restart markers and likes as multi-fragment reading tabs, updated the library/work-page resume links, and normalized older multi-bookmark data down to the latest bookmark per work.

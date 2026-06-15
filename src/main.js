@@ -1,16 +1,17 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616035949';
-import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616035949';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260616035949';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616035949';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616035949';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616035949';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260616035949';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616035949';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616035949';
-import { cleanAozoraText } from './aozora-cleaner.js?v=20260616035949';
-import { convertAozoraEmphasisToHtml, convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616035949';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616035949';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616040318';
+import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616040318';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260616040318';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616040318';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616040318';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616040318';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260616040318';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616040318';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616040318';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260616040318';
+import { convertAozoraEmphasisToHtml, convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616040318';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616040318';
 import {
+  collectionBodyMarkup,
   errorBodyMarkup,
   homeBodyMarkup,
   layoutMarkup,
@@ -19,8 +20,9 @@ import {
   searchBodyMarkup,
   searchPreviewMarkup,
   settingsBodyMarkup,
-  settingsPendingImportMarkup
-} from './views.js?v=20260616035949';
+  settingsPendingImportMarkup,
+  workBodyMarkup
+} from './views.js?v=20260616040318';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -821,28 +823,20 @@ function renderCollectionPage(kind) {
   const emptyText = kind === 'bookmarks'
     ? '断片個別ページか作品TLでしおりを付けると、ここから再開できます。'
     : '断片個別ページで保存すると、ここから再アクセスできます。';
+  const itemsHtml = items.map((item) => renderSavedItemCard(kind, item)).join('');
 
   renderLayout({
     current: 'library',
     title: `${label}一覧`,
     subtitle,
-    body: `
-      <section class="panel-stack">
-        <article class="info-panel">
-          <h2 class="section-title">${escapeHtml(label)}一覧</h2>
-          <p class="section-text">${escapeHtml(description)}</p>
-          <p class="settings-status settings-status-subtle">${items.length}件</p>
-        </article>
-      </section>
-      <section class="timeline" aria-label="${escapeHtml(label)}一覧">
-        ${items.length > 0 ? items.map((item) => renderSavedItemCard(kind, item)).join('') : `
-          <article class="info-panel info-panel-muted">
-            <h2 class="section-title">${escapeHtml(label)}はまだありません</h2>
-            <p class="section-text">${escapeHtml(emptyText)}</p>
-          </article>
-        `}
-      </section>
-    `
+    body: collectionBodyMarkup({
+      label: escapeHtml(label),
+      description: escapeHtml(description),
+      count: items.length,
+      emptyTitle: `${escapeHtml(label)}はまだありません`,
+      emptyText: escapeHtml(emptyText),
+      itemsHtml
+    })
   });
 
   app.querySelectorAll('[data-collection-action="remove"]').forEach((button) => {
@@ -863,32 +857,31 @@ function renderWorkPage(workId, options = {}) {
   const remainingTextCount = Math.max(0, totalTextFragments - shownTextCount);
   const returnToHash = buildWorkHash(workId, { visible: shownTextCount });
   const bookmark = getBookmarkForWork(workId);
+  const bookmarkHtml = bookmark
+    ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildFragmentHash(bookmark.fragmentId, { returnTo: returnToHash })}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>`
+    : '';
+  const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break' ? renderBreakCard() : renderWorkFragmentCard(fragment, returnToHash)).join('');
+  const moreLinkHtml = remainingTextCount > 0 ? `
+    <div class="settings-button-grid">
+      <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, { visible: shownTextCount + WORK_PAGE_BATCH_SIZE })}">もっと読む（残り ${remainingTextCount}断片）</a>
+    </div>
+  ` : '';
 
   renderLayout({
     current: 'library',
     title: work?.title ?? '作品ページ',
     subtitle: work?.author ?? '著者不明',
     headerMetaHtml: renderWorkHeaderMeta(shownTextCount, totalTextFragments),
-    body: `
-      <section class="panel-stack">
-        <article class="info-panel">
-          <h2 class="section-title">${escapeHtml(work?.title ?? '無題')}</h2>
-          <p class="section-text">${escapeHtml(work?.author ?? '')}</p>
-          <p class="settings-status settings-status-subtle">${totalTextFragments}断片</p>
-          <p class="settings-status settings-status-subtle">表示中: ${shownTextCount}断片</p>
-          ${bookmark ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildFragmentHash(bookmark.fragmentId, { returnTo: returnToHash })}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>` : ''}
-          ${renderReaderScaleControls()}
-        </article>
-      </section>
-      <section class="timeline" aria-label="作品断片一覧">
-        ${fragments.map((fragment) => fragment.type === 'break' ? renderBreakCard() : renderWorkFragmentCard(fragment, returnToHash)).join('')}
-      </section>
-      ${remainingTextCount > 0 ? `
-        <div class="settings-button-grid">
-          <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, { visible: shownTextCount + WORK_PAGE_BATCH_SIZE })}">もっと読む（残り ${remainingTextCount}断片）</a>
-        </div>
-      ` : ''}
-    `
+    body: workBodyMarkup({
+      workTitle: escapeHtml(work?.title ?? '無題'),
+      workAuthor: escapeHtml(work?.author ?? ''),
+      totalTextFragments,
+      shownTextCount,
+      bookmarkHtml,
+      readerScaleControlsHtml: renderReaderScaleControls(),
+      fragmentsHtml,
+      moreLinkHtml
+    })
   });
 
   if (options.focus) {
