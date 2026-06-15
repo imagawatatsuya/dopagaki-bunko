@@ -1,10 +1,9 @@
 const DB_NAME = 'dopagaki-bunko';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const STORE_NAMES = [
   'works',
   'fragments',
-  'progress',
   'likes',
   'bookmarks',
   'quotes',
@@ -40,6 +39,14 @@ function createStore(database, storeName) {
   }
 }
 
+function deleteRemovedStores(database) {
+  [...database.objectStoreNames].forEach((storeName) => {
+    if (!STORE_NAMES.includes(storeName)) {
+      database.deleteObjectStore(storeName);
+    }
+  });
+}
+
 export function openDb() {
   requireIndexedDb();
 
@@ -49,6 +56,7 @@ export function openDb() {
 
       request.addEventListener('upgradeneeded', () => {
         const database = request.result;
+        deleteRemovedStores(database);
         STORE_NAMES.forEach((storeName) => {
           createStore(database, storeName);
         });

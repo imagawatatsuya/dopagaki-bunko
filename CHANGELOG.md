@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replaced the uncertain per-work `progress` store with a single latest bookmark per work, so new bookmarks automatically overwrite the older bookmark within the same work.
+- Reframed bookmarks as restart markers and likes as multi-fragment reading tabs, updated the library/work-page resume links, and normalized older multi-bookmark data down to the latest bookmark per work.
 - Added local PowerShell automation for GitHub Pages publishing with release stamping, preflight verification, and `origin/main` push orchestration, plus a `release.json` marker file for release identification.
 - Added root-level publish/verify wrappers and a `.nojekyll` marker so GitHub Pages updates are easier to trigger and static files are served without Jekyll processing.
 - Updated manifest/docs for GitHub Pages root publishing and documented the current publish blocker when no git remote is configured locally.

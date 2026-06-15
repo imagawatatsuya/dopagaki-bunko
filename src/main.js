@@ -1,15 +1,15 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260615013000';
-import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260615013000';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260615013000';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260615013000';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260615013000';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260615013000';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260615013000';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260615013000';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260615013000';
-import { cleanAozoraText } from './aozora-cleaner.js?v=20260615013000';
-import { convertAozoraEmphasisToHtml, convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260615013000';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260615013000';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260615230123';
+import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260615230123';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260615230123';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260615230123';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260615230123';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260615230123';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260615230123';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260615230123';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260615230123';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260615230123';
+import { convertAozoraEmphasisToHtml, convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260615230123';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260615230123';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -22,7 +22,6 @@ const READER_FONT_SCALES = [
 const state = {
   works: [],
   fragments: [],
-  progress: new Map(),
   likes: new Set(),
   bookmarks: new Set(),
   quotes: new Set(),
@@ -204,6 +203,63 @@ function getFirstReadableFragmentForWork(workId) {
   }) ?? null;
 }
 
+function getFragmentById(fragmentId) {
+  return state.fragments.find((item) => item.id === fragmentId) ?? null;
+}
+
+function getBookmarkForWork(workId) {
+  return state.bookmarkRecords.find((item) => item.workId === workId) ?? null;
+}
+
+function normalizeBookmarkRecord(record) {
+  const fragment = getFragmentById(record?.fragmentId ?? record?.id);
+  if (!fragment) {
+    return null;
+  }
+
+  const savedAt = String(record?.savedAt ?? record?.createdAt ?? '');
+  return {
+    id: fragment.workId,
+    workId: fragment.workId,
+    fragmentId: fragment.id,
+    fragmentIndex: fragment.index ?? null,
+    savedAt: savedAt || new Date(0).toISOString()
+  };
+}
+
+function canonicalizeBookmarkRecords(records) {
+  const latestByWork = new Map();
+
+  records.forEach((record) => {
+    const normalized = normalizeBookmarkRecord(record);
+    if (!normalized) {
+      return;
+    }
+
+    const current = latestByWork.get(normalized.workId);
+    if (!current || String(normalized.savedAt).localeCompare(String(current.savedAt)) >= 0) {
+      latestByWork.set(normalized.workId, normalized);
+    }
+  });
+
+  return sortSavedRecords([...latestByWork.values()]);
+}
+
+function sameBookmarkRecords(left, right) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((record, index) => {
+    const other = right[index];
+    return record.id === other.id
+      && record.workId === other.workId
+      && record.fragmentId === other.fragmentId
+      && record.fragmentIndex === other.fragmentIndex
+      && String(record.savedAt ?? '') === String(other.savedAt ?? '');
+  });
+}
+
 function getHomeTimelineEvents() {
   const workEvents = state.works
     .map((work) => {
@@ -224,7 +280,7 @@ function getHomeTimelineEvents() {
 
   const bookmarkEvents = state.bookmarkRecords
     .map((record) => {
-      const fragment = state.fragments.find((item) => item.id === record.fragmentId);
+      const fragment = getFragmentById(record.fragmentId);
       if (!fragment || !record.savedAt) {
         return null;
       }
@@ -233,7 +289,7 @@ function getHomeTimelineEvents() {
         id: `bookmark:${record.fragmentId}:${record.savedAt}`,
         fragment,
         workTitle: findWorkById(fragment.workId)?.title ?? '無題',
-        metaLabel: `しおり追加 / 断片 ${fragment.index}`,
+        metaLabel: `最新しおり / 断片 ${fragment.index}`,
         occurredAt: record.savedAt
       };
     })
@@ -241,7 +297,7 @@ function getHomeTimelineEvents() {
 
   const likeEvents = state.likeRecords
     .map((record) => {
-      const fragment = state.fragments.find((item) => item.id === record.fragmentId);
+      const fragment = getFragmentById(record.fragmentId);
       if (!fragment || !record.savedAt) {
         return null;
       }
@@ -441,7 +497,7 @@ function renderWorkFragmentCard(fragment, returnToHash) {
           data-work-action="bookmark"
           data-fragment-id="${escapeHtml(fragment.id)}"
           data-fragment-index="${fragment.index}"
-          aria-label="${bookmarked ? `断片 ${fragment.index} のしおりを外す` : `断片 ${fragment.index} にしおりを付ける`}"
+          aria-label="${bookmarked ? `断片 ${fragment.index} が現在のしおりです` : `断片 ${fragment.index} を現在のしおりにする`}"
           aria-pressed="${bookmarked ? 'true' : 'false'}"
         >断片 ${fragment.index}</button>
       </div>
@@ -455,7 +511,9 @@ function bindWorkOverlayActions() {
       event.preventDefault();
       event.stopPropagation();
       await toggleBookmark(button.dataset.fragmentId, { rerender: false });
-      updateWorkOverlayBookmarkButton(button, state.bookmarks.has(button.dataset.fragmentId));
+      app.querySelectorAll('[data-work-action="bookmark"]').forEach((item) => {
+        updateWorkOverlayBookmarkButton(item, state.bookmarks.has(item.dataset.fragmentId));
+      });
     });
   });
 }
@@ -466,7 +524,7 @@ function updateWorkOverlayBookmarkButton(button, bookmarked) {
   button.setAttribute('aria-pressed', bookmarked ? 'true' : 'false');
   button.setAttribute(
     'aria-label',
-    bookmarked ? `断片 ${fragmentIndex} のしおりを外す` : `断片 ${fragmentIndex} にしおりを付ける`
+    bookmarked ? `断片 ${fragmentIndex} が現在のしおりです` : `断片 ${fragmentIndex} を現在のしおりにする`
   );
 }
 
@@ -576,7 +634,7 @@ function getSavedRecords(kind) {
 
 function buildSavedItems(kind) {
   return getSavedRecords(kind).map((record) => {
-    const fragment = state.fragments.find((item) => item.id === record.fragmentId) ?? null;
+    const fragment = getFragmentById(record.fragmentId);
     const work = findWorkById(record.workId ?? fragment?.workId) ?? null;
     const plainText = record.plainText ?? fragment?.plainText ?? '';
     const fragmentIndex = fragment?.index ?? record.fragmentIndex ?? null;
@@ -615,7 +673,7 @@ function renderSavedItemCard(kind, item) {
       <div class="settings-button-grid">
         ${item.fragment ? `<a class="detail-action-button detail-action-link" href="${fragmentLink}">断片を開く</a>` : '<span class="detail-action-button is-disabled" aria-disabled="true">断片が見つかりません</span>'}
         ${item.fragment ? `<a class="detail-action-button detail-action-link" href="${timelineLink}">作品TLで開く</a>` : ''}
-        <button type="button" class="detail-action-button" data-collection-action="remove" data-collection-kind="${escapeHtml(kind)}" data-fragment-id="${escapeHtml(item.record.fragmentId)}">${escapeHtml(label)}を外す</button>
+        <button type="button" class="detail-action-button" data-collection-action="remove" data-collection-kind="${escapeHtml(kind)}" data-record-id="${escapeHtml(item.record.id)}">${escapeHtml(label)}を外す</button>
       </div>
     </article>
   `;
@@ -658,12 +716,12 @@ function renderHome(options = {}) {
   renderLayout({
     current: 'home',
     title: 'ホームTL',
-    subtitle: options.focusFragmentId ? '指定した断片へジャンプしました。' : '作品追加・しおり追加・いいね追加の記録が新しい順に流れます。',
+    subtitle: options.focusFragmentId ? '指定した断片へジャンプしました。' : '作品追加・最新しおり・いいね追加の記録が新しい順に流れます。',
     body: `
       <section class="hero-panel">
         <p class="hero-kicker">Timeline</p>
         <h2 class="hero-title">作品名と本文だけを流す。</h2>
-        <p class="hero-text">ホームTLには、作品追加・しおり追加・いいね追加に対応する断片を新しい順で表示します。アイコン、時刻、いいね、しおり、引用などの操作はここには出しません。</p>
+        <p class="hero-text">ホームTLには、作品追加・最新しおり・いいね追加に対応する断片を新しい順で表示します。アイコン、時刻、いいね、しおり、引用などの操作はここには出しません。</p>
       </section>
       <section class="timeline" aria-label="ホームタイムライン">
         ${timelineEvents.map((event) => {
@@ -721,7 +779,7 @@ function renderFragment(fragmentId, options = {}) {
       </div>
       <div class="detail-actions" aria-label="断片の操作">
         <button type="button" class="detail-action-button ${liked ? 'is-active' : ''}" data-action="like" data-fragment-id="${escapeHtml(fragment.id)}">${liked ? 'いいね済み' : 'いいね'}</button>
-        <button type="button" class="detail-action-button ${bookmarked ? 'is-active' : ''}" data-action="bookmark" data-fragment-id="${escapeHtml(fragment.id)}">${bookmarked ? 'しおり済み' : 'しおり'}</button>
+        <button type="button" class="detail-action-button ${bookmarked ? 'is-active' : ''}" data-action="bookmark" data-fragment-id="${escapeHtml(fragment.id)}">${bookmarked ? '現在のしおり' : 'しおり'}</button>
         <button type="button" class="detail-action-button ${quoted ? 'is-active' : ''}" data-action="quote" data-fragment-id="${escapeHtml(fragment.id)}">${quoted ? '引用保存済み' : '引用保存'}</button>
         <a class="detail-action-button detail-action-link" href="${workHash}">作品TLのこの位置へ</a>
         ${showBackLink ? `<a class="detail-action-button" href="${backToHash}">${backLinkLabel}</a>` : ''}
@@ -735,15 +793,12 @@ function renderFragment(fragmentId, options = {}) {
     });
   });
   bindReaderScaleControls();
-
-  void saveProgress(fragment);
 }
 
 function buildImportSummary(stores) {
   return [
     `works ${stores.works.length}件`,
     `fragments ${stores.fragments.length}件`,
-    `progress ${stores.progress.length}件`,
     `likes ${stores.likes.length}件`,
     `bookmarks ${stores.bookmarks.length}件`,
     `quotes ${stores.quotes.length}件`,
@@ -759,14 +814,14 @@ function renderLibrary() {
     body: `
       <section class="panel-stack">
         ${state.works.map((work) => {
-          const progress = state.progress.get(work.id);
+          const bookmark = getBookmarkForWork(work.id);
           return `
             <article class="info-panel">
               <a class="panel-link" href="#/work/${encodeURIComponent(work.id)}">
                 <h2 class="section-title">${escapeHtml(work.title)}</h2>
                 <p class="section-text">${escapeHtml(work.author ?? '')}</p>
                 <p class="settings-status settings-status-subtle">${countWorkTextFragments(work.id)}断片</p>
-                ${progress ? `<p class="settings-status settings-status-subtle">続き: 断片 ${progress.index}</p>` : ''}
+                ${bookmark ? `<p class="settings-status settings-status-subtle">しおり: 断片 ${bookmark.fragmentIndex}</p>` : ''}
               </a>
             </article>
           `;
@@ -788,16 +843,23 @@ function renderLibrary() {
 function renderCollectionPage(kind) {
   const items = buildSavedItems(kind);
   const label = savedCollectionLabel(kind);
+  const subtitle = kind === 'bookmarks' ? '作品ごとの最新しおりをここから開けます。' : '保存した断片へここから戻れます。';
+  const description = kind === 'bookmarks'
+    ? '作品ごとの現在しおりを新しい順に表示します。'
+    : `${label}した断片を新しい順に表示します。`;
+  const emptyText = kind === 'bookmarks'
+    ? '断片個別ページか作品TLでしおりを付けると、ここから再開できます。'
+    : '断片個別ページで保存すると、ここから再アクセスできます。';
 
   renderLayout({
     current: 'library',
     title: `${label}一覧`,
-    subtitle: '保存した断片へここから戻れます。',
+    subtitle,
     body: `
       <section class="panel-stack">
         <article class="info-panel">
           <h2 class="section-title">${escapeHtml(label)}一覧</h2>
-          <p class="section-text">${escapeHtml(label)}した断片を新しい順に表示します。</p>
+          <p class="section-text">${escapeHtml(description)}</p>
           <p class="settings-status settings-status-subtle">${items.length}件</p>
         </article>
       </section>
@@ -805,7 +867,7 @@ function renderCollectionPage(kind) {
         ${items.length > 0 ? items.map((item) => renderSavedItemCard(kind, item)).join('') : `
           <article class="info-panel info-panel-muted">
             <h2 class="section-title">${escapeHtml(label)}はまだありません</h2>
-            <p class="section-text">断片個別ページで保存すると、ここから再アクセスできます。</p>
+            <p class="section-text">${escapeHtml(emptyText)}</p>
           </article>
         `}
       </section>
@@ -814,7 +876,7 @@ function renderCollectionPage(kind) {
 
   app.querySelectorAll('[data-collection-action="remove"]').forEach((button) => {
     button.addEventListener('click', async () => {
-      await handleCollectionAction(button.dataset.collectionKind, button.dataset.fragmentId);
+      await handleCollectionAction(button.dataset.collectionKind, button.dataset.recordId);
     });
   });
 }
@@ -829,7 +891,7 @@ function renderWorkPage(workId, options = {}) {
   const { fragments, shownTextCount } = sliceWorkFragmentsForVisibleCount(workId, visibleTextCount);
   const remainingTextCount = Math.max(0, totalTextFragments - shownTextCount);
   const returnToHash = buildWorkHash(workId, { visible: shownTextCount });
-  const progress = state.progress.get(workId);
+  const bookmark = getBookmarkForWork(workId);
 
   renderLayout({
     current: 'library',
@@ -843,7 +905,7 @@ function renderWorkPage(workId, options = {}) {
           <p class="section-text">${escapeHtml(work?.author ?? '')}</p>
           <p class="settings-status settings-status-subtle">${totalTextFragments}断片</p>
           <p class="settings-status settings-status-subtle">表示中: ${shownTextCount}断片</p>
-          ${progress ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildFragmentHash(progress.fragmentId, { returnTo: returnToHash })}">続きの断片 ${progress.index} を開く</a></p>` : ''}
+          ${bookmark ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildFragmentHash(bookmark.fragmentId, { returnTo: returnToHash })}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>` : ''}
           ${renderReaderScaleControls()}
         </article>
       </section>
@@ -975,7 +1037,7 @@ function renderSettings() {
       <section class="panel-stack">
         <article class="info-panel">
           <h2 class="section-title">JSONエクスポート</h2>
-          <p class="section-text">作品、断片、進捗、いいね、しおり、引用、設定を JSON として書き出します。</p>
+          <p class="section-text">作品、断片、いいね、しおり、引用、設定を JSON として書き出します。</p>
           <div class="settings-actions">
             <button type="button" class="detail-action-button settings-button" data-settings-action="export-json">JSONを書き出す</button>
           </div>
@@ -992,7 +1054,7 @@ function renderSettings() {
         </article>
         <article class="info-panel">
           <h2 class="section-title">アプリ初期化</h2>
-          <p class="section-text">保存した作品、断片、進捗、いいね、しおり、引用、設定を消去して初期状態へ戻します。</p>
+          <p class="section-text">保存した作品、断片、いいね、しおり、引用、設定を消去して初期状態へ戻します。</p>
           <div class="settings-actions">
             <button type="button" class="detail-action-button settings-button" data-settings-action="reset-app">アプリを初期化する</button>
           </div>
@@ -1250,48 +1312,39 @@ async function ensureSampleData() {
 async function loadStateFromDb() {
   state.works = await getAllRecords('works');
   state.fragments = sortFragments(await getAllRecords('fragments'));
-  state.progress = new Map((await getAllRecords('progress')).map((item) => [item.workId, item]));
   state.likeRecords = sortSavedRecords(await listLikes());
-  state.bookmarkRecords = sortSavedRecords(await listBookmarks());
+  const bookmarkRecords = await listBookmarks();
+  const canonicalBookmarks = canonicalizeBookmarkRecords(bookmarkRecords);
+  const sortedBookmarkRecords = sortSavedRecords(bookmarkRecords);
+  if (!sameBookmarkRecords(sortedBookmarkRecords, canonicalBookmarks)) {
+    await clearStore('bookmarks');
+    if (canonicalBookmarks.length > 0) {
+      await putRecords('bookmarks', canonicalBookmarks);
+    }
+  }
+  state.bookmarkRecords = canonicalBookmarks;
   state.quoteRecords = sortSavedRecords(await listQuotes());
   state.likes = new Set(state.likeRecords.map((item) => item.fragmentId));
   state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
   state.quotes = new Set(state.quoteRecords.map((item) => item.fragmentId));
 }
 
-async function saveProgress(fragment) {
+async function toggleBookmark(fragmentId, options = {}) {
+  const fragment = getFragmentById(fragmentId);
   if (!fragment || fragment.type === 'break') {
     return;
   }
 
-  const current = state.progress.get(fragment.workId);
+  const current = getBookmarkForWork(fragment.workId);
   if (current?.fragmentId === fragment.id) {
     return;
   }
 
-  const record = {
-    id: fragment.workId,
-    workId: fragment.workId,
-    fragmentId: fragment.id,
-    index: fragment.index,
-    updatedAt: new Date().toISOString()
-  };
-
-  await putRecord('progress', record);
-  state.progress.set(fragment.workId, record);
-}
-
-async function toggleBookmark(fragmentId, options = {}) {
-  if (state.bookmarks.has(fragmentId)) {
-    await removeBookmark(fragmentId);
-    state.bookmarks.delete(fragmentId);
-  } else {
-    await saveBookmark(fragmentId);
-    state.bookmarks.add(fragmentId);
-  }
+  await saveBookmark(fragment);
 
   if (options.rerender === false) {
-    state.bookmarkRecords = await sortSavedRecords(await listBookmarks());
+    state.bookmarkRecords = canonicalizeBookmarkRecords(await listBookmarks());
+    state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
     return;
   }
 
@@ -1332,17 +1385,17 @@ async function handleDetailAction(action, fragmentId) {
   route();
 }
 
-async function handleCollectionAction(kind, fragmentId) {
-  if (!fragmentId) {
+async function handleCollectionAction(kind, recordId) {
+  if (!recordId) {
     return;
   }
 
   if (kind === 'bookmarks') {
-    await removeBookmark(fragmentId);
+    await removeBookmark(recordId);
   } else if (kind === 'likes') {
-    await removeLike(fragmentId);
+    await removeLike(recordId);
   } else if (kind === 'quotes') {
-    await removeQuote(fragmentId);
+    await removeQuote(recordId);
   } else {
     return;
   }
@@ -1412,7 +1465,7 @@ async function executeImport(mode) {
 }
 
 async function resetAppData() {
-  const confirmed = globalThis.confirm('保存した作品、断片、進捗、いいね、しおり、引用、設定を消去して初期状態へ戻します。続行しますか。');
+  const confirmed = globalThis.confirm('保存した作品、断片、いいね、しおり、引用、設定を消去して初期状態へ戻します。続行しますか。');
   if (!confirmed) {
     return;
   }

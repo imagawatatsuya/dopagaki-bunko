@@ -32,25 +32,6 @@
 }
 ```
 
-## ReadingProgress
-
-```js
-{
-  workId,
-  lastReadFragmentIndex,
-  updatedAt
-}
-```
-
-## Follow
-
-```js
-{
-  workId,
-  followedAt
-}
-```
-
 ## Like
 
 ```js
@@ -64,8 +45,11 @@
 
 ```js
 {
+  id, // workId
+  workId,
   fragmentId,
-  createdAt
+  fragmentIndex,
+  savedAt
 }
 ```
 
