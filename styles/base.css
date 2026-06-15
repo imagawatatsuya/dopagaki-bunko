@@ -183,11 +183,6 @@ select {
   text-decoration: none;
 }
 
-.text-link {
-  color: var(--accent);
-  text-decoration: none;
-}
-
 .info-panel-muted {
   background: #fcf8f1;
 }
@@ -620,10 +615,6 @@ rt {
     min-height: 32px;
     padding: 5px 9px;
     font-size: 13px;
-  }
-
-  .fragment-inline-index {
-    font-size: 10px;
   }
 
   .fragment-overlay-meta {

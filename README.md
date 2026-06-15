@@ -69,7 +69,7 @@ pwsh ./publish-pages.ps1
 
 ## 青空文庫 ZIP 取り込み
 
-検索画面 `#/search` で青空文庫 ZIP を取り込めます。
+追加画面 `#/search` で青空文庫 ZIP を取り込めます。
 
 - ZIP をドラッグ＆ドロップ、またはファイル選択
 - ZIP 内 txt を抽出

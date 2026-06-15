@@ -1,15 +1,26 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260615230123';
-import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260615230123';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260615230123';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260615230123';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260615230123';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260615230123';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260615230123';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260615230123';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260615230123';
-import { cleanAozoraText } from './aozora-cleaner.js?v=20260615230123';
-import { convertAozoraEmphasisToHtml, convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260615230123';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260615230123';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616035949';
+import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616035949';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260616035949';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616035949';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616035949';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616035949';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260616035949';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616035949';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616035949';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260616035949';
+import { convertAozoraEmphasisToHtml, convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616035949';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616035949';
+import {
+  errorBodyMarkup,
+  homeBodyMarkup,
+  layoutMarkup,
+  libraryBodyMarkup,
+  loadingBodyMarkup,
+  searchBodyMarkup,
+  searchPreviewMarkup,
+  settingsBodyMarkup,
+  settingsPendingImportMarkup
+} from './views.js?v=20260616035949';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -108,37 +119,19 @@ function normalizeFragmentDisplayHtml(html) {
   return convertAozoraEmphasisToHtml(String(html ?? ''));
 }
 
-function nav(current) {
-  const items = [
-    ['home', 'ホーム', '#/'],
-    ['library', 'ライブラリ', '#/library'],
-    ['search', '検索', '#/search'],
-    ['settings', '設定', '#/settings']
-  ];
-
-  return `<nav class="bottom-nav" aria-label="主要ナビゲーション">${items.map(([key, label, href]) => `
-    <a class="bottom-nav-link" href="${href}" ${current === key ? 'aria-current="page"' : ''}>${label}</a>
-  `).join('')}</nav>`;
-}
-
 function renderLayout({ current, title, subtitle, body, headerMetaHtml = '' }) {
   if (typeof state.workHeaderProgressCleanup === 'function') {
     state.workHeaderProgressCleanup();
     state.workHeaderProgressCleanup = null;
   }
 
-  app.innerHTML = `
-    <header class="page-header">
-      <p class="page-eyebrow">縦スクロール読書</p>
-      <h1 class="page-title">${escapeHtml(title)}</h1>
-      <p class="page-subtitle">${escapeHtml(subtitle)}</p>
-      ${headerMetaHtml}
-    </header>
-    <main class="screen screen-${escapeHtml(current)}">
-      ${body}
-    </main>
-    ${nav(current)}
-  `;
+  app.innerHTML = layoutMarkup({
+    current: escapeHtml(current),
+    title: escapeHtml(title),
+    subtitle: escapeHtml(subtitle),
+    body,
+    headerMetaHtml
+  });
 }
 
 function calculateRemainingPercent(shownCount, totalCount) {
@@ -684,13 +677,7 @@ function renderLoading(message = '読書データを準備しています。') {
     current: 'home',
     title: 'ホームTL',
     subtitle: '初回データを確認しています。',
-    body: `
-      <section class="hero-panel">
-        <p class="hero-kicker">Loading</p>
-        <h2 class="hero-title">準備中</h2>
-        <p class="hero-text">${escapeHtml(message)}</p>
-      </section>
-    `
+    body: loadingBodyMarkup(escapeHtml(message))
   });
 }
 
@@ -699,41 +686,26 @@ function renderError(error) {
     current: 'home',
     title: 'ホームTL',
     subtitle: 'データの読み込みに失敗しました。',
-    body: `
-      <section class="panel-stack">
-        <article class="info-panel">
-          <h2 class="section-title">読み込みエラー</h2>
-          <p class="section-text">${escapeHtml(error?.message ?? '不明なエラーが発生しました。')}</p>
-        </article>
-      </section>
-    `
+    body: errorBodyMarkup(escapeHtml(error?.message ?? '不明なエラーが発生しました。'))
   });
 }
 
 function renderHome(options = {}) {
   const timelineEvents = getHomeTimelineEvents();
+  const timelineCardsHtml = timelineEvents.map((event) => {
+    return renderTimelineCard(event.fragment, event.workTitle, {
+      metaLabel: event.metaLabel,
+      detailHref: buildFragmentHash(event.fragment.id, {
+        returnTo: buildHomeHash({ focus: event.fragment.id })
+      })
+    });
+  }).join('');
 
   renderLayout({
     current: 'home',
     title: 'ホームTL',
-    subtitle: options.focusFragmentId ? '指定した断片へジャンプしました。' : '作品追加・最新しおり・いいね追加の記録が新しい順に流れます。',
-    body: `
-      <section class="hero-panel">
-        <p class="hero-kicker">Timeline</p>
-        <h2 class="hero-title">作品名と本文だけを流す。</h2>
-        <p class="hero-text">ホームTLには、作品追加・最新しおり・いいね追加に対応する断片を新しい順で表示します。アイコン、時刻、いいね、しおり、引用などの操作はここには出しません。</p>
-      </section>
-      <section class="timeline" aria-label="ホームタイムライン">
-        ${timelineEvents.map((event) => {
-          return renderTimelineCard(event.fragment, event.workTitle, {
-            metaLabel: event.metaLabel,
-            detailHref: buildFragmentHash(event.fragment.id, {
-              returnTo: buildHomeHash({ focus: event.fragment.id })
-            })
-          });
-        }).join('')}
-      </section>
-    `
+    subtitle: options.focusFragmentId ? '指定した断片へジャンプしました。' : '読みかけの作品や気に入った断片がここに流れます。',
+    body: homeBodyMarkup(timelineCardsHtml)
   });
 
   if (options.focusFragmentId) {
@@ -807,36 +779,35 @@ function buildImportSummary(stores) {
 }
 
 function renderLibrary() {
+  const worksHtml = state.works.map((work) => {
+    const bookmark = getBookmarkForWork(work.id);
+    return `
+      <article class="info-panel">
+        <a class="panel-link" href="#/work/${encodeURIComponent(work.id)}">
+          <h2 class="section-title">${escapeHtml(work.title)}</h2>
+          <p class="section-text">${escapeHtml(work.author ?? '')}</p>
+          <p class="settings-status settings-status-subtle">${countWorkTextFragments(work.id)}断片</p>
+          ${bookmark ? `<p class="settings-status settings-status-subtle">しおり: 断片 ${bookmark.fragmentIndex}</p>` : ''}
+        </a>
+      </article>
+    `;
+  }).join('');
+  const collectionsHtml = `
+    <article class="info-panel">
+      <h2 class="section-title">保存一覧</h2>
+      <p class="settings-status settings-status-subtle">しおり ${state.bookmarkRecords.length}件 / いいね ${state.likeRecords.length}件 / 引用保存 ${state.quoteRecords.length}件</p>
+      <div class="settings-button-grid">
+        <a class="detail-action-button detail-action-link" href="${buildCollectionHash('bookmarks')}">しおり一覧を開く</a>
+        <a class="detail-action-button detail-action-link" href="${buildCollectionHash('likes')}">いいね一覧を開く</a>
+        <a class="detail-action-button detail-action-link" href="${buildCollectionHash('quotes')}">引用保存一覧を開く</a>
+      </div>
+    </article>
+  `;
   renderLayout({
     current: 'library',
-    title: 'ライブラリ',
-    subtitle: '保存した作品アカウントを管理します。',
-    body: `
-      <section class="panel-stack">
-        ${state.works.map((work) => {
-          const bookmark = getBookmarkForWork(work.id);
-          return `
-            <article class="info-panel">
-              <a class="panel-link" href="#/work/${encodeURIComponent(work.id)}">
-                <h2 class="section-title">${escapeHtml(work.title)}</h2>
-                <p class="section-text">${escapeHtml(work.author ?? '')}</p>
-                <p class="settings-status settings-status-subtle">${countWorkTextFragments(work.id)}断片</p>
-                ${bookmark ? `<p class="settings-status settings-status-subtle">しおり: 断片 ${bookmark.fragmentIndex}</p>` : ''}
-              </a>
-            </article>
-          `;
-        }).join('')}
-        <article class="info-panel">
-          <h2 class="section-title">保存一覧</h2>
-          <p class="settings-status settings-status-subtle">しおり ${state.bookmarkRecords.length}件 / いいね ${state.likeRecords.length}件 / 引用保存 ${state.quoteRecords.length}件</p>
-          <div class="settings-button-grid">
-            <a class="detail-action-button detail-action-link" href="${buildCollectionHash('bookmarks')}">しおり一覧を開く</a>
-            <a class="detail-action-button detail-action-link" href="${buildCollectionHash('likes')}">いいね一覧を開く</a>
-            <a class="detail-action-button detail-action-link" href="${buildCollectionHash('quotes')}">引用保存一覧を開く</a>
-          </div>
-        </article>
-      </section>
-    `
+    title: '本棚',
+    subtitle: '保存した作品をここで読み継ぎます。',
+    body: libraryBodyMarkup(worksHtml, collectionsHtml)
   });
 }
 
@@ -933,54 +904,25 @@ function renderWorkPage(workId, options = {}) {
 
 function renderSearch() {
   const preview = state.importPreview;
-  const previewMarkup = preview ? `
-    <article class="info-panel">
-      <h2 class="section-title">取り込みプレビュー</h2>
-      <p class="section-text">作品名: ${escapeHtml(preview.title)}<br>著者名: ${escapeHtml(preview.author)}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${escapeHtml(preview.encoding)}</p>
-      <div class="preview-list">
-        ${preview.fragments.slice(0, 8).map((fragment) => {
-          if (fragment.type === 'break') {
-            return `
-              <article class="fragment-card fragment-card-break preview-card">
-                <p class="break-label">原文空行</p>
-              </article>
-            `;
-          }
-
-          return `
-            <article class="fragment-card preview-card">
-              <h3 class="fragment-work-title">断片 ${fragment.index}</h3>
-              <div class="fragment-body">${fragment.displayHtml}</div>
-            </article>
-          `;
-        }).join('')}
-      </div>
-      <div class="settings-button-grid">
-        <button type="button" class="detail-action-button settings-button" data-search-action="save-imported-work">作品として保存する</button>
-        <button type="button" class="detail-action-button settings-button" data-search-action="clear-preview">プレビューを閉じる</button>
-      </div>
+  const previewMarkup = searchPreviewMarkup(preview ? {
+    ...preview,
+    title: escapeHtml(preview.title),
+    author: escapeHtml(preview.author),
+    encoding: escapeHtml(preview.encoding)
+  } : null, `
+    <article class="fragment-card fragment-card-break preview-card">
+      <p class="break-label">原文空行</p>
     </article>
-  ` : '';
+  `);
 
   renderLayout({
     current: 'search',
-    title: '検索',
-    subtitle: '青空文庫 ZIP を読み込んで作品アカウントにします。',
-    body: `
-      <section class="panel-stack">
-        <article class="info-panel">
-          <h2 class="section-title">ZIP取り込み</h2>
-          <p class="section-text">青空文庫の ZIP をドラッグ＆ドロップ、またはファイル選択してください。txt 抽出、文字コード変換、クリーニング、ルビ・圏点変換、断片化、プレビューまで行います。</p>
-          <label class="dropzone" data-dropzone="aozora-zip">
-            <span class="dropzone-title">ZIP をここにドロップ</span>
-            <span class="dropzone-text">またはクリックしてファイルを選択</span>
-            <input type="file" class="settings-file-input" accept=".zip,application/zip" data-search-input="aozora-zip">
-          </label>
-          ${state.importWorkStatus ? `<p class="settings-status">${escapeHtml(state.importWorkStatus)}</p>` : ''}
-        </article>
-        ${previewMarkup}
-      </section>
-    `
+    title: '作品を追加',
+    subtitle: '青空文庫のZIPを選ぶだけで、短い断片に分けて読めます。',
+    body: searchBodyMarkup(
+      state.importWorkStatus ? `<p class="settings-status">${escapeHtml(state.importWorkStatus)}</p>` : '',
+      previewMarkup
+    )
   });
 
   const input = app.querySelector('[data-search-input="aozora-zip"]');
@@ -1016,52 +958,20 @@ function renderSearch() {
 }
 
 function renderSettings() {
-  const pendingImportSummary = state.pendingImport ? `
-    <article class="info-panel settings-confirm-panel">
-      <h2 class="section-title">インポート確認</h2>
-      <p class="section-text">${escapeHtml(state.pendingImport.fileName)} を読み込みました。既存データを上書きするか、追加するかを選んでください。</p>
-      <p class="settings-status settings-status-subtle">${escapeHtml(state.pendingImport.summary)}</p>
-      <div class="settings-button-grid">
-        <button type="button" class="detail-action-button settings-button" data-settings-action="import-replace">上書きする</button>
-        <button type="button" class="detail-action-button settings-button" data-settings-action="import-append">追加する</button>
-        <button type="button" class="detail-action-button settings-button" data-settings-action="import-cancel">キャンセル</button>
-      </div>
-    </article>
-  ` : '';
+  const pendingImportSummary = settingsPendingImportMarkup(state.pendingImport ? {
+    ...state.pendingImport,
+    fileName: escapeHtml(state.pendingImport.fileName)
+  } : null, escapeHtml(state.pendingImport?.summary ?? ''));
 
   renderLayout({
     current: 'settings',
     title: '設定',
-    subtitle: 'バックアップと入出力をここで管理します。',
-    body: `
-      <section class="panel-stack">
-        <article class="info-panel">
-          <h2 class="section-title">JSONエクスポート</h2>
-          <p class="section-text">作品、断片、いいね、しおり、引用、設定を JSON として書き出します。</p>
-          <div class="settings-actions">
-            <button type="button" class="detail-action-button settings-button" data-settings-action="export-json">JSONを書き出す</button>
-          </div>
-          ${state.exportStatus ? `<p class="settings-status">${escapeHtml(state.exportStatus)}</p>` : ''}
-        </article>
-        <article class="info-panel">
-          <h2 class="section-title">JSONインポート</h2>
-          <p class="section-text">バックアップ JSON を読み込みます。実行前に上書きか追加かを確認します。</p>
-          <div class="settings-actions">
-            <button type="button" class="detail-action-button settings-button" data-settings-action="pick-import">JSONを選ぶ</button>
-            <input type="file" class="settings-file-input" accept="application/json,.json" data-settings-input="import-json">
-          </div>
-          ${state.importStatus ? `<p class="settings-status">${escapeHtml(state.importStatus)}</p>` : ''}
-        </article>
-        <article class="info-panel">
-          <h2 class="section-title">アプリ初期化</h2>
-          <p class="section-text">保存した作品、断片、いいね、しおり、引用、設定を消去して初期状態へ戻します。</p>
-          <div class="settings-actions">
-            <button type="button" class="detail-action-button settings-button" data-settings-action="reset-app">アプリを初期化する</button>
-          </div>
-        </article>
-        ${pendingImportSummary}
-      </section>
-    `
+    subtitle: 'バックアップや読み込みはここで扱えます。',
+    body: settingsBodyMarkup({
+      exportStatusHtml: state.exportStatus ? `<p class="settings-status">${escapeHtml(state.exportStatus)}</p>` : '',
+      importStatusHtml: state.importStatus ? `<p class="settings-status">${escapeHtml(state.importStatus)}</p>` : '',
+      pendingImportMarkup: pendingImportSummary
+    })
   });
 
   app.querySelectorAll('[data-settings-action]').forEach((button) => {
