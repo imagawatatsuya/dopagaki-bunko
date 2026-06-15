@@ -29,13 +29,26 @@ pwsh ./publish-pages.ps1
 ```
 
 - `update-release-stamp.ps1`
-  `index.html` と `src/*.js` のローカル参照へ release version を付け、`release.json` を更新します。
+  `index.html` の fallback release version、`src/*.js` のローカル参照、`release.json` を更新します。
 - `verify-pages.ps1`
   GitHub Pages 公開に必要なファイル、相対参照、`manifest.webmanifest`、`main` ブランチ、`origin` 設定を検証します。
 - `publish-pages.ps1`
   stamp、verify、commit、`origin/main` への push をまとめて実行します。
 
 `origin` が未設定の clone では publish は失敗します。先に GitHub リポジトリの remote を追加してください。
+
+## 更新反映
+
+このアプリは起動時に `release.json` を取りに行き、最新 release version の CSS / JS を読み込みます。
+通常はブラウザ全体のキャッシュ削除は不要です。
+
+それでも更新が見えないときは、サイトURLの末尾へ一時的な query を付けて `index.html` だけ新規取得してください。
+
+```text
+https://imagawatatsuya.github.io/dopagaki-bunko/?reload=20260616
+```
+
+これはこのサイトの HTML 再取得を促すだけで、他サイトのキャッシュは消しません。
 
 ## GitHub Pages 公開
 

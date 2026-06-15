@@ -1,15 +1,45 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-release-version="20260616045144">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>青空TL</title>
-  <link rel="stylesheet" href="./styles/base.css?v=20260616044322">
+  <link id="app-stylesheet" rel="stylesheet" href="./styles/base.css?v=20260616045144">
   <link rel="manifest" href="./manifest.webmanifest">
+  <script type="module">
+    const fallbackVersion = document.documentElement.dataset.releaseVersion || '';
+    const stylesheet = document.getElementById('app-stylesheet');
+
+    function assetUrl(path, version) {
+      return version ? `${path}?v=${encodeURIComponent(version)}` : path;
+    }
+
+    async function resolveReleaseVersion() {
+      try {
+        const response = await fetch(`./release.json?ts=${Date.now()}`, {
+          cache: 'no-store'
+        });
+        if (!response.ok) {
+          return fallbackVersion;
+        }
+        const release = await response.json();
+        return typeof release.version === 'string' && release.version
+          ? release.version
+          : fallbackVersion;
+      } catch {
+        return fallbackVersion;
+      }
+    }
+
+    const version = await resolveReleaseVersion();
+    if (stylesheet) {
+      stylesheet.href = assetUrl('./styles/base.css', version);
+    }
+    await import(assetUrl('./src/main.js', version));
+  </script>
 </head>
 <body>
   <noscript>このアプリを使うにはJavaScriptを有効にしてください。</noscript>
   <div id="app" class="app-shell"></div>
-  <script type="module" src="./src/main.js?v=20260616044322"></script>
 </body>
 </html>

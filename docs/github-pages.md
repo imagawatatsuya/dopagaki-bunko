@@ -32,6 +32,21 @@ pwsh ./publish-pages.ps1
 `publish-pages.ps1` は `origin/main` への push を前提とする。
 ローカル repository に remote が無い場合は公開を止める。
 
+## 更新反映
+
+`index.html` は起動時に `release.json` を `no-store` で取得し、そこに書かれた
+release version の CSS / JS を動的に読み込む。
+
+これにより、ブラウザ全体のキャッシュ削除なしで、新しいアセットへ追従しやすくする。
+
+それでも古い `index.html` が残る場合は、URL に一時的な query を付けて HTML だけ再取得する。
+
+```text
+https://imagawatatsuya.github.io/dopagaki-bunko/?reload=20260616
+```
+
+この方法は、このサイトの HTML 再取得を促すだけで、他サイトのキャッシュには触れない。
+
 ## 初期運用でGitHub Actionsを使わない理由
 
 - 依存を増やさない

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed the GitHub Pages bootstrap so `index.html` fetches `release.json` with `no-store` and then loads versioned CSS/JS dynamically, reducing the need for manual browser cache clearing after each publish.
 - Renamed the bottom navigation labels to Home / 本棚 / 追加 / Settings on screen, rewrote the import screen copy for reader-facing wording, and removed the app-shell-wide `aria-live` announcement.
 - Split shared layout and key screen template markup out of `src/main.js` into the new dependency-free `src/views.js`, while keeping hash routes and GitHub Pages relative-path behavior intact.
 - Moved the settings screen and import-preview template assembly into `src/views.js` as well, and softened settings copy so backup/import language stays user-facing.

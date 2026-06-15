@@ -1,6 +1,6 @@
-import { cleanAozoraText } from './aozora-cleaner.js?v=20260616044322';
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616044322';
-import { fragmentText } from './fragmenter.js?v=20260616044322';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260616045144';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616045144';
+import { fragmentText } from './fragmenter.js?v=20260616045144';
 
 function stripInlineAozoraNotation(text) {
   return String(text)

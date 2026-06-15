@@ -22,6 +22,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 Update-FileContent -Path (Join-Path $repoRoot 'index.html') -Transform {
   param($content)
   $content = [regex]::Replace($content, '(?<=(href|src)=["'']\./[^"'']+\.(css|js))(\?v=[^"'']*)?(?=["''])', "?v=$Version")
+  $content = [regex]::Replace($content, '(?<=data-release-version=["''])[^"'']*(?=["''])', $Version)
   $content
 }
 

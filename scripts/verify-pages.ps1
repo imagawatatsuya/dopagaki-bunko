@@ -29,12 +29,20 @@ if ($indexHtml -match 'https?://') {
   $failures.Add('index.html contains an absolute http/https asset reference.')
 }
 
-if ($indexHtml -notmatch '<script type="module" src="\./src/main\.js\?v=') {
-  $failures.Add('index.html is missing the stamped main.js module reference.')
+if ($indexHtml -notmatch 'data-release-version="[^"]+"') {
+  $failures.Add('index.html is missing the stamped fallback release version.')
 }
 
-if ($indexHtml -notmatch '<link rel="stylesheet" href="\./styles/base\.css\?v=') {
+if ($indexHtml -notmatch '<link id="app-stylesheet" rel="stylesheet" href="\./styles/base\.css\?v=') {
   $failures.Add('index.html is missing the stamped stylesheet reference.')
+}
+
+if ($indexHtml -notmatch 'fetch\(`\./release\.json\?ts=\$\{Date\.now\(\)\}`') {
+  $failures.Add('index.html is missing the release.json bootstrap fetch.')
+}
+
+if ($indexHtml -notmatch 'await import\(assetUrl\(''\./src/main\.js'', version\)\);') {
+  $failures.Add('index.html is missing the dynamic main.js bootstrap import.')
 }
 
 if ($manifest -notmatch '"start_url"\s*:\s*"\./"') {
