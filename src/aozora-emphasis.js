@@ -1,4 +1,4 @@
-import { convertAozoraRubyToHtml } from './aozora-ruby.js';
+import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260615013000';
 
 function emphasisStyleFromNote(note) {
   if (note.includes('白丸傍点')) {

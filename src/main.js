@@ -1,15 +1,15 @@
-import { sampleFragments, sampleWorks } from './sample-data.js';
-import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js';
-import { listLikes, removeLike, saveLike } from './likes.js';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js';
-import { readFileAsArrayBuffer } from './file-reader.js';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js';
-import { decodeAozoraText } from './aozora-text-decoder.js';
-import { cleanAozoraText } from './aozora-cleaner.js';
-import { convertAozoraEmphasisToHtml, convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260615013000';
+import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260615013000';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260615013000';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260615013000';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260615013000';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260615013000';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260615013000';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260615013000';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260615013000';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260615013000';
+import { convertAozoraEmphasisToHtml, convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260615013000';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260615013000';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
