@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616050641';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616050738';
 import {
   buildHomeTimelineEvents,
   buildSavedItems,
@@ -9,26 +9,26 @@ import {
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords
-} from './state.js?v=20260616050641';
-import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616050641';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260616050641';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616050641';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616050641';
+} from './state.js?v=20260616050738';
+import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616050738';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260616050738';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616050738';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616050738';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260616050641';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616050641';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260616050641';
-import { derivePreviewFromText } from './import-preview.js?v=20260616050641';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616050641';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616050641';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616050641';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616050641';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616050641';
+} from './app-actions.js?v=20260616050738';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616050738';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260616050738';
+import { derivePreviewFromText } from './import-preview.js?v=20260616050738';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616050738';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616050738';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616050738';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616050738';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616050738';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -37,7 +37,7 @@ import {
   bindSettingsInteractions,
   bindWorkHeaderActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260616050641';
+} from './ui-bindings.js?v=20260616050738';
 import {
   breakCardMarkup,
   collectionBodyMarkup,
@@ -55,7 +55,7 @@ import {
   timelineCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260616050641';
+} from './views.js?v=20260616050738';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
