@@ -1,7 +1,8 @@
-import { parseCsvObjects } from './aozora-csv.js?v=20260616072713';
-import { buildAozoraSearchText } from './aozora-search.js?v=20260616072713';
+import { parseCsvObjects } from './aozora-csv.js?v=20260616073433';
+import { buildAozoraSearchText } from './aozora-search.js?v=20260616073433';
 
-export const AOZORA_CATALOG_URL = 'https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip';
+export const AOZORA_CATALOG_SOURCE_URL = 'https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip';
+export const AOZORA_CATALOG_ASSET_PATH = './data/aozora-catalog.json';
 export const AOZORA_CATALOG_META_ID = 'catalog:meta';
 
 function normalizeFlag(flag) {
@@ -95,11 +96,23 @@ export function buildAozoraCatalogRecords(csvText) {
     .filter(Boolean);
 }
 
-export function buildAozoraCatalogMeta(records, sourceUrl = AOZORA_CATALOG_URL) {
+export function buildAozoraCatalogMeta(records, sourceUrl = AOZORA_CATALOG_SOURCE_URL, fetchedAt = new Date().toISOString()) {
   return {
     id: AOZORA_CATALOG_META_ID,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt,
     recordCount: records.length,
     sourceUrl
+  };
+}
+
+export function normalizeAozoraCatalogPayload(payload) {
+  const records = Array.isArray(payload?.records) ? payload.records : [];
+  return {
+    records,
+    meta: buildAozoraCatalogMeta(
+      records,
+      String(payload?.sourceUrl ?? AOZORA_CATALOG_SOURCE_URL),
+      String(payload?.fetchedAt ?? new Date().toISOString())
+    )
   };
 }

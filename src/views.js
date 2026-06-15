@@ -81,7 +81,7 @@ export function searchBodyMarkup({
     <section class="panel-stack">
       <article class="info-panel">
         <h2 class="section-title">青空文庫から検索</h2>
-        <p class="section-text">作品名や著者名で探し、そのままZIPを取り込めます。直接取得できないときは図書カードと手動取り込みへ切り替えます。</p>
+        <p class="section-text">同梱の作品一覧から作品名や著者名で探し、そのままZIPを取り込めます。本文ZIPの直接取得が難しいときは図書カードと手動取り込みへ切り替えます。</p>
         <div class="search-toolbar">
           <input
             type="search"
@@ -93,7 +93,7 @@ export function searchBodyMarkup({
           >
           <div class="search-toolbar-actions">
             <button type="button" class="detail-action-button settings-button" data-search-action="search-aozora-catalog">検索</button>
-            <button type="button" class="detail-action-button settings-button" data-search-action="refresh-aozora-catalog">作品一覧更新</button>
+            <button type="button" class="detail-action-button settings-button" data-search-action="refresh-aozora-catalog">一覧を再読込</button>
           </div>
         </div>
         ${catalogMetaHtml}

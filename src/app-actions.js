@@ -38,15 +38,14 @@ export function createSearchActions({
   state,
   renderSearch,
   readFileAsArrayBuffer,
-  extractAozoraCsvFromZip,
   extractAozoraTxtFromZip,
   buildAozoraCatalogMeta,
-  buildAozoraCatalogRecords,
+  normalizeAozoraCatalogPayload,
   decodeAozoraText,
   derivePreviewFromText,
   searchAozoraCatalog,
   AOZORA_CATALOG_META_ID,
-  AOZORA_CATALOG_URL,
+  AOZORA_CATALOG_ASSET_PATH,
   getAllRecords,
   clearStore,
   putRecord,
@@ -219,47 +218,59 @@ export function createSearchActions({
     }
   }
 
-  async function refreshAozoraCatalog() {
-    state.aozoraCatalogStatus = '作品一覧を更新しています。';
-    renderSearch();
+  async function refreshAozoraCatalog(options = {}) {
+    const shouldRender = options.render !== false;
+    state.aozoraCatalogStatus = '同梱の作品一覧を読み直しています。';
+    if (shouldRender) {
+      renderSearch();
+    }
 
     try {
-      const response = await fetch(AOZORA_CATALOG_URL, {
+      const response = await fetch(`${AOZORA_CATALOG_ASSET_PATH}?ts=${Date.now()}`, {
         cache: 'no-store'
       });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const archive = await response.arrayBuffer();
-      const extracted = await extractAozoraCsvFromZip(archive);
-      const csvText = new TextDecoder('utf-8').decode(extracted.bytes);
-      const records = buildAozoraCatalogRecords(csvText);
-
-      if (records.length === 0) {
+      const payload = normalizeAozoraCatalogPayload(await response.json());
+      if (payload.records.length === 0) {
         throw new Error('作品一覧を読み取れませんでした。');
       }
 
-      const metaRecord = buildAozoraCatalogMeta(records);
+      const metaRecord = buildAozoraCatalogMeta(
+        payload.records,
+        payload.meta.sourceUrl,
+        payload.meta.fetchedAt
+      );
       await clearStore('aozoraCatalog');
-      await putRecords('aozoraCatalog', [...records, metaRecord]);
-      state.aozoraCatalogRecords = records;
+      await putRecords('aozoraCatalog', [...payload.records, metaRecord]);
+      state.aozoraCatalogRecords = payload.records;
       state.aozoraCatalogMeta = metaRecord;
       applyCatalogSearchResults(state.aozoraCatalogQuery);
-      state.aozoraCatalogStatus = `${records.length}件の作品一覧を更新しました。`;
+      state.aozoraCatalogStatus = `${payload.records.length}件の同梱作品一覧を読み込みました。`;
     } catch (error) {
       console.error(error);
       state.aozoraCatalogStatus = `作品一覧の更新に失敗しました: ${error?.message ?? '不明なエラー'}`;
     }
 
-    renderSearch();
+    if (shouldRender) {
+      renderSearch();
+    }
   }
 
   async function initializeAozoraCatalogState() {
     const records = await getAllRecords('aozoraCatalog');
-    state.aozoraCatalogMeta = records.find((record) => record.id === AOZORA_CATALOG_META_ID) ?? null;
-    state.aozoraCatalogRecords = records.filter((record) => record.id !== AOZORA_CATALOG_META_ID);
-    applyCatalogSearchResults(state.aozoraCatalogQuery);
+    const cachedMeta = records.find((record) => record.id === AOZORA_CATALOG_META_ID) ?? null;
+    const cachedRecords = records.filter((record) => record.id !== AOZORA_CATALOG_META_ID);
+    if (cachedRecords.length > 0 && cachedMeta) {
+      state.aozoraCatalogMeta = cachedMeta;
+      state.aozoraCatalogRecords = cachedRecords;
+      applyCatalogSearchResults(state.aozoraCatalogQuery);
+      return;
+    }
+
+    await refreshAozoraCatalog({ render: false });
   }
 
   function runCatalogSearch(query) {
