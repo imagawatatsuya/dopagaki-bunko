@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616045848';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616050641';
 import {
   buildHomeTimelineEvents,
   buildSavedItems,
@@ -9,34 +9,35 @@ import {
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords
-} from './state.js?v=20260616045848';
-import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616045848';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260616045848';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616045848';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616045848';
+} from './state.js?v=20260616050641';
+import { STORE_NAMES, clearStore, getAllRecords, putRecord, putRecords } from './db.js?v=20260616050641';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260616050641';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616050641';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616050641';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260616045848';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616045848';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260616045848';
-import { derivePreviewFromText } from './import-preview.js?v=20260616045848';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616045848';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616045848';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616045848';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616045848';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616045848';
+} from './app-actions.js?v=20260616050641';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616050641';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260616050641';
+import { derivePreviewFromText } from './import-preview.js?v=20260616050641';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616050641';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616050641';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616050641';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616050641';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616050641';
 import {
   bindCollectionActions,
   bindDetailActions,
   bindReaderScaleControls,
   bindSearchInteractions,
   bindSettingsInteractions,
+  bindWorkHeaderActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260616045848';
+} from './ui-bindings.js?v=20260616050641';
 import {
   breakCardMarkup,
   collectionBodyMarkup,
@@ -54,7 +55,7 @@ import {
   timelineCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260616045848';
+} from './views.js?v=20260616050641';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -171,7 +172,7 @@ function calculateRemainingPercent(shownCount, totalCount) {
 function renderWorkHeaderMeta(shownCount, totalCount) {
   return `
     <div class="page-header-meta" aria-label="作品進捗">
-      <span class="page-header-pill">断片 <span data-work-progress-current>${shownCount}</span> / <span data-work-progress-total>${totalCount}</span></span>
+      <button type="button" class="page-header-pill page-header-pill-button" data-work-header-action="jump-to-fragment">断片 <span data-work-progress-current>${shownCount}</span> / <span data-work-progress-total>${totalCount}</span></button>
       <span class="page-header-pill page-header-pill-subtle">残り <span data-work-progress-remaining>${calculateRemainingPercent(shownCount, totalCount)}</span>%</span>
     </div>
   `;
@@ -221,6 +222,10 @@ function getReadableFragments() {
 
 function countWorkTextFragments(workId) {
   return state.fragments.filter((fragment) => fragment.workId === workId && fragment.type !== 'break').length;
+}
+
+function getReadableWorkFragments(workId) {
+  return state.fragments.filter((fragment) => fragment.workId === workId && fragment.type !== 'break');
 }
 
 function renderBreakCard() {
@@ -608,6 +613,7 @@ function renderCollectionPage(kind) {
 function renderWorkPage(workId, options = {}) {
   const work = findWorkById(workId);
   const totalTextFragments = countWorkTextFragments(workId);
+  const readableWorkFragments = getReadableWorkFragments(workId);
   const visibleTextCount = Math.min(
     getVisibleCountParam(options.visible, WORK_PAGE_BATCH_SIZE),
     totalTextFragments || WORK_PAGE_BATCH_SIZE
@@ -652,6 +658,33 @@ function renderWorkPage(workId, options = {}) {
   bindReaderScaleControls(app, (value) => {
     saveReaderFontScale(value);
     route();
+  });
+  bindWorkHeaderActions(app, async (action) => {
+    if (action !== 'jump-to-fragment' || totalTextFragments <= 0) {
+      return;
+    }
+
+    const answer = window.prompt(`断片番号を入力してください。1 から ${totalTextFragments} まで指定できます。`, String(shownTextCount));
+    if (answer === null) {
+      return;
+    }
+
+    const targetIndex = Number.parseInt(answer, 10);
+    if (!Number.isFinite(targetIndex) || targetIndex < 1 || targetIndex > totalTextFragments) {
+      window.alert(`1 から ${totalTextFragments} の整数を入力してください。`);
+      return;
+    }
+
+    const targetFragment = readableWorkFragments[targetIndex - 1];
+    if (!targetFragment) {
+      window.alert('指定した断片が見つかりませんでした。');
+      return;
+    }
+
+    location.hash = buildWorkHash(workId, {
+      visible: Math.max(WORK_PAGE_BATCH_SIZE, targetIndex),
+      focus: targetFragment.id
+    });
   });
   bindWorkHeaderProgress(totalTextFragments);
   bindWorkOverlayActions(app, async (fragmentId) => {

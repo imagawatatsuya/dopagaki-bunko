@@ -101,6 +101,17 @@ select {
   letter-spacing: 0.04em;
 }
 
+.page-header-pill-button {
+  cursor: pointer;
+}
+
+.page-header-pill-button:hover,
+.page-header-pill-button:focus-visible {
+  border-color: rgba(138, 59, 18, 0.28);
+  background: rgba(242, 216, 195, 0.78);
+  outline: none;
+}
+
 .page-header-pill-subtle {
   border-color: rgba(107, 93, 80, 0.14);
   background: rgba(247, 240, 227, 0.82);

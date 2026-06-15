@@ -32,6 +32,14 @@ export function bindWorkOverlayActions(root, onBookmark) {
   });
 }
 
+export function bindWorkHeaderActions(root, onAction) {
+  root.querySelectorAll('[data-work-header-action]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      await onAction(button.dataset.workHeaderAction);
+    });
+  });
+}
+
 export function bindSearchInteractions(root, { onSelectFile, onDropFile, onAction }) {
   const input = root.querySelector('[data-search-input="aozora-zip"]');
   const dropzone = root.querySelector('[data-dropzone="aozora-zip"]');

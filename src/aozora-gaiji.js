@@ -1,4 +1,4 @@
-import { AOZORA_GAIJI_MAP } from './aozora-gaiji-map.js?v=20260616045848';
+import { AOZORA_GAIJI_MAP } from './aozora-gaiji-map.js?v=20260616050641';
 
 const JIS_X_0213_GAIJI_PATTERN = /※[［\[]＃「([^」]+)」、第([34])水準(\d+)-(\d+)-(\d+)[］\]]/gu;
 const JIS_X_0213_SYMBOL_PATTERN = /※[［\[]＃([^、]+)、(\d+)-(\d+)-(\d+)[］\]]/gu;
