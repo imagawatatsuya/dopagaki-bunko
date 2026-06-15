@@ -1,0 +1,53 @@
+# CHANGELOG
+
+## Unreleased
+
+- Added local PowerShell automation for GitHub Pages publishing with release stamping, preflight verification, and `origin/main` push orchestration, plus a `release.json` marker file for release identification.
+- Updated manifest/docs for GitHub Pages root publishing and documented the current publish blocker when no git remote is configured locally.
+- Initial Codex-ready project skeleton.
+- Added the dependency-free initial screen shell with bottom navigation for Home TL, Library, Search, and Settings.
+- Added three sample works and timeline fragments to the Home TL, showing only title and body.
+- Added hash-based fragment detail pages with previous/next navigation and like, bookmark, and quote-save buttons.
+- Added a minimal IndexedDB wrapper with the required stores and basic CRUD helpers.
+- Added one-time sample data seeding into IndexedDB and switched timeline rendering to read works and fragments from the database.
+- Added IndexedDB-backed like, bookmark, and quote-save actions with saved-state display on fragment detail pages.
+- Added JSON export using Blob and URL.createObjectURL, with a settings-screen download action.
+- Added JSON import with file selection plus explicit replace-or-append confirmation in the settings screen.
+- Added Shift_JIS decoding with UTF-8 fallback for incoming Aozora text buffers.
+- Added heuristic Aozora text cleaning for header, guide, footer, and source metadata removal.
+- Added safe ruby conversion from Aozora notation to HTML ruby/rt markup with HTML escaping.
+- Added Aozora emphasis conversion to text-emphasis spans with safe fallback for unsupported notes.
+- Added fragment splitting with 60-160 char targeting, 220-char cap, and break preference for line and sentence boundaries.
+- Added minimal Aozora ZIP extraction plus import preview/save flow from the search screen.
+- Added GitHub Pages root-publication support files, SVG app icon, and README instructions for publish, local run, and backup.
+- Added per-work pages and routed the fragment detail screen's work-page action to an actual work route.
+- Added progress persistence when opening fragments, with resume links shown from the library and work pages.
+- Added thin "原文空行" break fragments so preserved source blank lines can appear explicitly without rendering as empty cards.
+- Fixed Aozora annotation-line cleanup to drop both `［＃...］` and `[＃...]` only-line directives before fragment preview generation.
+- Fixed import preview edge cases around mixed-bracket Aozora notes, leading blank first lines, preserved full-width paragraph indents, and preview fragment numbering when break fragments are present.
+- Fixed preview body-start detection so title/author-adjacent directive lines and empty note-only fragments no longer appear as the first imported fragments.
+- Fixed fragment splitting so paragraph-boundary `<br>` markers are carried onto the previous fragment instead of rendering as a fake blank first line in the next fragment.
+- Fixed first-line full-width paragraph indents by wrapping leading `　` runs in a preserved inline span before preview fragment rendering.
+- Fixed saved-work fragment ordering by persisting sequence numbers and sorting loaded fragments by sequence instead of raw IndexedDB key order.
+- Changed work pages to incremental reading with `もっと読む`, storing visible fragment counts in the hash and carrying a `returnTo` route into fragment links for back-navigation-friendly restoration.
+- Added saved-fragment collection pages for bookmarks, likes, and quotes, with library entry links, reopen actions, removal actions, and collection-aware back navigation from fragment detail pages.
+- Replaced the separate bookmark reading-TL route with work-page timeline `focus` jumps, so saved fragments can reopen the target work timeline at the saved card with enough visible fragments, scroll, and temporary highlight.
+- Changed the home timeline to show newly added works first while preserving each work's internal fragment order, and started persisting `createdAt` on imported works for that ordering.
+- Added a settings-screen app reset action that clears every IndexedDB store after confirmation and then restores the initial seeded sample state.
+- Tightened the home timeline to show only one representative fragment per work, ordered by newest added works first, so the home screen signals additions instead of rendering full work fragment streams.
+- Updated the home timeline to prepend bookmarked fragments in newest-bookmark order, keeping them as resume-entry cards above the per-work representative fragments.
+- Reworked the home timeline into a true event record stream, merging work additions, bookmark additions, and like additions into one newest-first fragment timeline.
+- Added event labels with fragment numbers on home timeline cards and clarified the detail-page work-timeline return action as a position-preserving jump into the work TL.
+- Made home-timeline event cards preserve a focused home return route into fragment detail pages, and updated detail-page back-link labels to reflect whether the user returns to home TL, a saved collection, or a work TL.
+- Fixed Aozora emphasis conversion against the provided `789_ruby_5639.zip` source by handling adjacent `対象語［＃「対象語」に傍点］` notes directly and treating plain `傍点` as a filled-dot emphasis style.
+- Added a narrow legacy-display repair for already-saved duplicated emphasis words during rendering, and simplified new imported work IDs to `work-<timestamp>` so work URLs stay shorter and cleaner.
+- Explicitly set `text-emphasis-position` and skip behavior for emphasis spans so rendered bouten/keiten marks appear more reliably in the browser after conversion.
+- Reworked Aozora emphasis handling so new imports convert ruby and emphasis from the raw source in one pass, including `［＃傍点］...［＃傍点終わり］` range notation, while saved fragments still receive render-time repair for leftover note markers and older duplicated-emphasis artifacts.
+- Removed the render-time emphasis guesswork that inferred bouten from repeated text, so emphasis is now generated only from explicit Aozora notation already present in the source text.
+- Tightened the mobile reading layout for narrow screens by reducing stacked horizontal padding, adding safe-area-aware header and bottom-nav spacing, slightly compressing line-height, and treating the inline fragment number as a quieter overlay with much less reserved text width.
+- Added in-place reader font-size controls on work timelines and fragment detail pages, with browser-local persistence so mobile and desktop can keep different reading sizes naturally.
+- Added work-page sticky-header progress pills that show the visible fragment count against the total and a lightweight remaining percentage for dopagaki-style pacing.
+- Changed the trial work-timeline bookmark overlay so the fragment-number pill itself toggles bookmarks, avoiding duplicated right-bottom UI and preventing full-page rerender shifts during work-timeline bookmarking.
+- Lowered the default contrast of work-timeline fragment-number bookmark pills and made cards with crowded final lines fade them even further, keeping the sticky header as the primary current-position indicator.
+- Moved work-timeline and saved-list fragment numbers to a quieter right-bottom caption style so the main reading line starts with text instead of metadata.
+- Changed work-timeline fragment numbers to an inline bottom-right overlay and updated fragment splitting to prefer endings that leave estimated room for that inline label on the final line.
