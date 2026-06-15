@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Changed the GitHub Pages bootstrap so `index.html` fetches `release.json` with `no-store` and then loads versioned CSS/JS dynamically, reducing the need for manual browser cache clearing after each publish.
+- Restored Aozora gaiji conversion for JIS X 0213 plane-row-cell notes and symbol notes, so local import preview and saved fragments now resolve entries like `第3水準1-87-52` to actual characters while unknown notes stay source-visible.
 - Renamed the bottom navigation labels to Home / 本棚 / 追加 / Settings on screen, rewrote the import screen copy for reader-facing wording, and removed the app-shell-wide `aria-live` announcement.
 - Split shared layout and key screen template markup out of `src/main.js` into the new dependency-free `src/views.js`, while keeping hash routes and GitHub Pages relative-path behavior intact.
 - Moved the settings screen and import-preview template assembly into `src/views.js` as well, and softened settings copy so backup/import language stays user-facing.
