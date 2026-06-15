@@ -1,8 +1,8 @@
-import { AOZORA_GAIJI_MAP } from './aozora-gaiji-map.js?v=20260616075514';
+import { AOZORA_GAIJI_MAP } from './aozora-gaiji-map.js?v=20260616081111';
 
-const JIS_X_0213_GAIJI_PATTERN = /※[［\[]＃「([^」]+)」、第([34])水準(\d+)-(\d+)-(\d+)[］\]]/gu;
-const JIS_X_0213_SYMBOL_PATTERN = /※[［\[]＃([^、]+)、(\d+)-(\d+)-(\d+)[］\]]/gu;
-const UNICODE_GAIJI_PATTERN = /※[［\[]＃「([^」]+)」、U\+([0-9A-Fa-f]{4,6})(?:、[^］\]]+)?[］\]]/gu;
+const AOZORA_GAIJI_NOTE_PATTERN = /※[［\[]＃([^］\]]+)[］\]]/gu;
+const UNICODE_REFERENCE_PATTERN = /U\+([0-9A-Fa-f]{4,6})/u;
+const MENKUTEN_PATTERN = /(\d+)-(\d+)-(\d+)/gu;
 
 function codePointFromHex(hex) {
   const codePoint = Number.parseInt(hex, 16);
@@ -15,17 +15,30 @@ function codePointFromHex(hex) {
   return String.fromCodePoint(codePoint);
 }
 
+function replaceGaijiNote(fullMatch, noteText) {
+  const unicodeMatch = String(noteText ?? '').match(UNICODE_REFERENCE_PATTERN);
+  if (unicodeMatch) {
+    return codePointFromHex(unicodeMatch[1]) ?? fullMatch;
+  }
+
+  const menkutenMatches = [...String(noteText ?? '').matchAll(MENKUTEN_PATTERN)];
+  if (menkutenMatches.length === 0) {
+    return fullMatch;
+  }
+
+  const lastMatch = menkutenMatches.at(-1);
+  if (!lastMatch) {
+    return fullMatch;
+  }
+
+  const [, plane, row, cell] = lastMatch;
+  const key = `${plane}-${row}-${cell}`;
+  return AOZORA_GAIJI_MAP[key] ?? fullMatch;
+}
+
 export function replaceAozoraGaijiNotation(text) {
   return String(text ?? '')
-    .replace(JIS_X_0213_GAIJI_PATTERN, (fullMatch, _description, _level, plane, row, cell) => {
-      const key = `${plane}-${row}-${cell}`;
-      return AOZORA_GAIJI_MAP[key] ?? fullMatch;
-    })
-    .replace(JIS_X_0213_SYMBOL_PATTERN, (fullMatch, _description, plane, row, cell) => {
-      const key = `${plane}-${row}-${cell}`;
-      return AOZORA_GAIJI_MAP[key] ?? fullMatch;
-    })
-    .replace(UNICODE_GAIJI_PATTERN, (fullMatch, _description, hex) => {
-    return codePointFromHex(hex) ?? fullMatch;
+    .replace(AOZORA_GAIJI_NOTE_PATTERN, (fullMatch, noteText) => {
+      return replaceGaijiNote(fullMatch, noteText);
     });
 }

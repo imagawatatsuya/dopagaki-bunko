@@ -123,15 +123,8 @@ export function aozoraSearchResultsMarkup(results, options = {}) {
       ${results.length > 0 ? results.map((result) => `
         <article class="fragment-card aozora-result-card">
           <a class="aozora-result-link" href="${result.cardUrl}" target="_blank" rel="noreferrer">
-            <div class="aozora-result-body">
-              <h3 class="fragment-work-title aozora-result-title">${result.title}</h3>
-              <p class="aozora-result-author">${result.author}</p>
-            </div>
-            <p class="settings-status settings-status-subtle aozora-result-meta">
-              ${result.kanaType || '文字遣い種別なし'}
-              ${result.copyrightWarning ? '<br>著作権に注意が必要な作品です。' : ''}
-            </p>
-            <p class="aozora-result-hint">項目を開いて図書カードへ進む</p>
+            <h3 class="fragment-work-title aozora-result-title">${result.title}</h3>
+            <p class="aozora-result-summary">${result.author}${result.kanaType ? `　${result.kanaType}` : ''}${result.copyrightWarning ? '　著作権注意' : ''}</p>
           </a>
         </article>
       `).join('') : `

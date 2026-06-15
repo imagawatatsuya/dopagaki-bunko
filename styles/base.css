@@ -305,12 +305,11 @@ select {
   padding: 5px 10px;
   border: 1px solid rgba(107, 93, 80, 0.08);
   border-radius: 999px;
-  background: rgba(255, 253, 248, 0.18);
-  color: rgba(107, 93, 80, 0.26);
+  background: rgba(255, 253, 248, 0.02);
+  color: rgba(107, 93, 80, 0.34);
   font-size: 11px;
   line-height: 1.2;
   letter-spacing: 0.04em;
-  backdrop-filter: blur(2px);
   cursor: pointer;
   transition:
     color 120ms ease,
@@ -321,21 +320,21 @@ select {
 
 .fragment-overlay-bookmark.is-active {
   border-color: rgba(138, 59, 18, 0.14);
-  background: rgba(242, 216, 195, 0.22);
-  color: rgba(138, 59, 18, 0.42);
+  background: rgba(242, 216, 195, 0.06);
+  color: rgba(138, 59, 18, 0.48);
   font-weight: 700;
 }
 
 .fragment-overlay-bookmark.is-overlay-risk {
   border-color: rgba(107, 93, 80, 0.04);
-  background: rgba(255, 253, 248, 0.08);
-  color: rgba(107, 93, 80, 0.14);
+  background: rgba(255, 253, 248, 0.01);
+  color: rgba(107, 93, 80, 0.18);
 }
 
 .fragment-overlay-bookmark.is-active.is-overlay-risk {
   border-color: rgba(138, 59, 18, 0.08);
-  background: rgba(242, 216, 195, 0.12);
-  color: rgba(138, 59, 18, 0.24);
+  background: rgba(242, 216, 195, 0.03);
+  color: rgba(138, 59, 18, 0.28);
 }
 
 .fragment-overlay-bookmark:hover,
@@ -356,13 +355,19 @@ select {
 }
 
 ruby {
+  display: ruby;
   ruby-position: over;
+  ruby-align: space-around;
+  text-indent: 0;
 }
 
 rt {
+  display: ruby-text;
   font-size: 0.55em;
   line-height: 1;
   letter-spacing: 0;
+  text-align: center;
+  user-select: none;
 }
 
 .preview-card {
@@ -390,32 +395,15 @@ rt {
   outline-offset: -3px;
 }
 
-.aozora-result-body {
-  min-width: 0;
-}
-
 .aozora-result-title {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--text);
   font-size: 16px;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
-.aozora-result-author {
+.aozora-result-summary {
   margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.aozora-result-meta {
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.aozora-result-hint {
-  margin: 10px 0 0;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
@@ -712,8 +700,8 @@ rt {
     font-size: 15px;
   }
 
-  .aozora-result-author {
-    font-size: 13px;
+  .aozora-result-summary {
+    font-size: 11px;
   }
 
   .search-toolbar,
