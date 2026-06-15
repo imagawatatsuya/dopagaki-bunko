@@ -1,12 +1,24 @@
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616053658';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616054333';
 
+const AOZORA_NUMBER_PATTERN = '[0-9０-９]+';
 const HEADING_INLINE_PATTERN = /^(.*?)[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;
 const HEADING_NOTE_ONLY_PATTERN = /^[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;
-const START_INDENT_PATTERN = /^[［\[]＃ここから(\d+)字下げ[］\]]\s*$/u;
+const START_INDENT_PATTERN = new RegExp(`^[［\\[]＃ここから(${AOZORA_NUMBER_PATTERN})字下げ[］\\]]\\s*$`, 'u');
 const END_INDENT_PATTERN = /^[［\[]＃ここで字下げ終わり[］\]]\s*$/u;
-const SINGLE_INDENT_NOTE_PATTERN = /^[［\[]＃(\d+)字下げ[］\]]\s*$/u;
-const LEADING_INDENT_PATTERN = /^(?:[［\[]＃(?:ここから)?(\d+)字下げ[］\]]\s*)+/u;
+const SINGLE_INDENT_NOTE_PATTERN = new RegExp(`^[［\\[]＃(${AOZORA_NUMBER_PATTERN})字下げ[］\\]]\\s*$`, 'u');
+const LEADING_INDENT_PATTERN = new RegExp(`^(?:[［\\[]＃(?:ここから)?(${AOZORA_NUMBER_PATTERN})字下げ[］\\]]\\s*)+`, 'u');
 const NOTE_ONLY_LINE_PATTERN = /^(?:[［\[]＃[^］\]]+[］\]]\s*)+$/u;
+
+function normalizeAozoraDigits(text) {
+  return String(text).replace(/[０-９]/gu, (digit) => {
+    return String.fromCharCode(digit.charCodeAt(0) - 0xfee0);
+  });
+}
+
+function parseAozoraInt(value) {
+  const parsed = Number.parseInt(normalizeAozoraDigits(value), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 function headingLevelFromNote(noteText) {
   if (noteText.includes('大見出し')) {
@@ -40,7 +52,7 @@ function stripLeadingIndentNotes(line) {
     };
   }
 
-  const indentMatches = [...match[0].matchAll(/(\d+)字下げ/gu)];
+  const indentMatches = [...normalizeAozoraDigits(match[0]).matchAll(/(\d+)字下げ/gu)];
   const indentCount = indentMatches.length > 0
     ? Number.parseInt(indentMatches.at(-1)[1], 10)
     : null;
@@ -62,23 +74,23 @@ function pushBreak(segments) {
   segments.push({ type: 'break' });
 }
 
-function flushTextBuffer(textBuffer, segments) {
+function flushTextBuffer(textBuffer, segments, renderTextBlock) {
   if (textBuffer.length === 0) {
     return;
   }
 
   segments.push({
     type: 'html',
-    html: convertAozoraRubyAndEmphasisToHtml(textBuffer.join('\n'))
+    html: renderTextBlock(textBuffer.join('\n'))
   });
   textBuffer.length = 0;
 }
 
-function appendHeadingSegment(segments, outline, titleText, noteText, indentCount) {
+function appendHeadingSegment(segments, outline, titleText, noteText, indentCount, renderHeadingText) {
   const level = headingLevelFromNote(noteText);
   const indentStep = normalizeIndentStep(indentCount);
   const headingId = `heading-${outline.length + 1}`;
-  const titleHtml = convertAozoraRubyAndEmphasisToHtml(titleText.trim());
+  const titleHtml = renderHeadingText(titleText.trim());
 
   segments.push({
     type: 'html',
@@ -117,8 +129,7 @@ function joinSegments(segments) {
   return html;
 }
 
-export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
-  const lines = String(bodyText ?? '').split('\n');
+function renderAozoraLinesWithHeadings(lines, renderTextBlock, renderHeadingText) {
   const segments = [];
   const textBuffer = [];
   const outline = [];
@@ -129,14 +140,14 @@ export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
     const trimmed = originalLine.trim();
 
     if (!trimmed) {
-      flushTextBuffer(textBuffer, segments);
+      flushTextBuffer(textBuffer, segments, renderTextBlock);
       pushBreak(segments);
       continue;
     }
 
     const startIndentMatch = trimmed.match(START_INDENT_PATTERN);
     if (startIndentMatch) {
-      activeIndentCount = Number.parseInt(startIndentMatch[1], 10);
+      activeIndentCount = parseAozoraInt(startIndentMatch[1]);
       continue;
     }
 
@@ -147,7 +158,7 @@ export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
 
     const singleIndentMatch = trimmed.match(SINGLE_INDENT_NOTE_PATTERN);
     if (singleIndentMatch) {
-      activeIndentCount = Number.parseInt(singleIndentMatch[1], 10);
+      activeIndentCount = parseAozoraInt(singleIndentMatch[1]);
       continue;
     }
 
@@ -156,13 +167,14 @@ export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
     const inlineHeadingMatch = lineWithoutLeadingIndent.trim().match(HEADING_INLINE_PATTERN);
 
     if (inlineHeadingMatch) {
-      flushTextBuffer(textBuffer, segments);
+      flushTextBuffer(textBuffer, segments, renderTextBlock);
       appendHeadingSegment(
         segments,
         outline,
         inlineHeadingMatch[2],
         inlineHeadingMatch[3],
-        effectiveIndentCount
+        effectiveIndentCount,
+        renderHeadingText
       );
       continue;
     }
@@ -170,13 +182,14 @@ export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
     const nextTrimmed = String(lines[index + 1] ?? '').trim();
     const headingNoteOnlyMatch = nextTrimmed.match(HEADING_NOTE_ONLY_PATTERN);
     if (headingNoteOnlyMatch && lineWithoutLeadingIndent.trim()) {
-      flushTextBuffer(textBuffer, segments);
+      flushTextBuffer(textBuffer, segments, renderTextBlock);
       appendHeadingSegment(
         segments,
         outline,
         lineWithoutLeadingIndent.trim(),
         headingNoteOnlyMatch[2],
-        effectiveIndentCount
+        effectiveIndentCount,
+        renderHeadingText
       );
       index += 1;
       continue;
@@ -189,13 +202,39 @@ export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
     textBuffer.push(lineWithoutLeadingIndent);
   }
 
-  flushTextBuffer(textBuffer, segments);
+  flushTextBuffer(textBuffer, segments, renderTextBlock);
 
-  const html = joinSegments(segments);
-  const fragments = fragmentText(html);
   return {
-    html,
-    fragments,
+    html: joinSegments(segments),
     outline
   };
+}
+
+export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
+  const rendered = renderAozoraLinesWithHeadings(
+    String(bodyText ?? '').split('\n'),
+    (text) => convertAozoraRubyAndEmphasisToHtml(text),
+    (text) => convertAozoraRubyAndEmphasisToHtml(text)
+  );
+
+  const fragments = fragmentText(rendered.html);
+  return {
+    html: rendered.html,
+    fragments,
+    outline: rendered.outline
+  };
+}
+
+export function repairAozoraHeadingNotesInHtml(htmlText) {
+  const source = String(htmlText ?? '');
+  if (!source.includes('見出し') || !source.includes('［＃') || source.includes('aozora-heading')) {
+    return source;
+  }
+
+  const rendered = renderAozoraLinesWithHeadings(
+    source.replace(/<br\s*\/?>/gu, '\n').split('\n'),
+    (text) => text.replace(/\n/gu, '<br>'),
+    (text) => text
+  );
+  return rendered.html || source;
 }
