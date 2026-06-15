@@ -74,14 +74,14 @@ export function searchBodyMarkup({
   catalogStatusHtml = '',
   catalogMetaHtml = '',
   catalogResultsMarkup = '',
-  importStatusHtml = '',
+  importSheetMarkup = '',
   previewMarkup = ''
 }) {
   return `
     <section class="panel-stack">
       <article class="info-panel">
         <h2 class="section-title">青空文庫から検索</h2>
-        <p class="section-text">同梱の作品一覧から作品名や著者名で探せます。項目を開いて図書カードへ進み、ZIPを保存して下の手動ZIP取り込みへ追加してください。</p>
+        <p class="section-text">同梱の作品一覧から作品名や著者名で探せます。項目を開いて図書カードへ進み、ZIPを保存してZIP取り込みから追加してください。</p>
         <div class="search-toolbar">
           <input
             type="search"
@@ -100,26 +100,54 @@ export function searchBodyMarkup({
         ${catalogStatusHtml}
         ${catalogResultsMarkup}
       </article>
-      <article class="info-panel">
-        <h2 class="section-title">ZIP取り込み</h2>
-        <p class="section-text">青空文庫のZIPを選ぶだけで、本文を読みやすい短い断片に分けます。保存前にプレビューで確認できます。</p>
+      ${previewMarkup}
+    </section>
+    <div class="search-import-fab-wrap">
+      <button type="button" class="detail-action-button search-import-fab" data-search-action="open-import-sheet">ZIPを追加</button>
+    </div>
+    ${importSheetMarkup}
+  `;
+}
+
+export function searchImportSheetMarkup({ isOpen = false, importStatusHtml = '' }) {
+  if (!isOpen) {
+    return '';
+  }
+
+  return `
+    <div class="sheet-backdrop" data-search-action="close-import-sheet" aria-hidden="true"></div>
+    <section class="bottom-sheet" aria-label="ZIP取り込み">
+      <div class="bottom-sheet-handle" aria-hidden="true"></div>
+      <div class="bottom-sheet-body">
+        <div class="bottom-sheet-header">
+          <div>
+            <h2 class="section-title">ZIP取り込み</h2>
+            <p class="section-text">保存した青空文庫のZIPを選ぶと、本文を断片へ分けてプレビューできます。</p>
+          </div>
+          <button type="button" class="detail-action-button bottom-sheet-close" data-search-action="close-import-sheet">閉じる</button>
+        </div>
+        <div class="settings-button-grid">
+          <button type="button" class="detail-action-button settings-button" data-search-action="pick-aozora-zip">ZIPを選ぶ</button>
+        </div>
         <label class="dropzone" data-dropzone="aozora-zip">
           <span class="dropzone-title">ZIP をここにドロップ</span>
-          <span class="dropzone-text">またはクリックしてファイルを選択</span>
+          <span class="dropzone-text">または上のボタンから選択</span>
           <input type="file" class="settings-file-input" accept=".zip,application/zip" data-search-input="aozora-zip">
         </label>
         ${importStatusHtml}
-      </article>
-      ${previewMarkup}
+      </div>
     </section>
   `;
 }
 
 export function aozoraSearchResultsMarkup(results, options = {}) {
   const emptyMessage = options.emptyMessage || '作品名または著者名で検索してください。';
+  const resultSummaryHtml = options.resultSummaryHtml || '';
+  const moreActionHtml = options.moreActionHtml || '';
 
   return `
     <div class="preview-list aozora-results-list" aria-label="青空文庫検索結果">
+      ${resultSummaryHtml}
       ${results.length > 0 ? results.map((result) => `
         <article class="fragment-card aozora-result-card">
           <a class="aozora-result-link" href="${result.cardUrl}" target="_blank" rel="noreferrer">
@@ -132,6 +160,7 @@ export function aozoraSearchResultsMarkup(results, options = {}) {
           <p class="section-text">${emptyMessage}</p>
         </article>
       `}
+      ${moreActionHtml}
     </div>
   `;
 }

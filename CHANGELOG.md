@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Changed Aozora catalog search results from a fixed 50-item cap to progressive display: 25 items initially, then `さらに25件表示` until all matched works are shown.
+- Moved the search-screen manual ZIP import UI into a fixed `ZIPを追加` bottom-sheet launcher, so long Aozora result lists no longer force users to scroll to a distant dropzone before importing.
 - Removed the non-credible catalog-result `取り込む` action and made each search result item itself open the Aozora card page, matching the current GitHub Pages-safe manual ZIP flow.
 - Switched Aozora catalog search from cross-origin CSV ZIP fetch to a bundled same-origin JSON snapshot, so search works on GitHub Pages and local static hosting without CORS dependence.
 - Added Aozora catalog search import on `#/search`: the app loads a bundled public-works snapshot into IndexedDB and searches by title or author.

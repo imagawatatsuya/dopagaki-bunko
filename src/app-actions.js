@@ -52,11 +52,12 @@ export function createSearchActions({
   putRecords,
   loadStateFromDb
 }) {
+  const SEARCH_RESULTS_BATCH_SIZE = 25;
+
   function applyCatalogSearchResults(query) {
     state.aozoraCatalogQuery = String(query ?? '');
-    state.aozoraCatalogResults = searchAozoraCatalog(state.aozoraCatalogRecords, state.aozoraCatalogQuery, {
-      limit: 50
-    });
+    state.aozoraCatalogResults = searchAozoraCatalog(state.aozoraCatalogRecords, state.aozoraCatalogQuery);
+    state.aozoraCatalogVisibleCount = SEARCH_RESULTS_BATCH_SIZE;
   }
 
   function resetImportPreview() {
@@ -65,6 +66,7 @@ export function createSearchActions({
 
   async function handleAozoraZipArrayBuffer(arrayBuffer, sourceMeta = {}) {
     const sourceLabel = String(sourceMeta.sourceLabel ?? 'ZIP');
+    state.importSheetOpen = true;
     state.importWorkStatus = `${sourceLabel} を読み込んでいます。`;
     resetImportPreview();
     renderSearch();
@@ -86,6 +88,7 @@ export function createSearchActions({
         cardUrl: String(sourceMeta.cardUrl ?? ''),
         copyrightWarning: Boolean(sourceMeta.copyrightWarning)
       };
+      state.importSheetOpen = false;
       state.importWorkStatus = `${extracted.fileName} を読み込みました。保存前に内容を確認してください。`;
     } catch (error) {
       console.error(error);
@@ -160,6 +163,7 @@ export function createSearchActions({
     await loadStateFromDb();
     state.importWorkStatus = `${state.importPreview.title} を作品アカウントとして保存しました。`;
     state.importPreview = null;
+    state.importSheetOpen = false;
   }
 
   async function handleAozoraZipFile(file) {
@@ -253,6 +257,23 @@ export function createSearchActions({
   }
 
   async function handleSearchAction(action, payload = {}) {
+    if (action === 'open-import-sheet') {
+      state.importSheetOpen = true;
+      renderSearch();
+      return;
+    }
+
+    if (action === 'close-import-sheet') {
+      state.importSheetOpen = false;
+      renderSearch();
+      return;
+    }
+
+    if (action === 'pick-aozora-zip') {
+      document.querySelector('[data-search-input="aozora-zip"]')?.click();
+      return;
+    }
+
     if (action === 'refresh-aozora-catalog') {
       await refreshAozoraCatalog();
       return;
@@ -260,6 +281,12 @@ export function createSearchActions({
 
     if (action === 'search-aozora-catalog') {
       runCatalogSearch(payload.query ?? state.aozoraCatalogQuery);
+      return;
+    }
+
+    if (action === 'show-more-aozora-results') {
+      state.aozoraCatalogVisibleCount += SEARCH_RESULTS_BATCH_SIZE;
+      renderSearch();
       return;
     }
 
@@ -277,6 +304,7 @@ export function createSearchActions({
     if (action === 'clear-preview') {
       state.importPreview = null;
       state.importWorkStatus = '';
+      state.importSheetOpen = false;
       renderSearch();
     }
   }
@@ -491,6 +519,7 @@ export function createSettingsActions({
     state.pendingImport = null;
     state.importWorkStatus = '';
     state.importPreview = null;
+    state.importSheetOpen = false;
     renderSettings();
 
     try {

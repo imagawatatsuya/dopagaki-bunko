@@ -102,13 +102,13 @@ function computeMatchScore(record, needles) {
 
 export function searchAozoraCatalog(records, query, options = {}) {
   const needles = buildSearchNeedles(query);
-  const limit = Number.isFinite(options.limit) ? options.limit : 50;
+  const limit = Number.isFinite(options.limit) ? options.limit : 0;
 
   if (!needles.normalized) {
     return [];
   }
 
-  return records
+  const matched = records
     .filter((record) => record.id !== 'catalog:meta')
     .map((record) => ({
       record,
@@ -131,5 +131,11 @@ export function searchAozoraCatalog(records, query, options = {}) {
       return String(left.record.author ?? '').localeCompare(String(right.record.author ?? ''), 'ja');
     })
     .map((entry) => entry.record)
-    .slice(0, limit);
+  ;
+
+  if (limit > 0) {
+    return matched.slice(0, limit);
+  }
+
+  return matched;
 }

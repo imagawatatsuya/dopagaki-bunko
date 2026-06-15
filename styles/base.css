@@ -570,6 +570,70 @@ rt {
   font-size: 14px;
 }
 
+.search-import-fab-wrap {
+  position: fixed;
+  left: 50%;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 8;
+  width: min(720px, 100%);
+  padding: 0 18px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.search-import-fab {
+  margin-left: auto;
+  min-width: 132px;
+  border-color: rgba(138, 59, 18, 0.18);
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 14px 30px rgba(66, 42, 24, 0.16);
+  pointer-events: auto;
+}
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 18;
+  background: rgba(36, 29, 23, 0.16);
+}
+
+.bottom-sheet {
+  position: fixed;
+  left: 50%;
+  bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+  z-index: 19;
+  width: min(720px, 100%);
+  padding: 0 18px;
+  transform: translateX(-50%);
+}
+
+.bottom-sheet-body {
+  padding: 12px 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  background: var(--panel-soft);
+  box-shadow: 0 -14px 30px rgba(66, 42, 24, 0.16);
+}
+
+.bottom-sheet-handle {
+  width: 48px;
+  height: 5px;
+  margin: 0 auto 10px;
+  border-radius: 999px;
+  background: rgba(107, 93, 80, 0.24);
+}
+
+.bottom-sheet-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.bottom-sheet-close {
+  min-width: 84px;
+}
+
 .bottom-nav {
   position: fixed;
   left: 50%;
@@ -755,6 +819,35 @@ rt {
     min-height: 30px;
     padding: 5px 8px;
     font-size: 10px;
+  }
+
+  .search-import-fab-wrap {
+    bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+    padding: 0 10px;
+  }
+
+  .search-import-fab {
+    min-width: 120px;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  .bottom-sheet {
+    bottom: calc(50px + env(safe-area-inset-bottom, 0px));
+    padding: 0 10px;
+  }
+
+  .bottom-sheet-body {
+    padding: 10px 14px 14px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .bottom-sheet-header {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom-sheet-close {
+    width: 100%;
   }
 
   .bottom-nav-link {
