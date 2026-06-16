@@ -12,7 +12,7 @@
 - Changed the work-page bottom-right fragment label from a bookmark-only toggle into a three-step cycle of none, bookmark, and like, and differentiated the states with outline-first bookmark styling plus a quiet rose background for likes.
 - Changed the work-page `しおりの断片 x を開く` link to jump directly to the bookmarked fragment inside the work timeline with enough fragments visible, instead of detouring through the fragment detail page.
 - Changed Home TL bookmark and like event cards to jump directly into the work timeline at the target fragment position, aligning their reopen behavior with the work-page bookmark link.
-- Changed Home TL work-addition cards to use the same direct work-timeline jump behavior, so every Home TL card now reopens the target fragment in context instead of detouring through the fragment detail page.
+- Changed Home TL work-addition cards to open the top of the work page instead of focusing the first fragment card, while bookmark and like event cards still jump directly to the target fragment position.
 - Changed work-timeline continuation to default to automatic loading near the bottom, added a settings toggle to switch between automatic and manual continuation, and persisted that preference in the exported `settings` store.
 - Cleared the transient catalog hit-count status after saving an imported ZIP, so finished imports no longer leave stale `x件見つかりました` search messaging on the add screen.
 - Removed the fixed `縦スクロール読書` eyebrow from every screen header and reduced the shared page-title scale so top bars read as navigation context rather than a second hero.
