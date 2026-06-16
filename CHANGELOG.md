@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Stopped Home TL heading fallback from using fragment body text, so works without stored source-title lines now show only the work title instead of leaking bookmark-target first lines.
 - Changed the work-end marker into a quiet two-state loop of `原文終端` and `読了`, with color changes on the marker itself and lower-contrast completed styling on Home TL cards.
 - Changed Home TL card headings to a single-line `作品名 + 原文2行目まで` summary so related or series works are easier to tell apart at a glance, and made bottom-nav screen switches reopen Home/本棚/追加/設定 from the top instead of preserving old scroll positions.
 - Added a tappable `原文終端` marker at the end of fully shown work pages, reusing the quiet source-break card style and marking the work as `読了` when pressed.
