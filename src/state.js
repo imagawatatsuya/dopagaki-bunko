@@ -93,6 +93,17 @@ export function getBookmarkForWork(bookmarkRecords, workId) {
   return bookmarkRecords.find((item) => item.workId === workId) ?? null;
 }
 
+export function getLikeRecordsForWork(likeRecords, fragments, workId) {
+  if (!workId) {
+    return [];
+  }
+
+  return likeRecords.filter((record) => {
+    const fragment = getFragmentById(fragments, record.fragmentId);
+    return fragment?.workId === workId;
+  });
+}
+
 export function normalizeBookmarkRecord(record, fragments) {
   const fragment = getFragmentById(fragments, record?.fragmentId ?? record?.id);
   if (!fragment) {

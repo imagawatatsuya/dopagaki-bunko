@@ -30,8 +30,14 @@ export function buildFragmentHash(fragmentId, options = {}) {
   return `#/fragment/${encodeURIComponent(fragmentId)}${query ? `?${query}` : ''}`;
 }
 
-export function buildCollectionHash(kind) {
-  return `#/collection/${encodeURIComponent(kind)}`;
+export function buildCollectionHash(kind, options = {}) {
+  const params = new URLSearchParams();
+  if (options.workId) {
+    params.set('workId', options.workId);
+  }
+
+  const query = params.toString();
+  return `#/collection/${encodeURIComponent(kind)}${query ? `?${query}` : ''}`;
 }
 
 export function buildLibraryHash(options = {}) {

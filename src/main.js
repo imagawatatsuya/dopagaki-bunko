@@ -7,35 +7,36 @@ import {
   getBookmarkForWork,
   getFirstReadableFragmentForWork,
   getFragmentById,
+  getLikeRecordsForWork,
   getReadingStateForWork,
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords,
   sortUpdatedRecords
-} from './state.js?v=20260617054403';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617054403';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260617054403';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617054403';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617054403';
+} from './state.js?v=20260617084039';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617084039';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617084039';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617084039';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617084039';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260617054403';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617054403';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260617054403';
-import { derivePreviewFromText } from './import-preview.js?v=20260617054403';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617054403';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617054403';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617054403';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617054403';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617054403';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617054403';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617054403';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617054403';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260617054403';
+} from './app-actions.js?v=20260617084039';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617084039';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617084039';
+import { derivePreviewFromText } from './import-preview.js?v=20260617084039';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617084039';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617084039';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617084039';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617084039';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617084039';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617084039';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617084039';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617084039';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617084039';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -46,7 +47,7 @@ import {
   bindWorkHeaderActions,
   bindWorkStateActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260617054403';
+} from './ui-bindings.js?v=20260617084039';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -68,7 +69,7 @@ import {
   workEndingCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260617054403';
+} from './views.js?v=20260617084039';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -622,9 +623,9 @@ function bindWorkAutoLoad(workId, shownTextCount, totalTextFragments) {
   };
 }
 
-function renderSavedItemCard(kind, item) {
+function renderSavedItemCard(kind, item, options = {}) {
   const label = savedCollectionLabel(kind);
-  const collectionHash = buildCollectionHash(kind);
+  const collectionHash = options.collectionHash || buildCollectionHash(kind);
   const fragmentLink = item.fragment
     ? buildFragmentHash(item.fragment.id, { returnTo: collectionHash })
     : '';
@@ -801,6 +802,7 @@ function renderLibrary(options = {}) {
   const visibleWorks = worksByStatus[activeTab] ?? [];
   const worksHtml = visibleWorks.map((work) => {
     const bookmark = getBookmarkForWork(state.bookmarkRecords, work.id);
+    const likeCount = getLikeRecordsForWork(state.likeRecords, state.fragments, work.id).length;
     if (activeTab !== 'unread') {
       return `
         <article class="info-panel info-panel-library-work">
@@ -809,6 +811,7 @@ function renderLibrary(options = {}) {
             <p class="section-text library-work-author">${escapeHtml(work.author ?? '')}</p>
             <p class="settings-status settings-status-subtle">${countWorkTextFragments(work.id)}断片</p>
             ${bookmark ? `<p class="settings-status settings-status-subtle">しおり: 断片 ${bookmark.fragmentIndex}</p>` : ''}
+            ${likeCount > 0 ? `<p class="settings-status settings-status-subtle">ふせん: ${likeCount}枚</p>` : ''}
           </a>
         </article>
       `;
@@ -832,6 +835,7 @@ function renderLibrary(options = {}) {
           <p class="section-text library-work-author">${escapeHtml(work.author ?? '')}</p>
           <p class="settings-status settings-status-subtle">${countWorkTextFragments(work.id)}断片</p>
           ${bookmark ? `<p class="settings-status settings-status-subtle">しおり: 断片 ${bookmark.fragmentIndex}</p>` : ''}
+          ${likeCount > 0 ? `<p class="settings-status settings-status-subtle">ふせん: ${likeCount}枚</p>` : ''}
         </a>
       </article>
     `;
@@ -891,8 +895,11 @@ function renderLibrary(options = {}) {
   }
 }
 
-function renderCollectionPage(kind) {
-  const items = buildSavedItems({
+function renderCollectionPage(kind, options = {}) {
+  const workId = options.workId || '';
+  const work = workId ? findWorkById(workId) : null;
+  const collectionHash = buildCollectionHash(kind, workId ? { workId } : {});
+  const allItems = buildSavedItems({
     kind,
     bookmarkRecords: state.bookmarkRecords,
     likeRecords: state.likeRecords,
@@ -900,32 +907,42 @@ function renderCollectionPage(kind) {
     fragments: state.fragments,
     findWorkById
   });
+  const items = workId ? allItems.filter((item) => item.fragment?.workId === workId) : allItems;
   const label = savedCollectionLabel(kind);
-  const subtitle = kind === 'bookmarks' ? '作品ごとの最新しおりをここから開けます。' : '保存した断片へここから戻れます。';
-  const description = kind === 'bookmarks'
-    ? '作品ごとの現在しおりを新しい順に表示します。'
-    : `${label}した断片を新しい順に表示します。`;
+  const titleLabel = kind === 'likes' ? 'ふせん' : label;
+  const subtitle = work
+    ? `「${work.title}」の${titleLabel}だけをここから開けます。`
+    : kind === 'bookmarks'
+      ? '作品ごとの最新しおりをここから開けます。'
+      : '保存した断片へここから戻れます。';
+  const description = work
+    ? `この作品で付けた${titleLabel}を新しい順に表示します。`
+    : kind === 'bookmarks'
+      ? '作品ごとの現在しおりを新しい順に表示します。'
+      : `${titleLabel}した断片を新しい順に表示します。`;
   const emptyText = kind === 'bookmarks'
     ? '断片個別ページか作品TLでしおりを付けると、ここから再開できます。'
-    : '断片個別ページで保存すると、ここから再アクセスできます。';
-  const itemsHtml = items.map((item) => renderSavedItemCard(kind, item)).join('');
+    : work
+      ? `この作品で${titleLabel}を付けた断片はまだありません。`
+      : '断片個別ページで保存すると、ここから再アクセスできます。';
+  const itemsHtml = items.map((item) => renderSavedItemCard(kind, item, { collectionHash })).join('');
 
   renderLayout({
     current: 'library',
-    title: `${label}一覧`,
+    title: `${titleLabel}一覧`,
     subtitle,
     body: collectionBodyMarkup({
-      label: escapeHtml(label),
+      label: escapeHtml(titleLabel),
       description: escapeHtml(description),
       count: items.length,
-      emptyTitle: `${escapeHtml(label)}はまだありません`,
+      emptyTitle: `${escapeHtml(titleLabel)}はまだありません`,
       emptyText: escapeHtml(emptyText),
       itemsHtml
     })
   });
 
   bindCollectionActions(app, async (kind, recordId) => {
-    await handleCollectionAction(kind, recordId);
+    await handleCollectionAction(kind, recordId, { workId });
   });
 }
 
@@ -945,6 +962,7 @@ function renderWorkPage(workId, options = {}) {
   const remainingTextCount = Math.max(0, totalTextFragments - shownTextCount);
   const returnToHash = buildWorkHash(workId, { visible: shownTextCount });
   const bookmark = getBookmarkForWork(state.bookmarkRecords, workId);
+  const likeRecords = getLikeRecordsForWork(state.likeRecords, state.fragments, workId);
   const bookmarkJumpHash = bookmark
     ? buildWorkHash(workId, {
         visible: Math.max(WORK_PAGE_BATCH_SIZE, Number(bookmark.fragmentIndex) || WORK_PAGE_BATCH_SIZE),
@@ -953,6 +971,9 @@ function renderWorkPage(workId, options = {}) {
     : '';
   const bookmarkHtml = bookmark
     ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${bookmarkJumpHash}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>`
+    : '';
+  const markerHtml = likeRecords.length > 0
+    ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildCollectionHash('likes', { workId })}">ふせん ${likeRecords.length}枚を開く</a></p>`
     : '';
   const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break' ? renderBreakCard() : renderWorkFragmentCard(fragment, returnToHash)).join('');
   const endingCardHtml = shownTextCount >= totalTextFragments && totalTextFragments > 0
@@ -982,6 +1003,7 @@ function renderWorkPage(workId, options = {}) {
       totalTextFragments,
       shownTextCount,
       bookmarkHtml,
+      markerHtml,
       readerScaleControlsHtml: renderReaderScaleControls(),
       fragmentsHtml,
       moreLinkHtml,
@@ -1301,7 +1323,9 @@ function route() {
   }
 
   if (routeState.path.startsWith('#/collection/')) {
-    renderCollectionPage(decodeURIComponent(routeState.path.replace('#/collection/', '')));
+    renderCollectionPage(decodeURIComponent(routeState.path.replace('#/collection/', '')), {
+      workId: routeState.params.get('workId') || ''
+    });
     return;
   }
 

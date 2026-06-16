@@ -301,6 +301,7 @@ export function workBodyMarkup({
   totalTextFragments,
   shownTextCount,
   bookmarkHtml,
+  markerHtml,
   readerScaleControlsHtml,
   fragmentsHtml,
   moreLinkHtml,
@@ -309,12 +310,17 @@ export function workBodyMarkup({
   return `
     <section class="panel-stack">
       <article class="info-panel">
-        <h2 class="section-title">${workTitle}</h2>
-        <p class="section-text">${workAuthor}</p>
-        <p class="settings-status settings-status-subtle">${totalTextFragments}断片</p>
-        <p class="settings-status settings-status-subtle">表示中: ${shownTextCount}断片</p>
-        ${bookmarkHtml}
-        ${readerScaleControlsHtml}
+        <div class="work-summary-header">
+          <div class="work-summary-copy">
+            <h2 class="section-title">${workTitle}</h2>
+            <p class="section-text">${workAuthor}</p>
+            <p class="settings-status settings-status-subtle">${totalTextFragments}断片</p>
+            <p class="settings-status settings-status-subtle">表示中: ${shownTextCount}断片</p>
+            ${bookmarkHtml}
+            ${markerHtml}
+          </div>
+          ${readerScaleControlsHtml ? `<div class="work-summary-reader-scale">${readerScaleControlsHtml}</div>` : ''}
+        </div>
       </article>
     </section>
     <section class="timeline" aria-label="作品断片一覧">

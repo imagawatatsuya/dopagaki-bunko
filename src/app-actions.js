@@ -452,7 +452,7 @@ export function createCollectionActions({
   removeLike,
   removeQuote
 }) {
-  async function handleCollectionAction(kind, recordId) {
+  async function handleCollectionAction(kind, recordId, options = {}) {
     if (!recordId) {
       return;
     }
@@ -468,7 +468,7 @@ export function createCollectionActions({
     }
 
     await loadStateFromDb();
-    renderCollectionPage(kind);
+    renderCollectionPage(kind, options);
   }
 
   return { handleCollectionAction };
