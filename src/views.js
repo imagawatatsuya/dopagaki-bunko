@@ -70,6 +70,7 @@ export function libraryBodyMarkup(worksHtml, collectionsHtml) {
 }
 
 export function searchBodyMarkup({
+  importNoticeHtml = '',
   catalogQuery = '',
   catalogStatusHtml = '',
   catalogMetaHtml = '',
@@ -79,6 +80,7 @@ export function searchBodyMarkup({
 }) {
   return `
     <section class="panel-stack">
+      ${importNoticeHtml}
       <article class="info-panel">
         <h2 class="section-title">青空文庫から検索</h2>
         <p class="section-text">同梱の作品一覧から作品名や著者名で探せます。項目を開いて図書カードへ進み、ZIPを保存してZIP取り込みから追加してください。</p>
@@ -171,7 +173,7 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
   }
 
   return `
-    <article class="info-panel">
+    <article class="info-panel" data-search-preview>
       <h2 class="section-title">取り込みプレビュー</h2>
       <p class="section-text">作品名: ${preview.title}<br>著者名: ${preview.author}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${preview.encoding}</p>
       ${preview.copyrightWarning ? '<p class="settings-status">この作品は著作権に注意が必要です。保存や利用前に図書カードを確認してください。</p>' : ''}

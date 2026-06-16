@@ -71,9 +71,22 @@ export function createSearchActions({
     state.importPreview = null;
   }
 
+  function scrollSearchPreviewIntoView() {
+    const preview = document.querySelector('[data-search-preview]');
+    if (!preview) {
+      return;
+    }
+
+    const headerBottom = document.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
+    const previewTop = window.scrollY + preview.getBoundingClientRect().top;
+    const targetTop = Math.max(0, previewTop - headerBottom - 8);
+    window.scrollTo({ top: targetTop, behavior: 'smooth' });
+  }
+
   async function handleAozoraZipArrayBuffer(arrayBuffer, sourceMeta = {}) {
     const sourceLabel = String(sourceMeta.sourceLabel ?? 'ZIP');
     state.importSheetOpen = true;
+    state.importWorkNoticeTone = '';
     state.importWorkStatus = `${sourceLabel} を読み込んでいます。`;
     resetImportPreview();
     renderSearch();
@@ -96,13 +109,22 @@ export function createSearchActions({
         copyrightWarning: Boolean(sourceMeta.copyrightWarning)
       };
       state.importSheetOpen = false;
+      state.importWorkNoticeTone = '';
       state.importWorkStatus = `${extracted.fileName} を読み込みました。保存前に内容を確認してください。`;
     } catch (error) {
       console.error(error);
+      state.importWorkNoticeTone = '';
       state.importWorkStatus = `ZIP 取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
     }
 
     renderSearch();
+    if (state.importPreview) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollSearchPreviewIntoView();
+        });
+      });
+    }
   }
 
   async function saveImportedWork() {
@@ -169,6 +191,7 @@ export function createSearchActions({
     await putRecords('fragments', fragmentRecords);
     await loadStateFromDb();
     resetCatalogSearchSession();
+    state.importWorkNoticeTone = 'success';
     state.importWorkStatus = `${state.importPreview.title} を保存しました。別の作品を探すか、ZIPを追加してください。`;
     state.importPreview = null;
     state.importSheetOpen = false;
@@ -188,6 +211,7 @@ export function createSearchActions({
       });
     } catch (error) {
       console.error(error);
+      state.importWorkNoticeTone = '';
       state.importWorkStatus = `ZIP 取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
       renderSearch();
     }
@@ -286,6 +310,7 @@ export function createSearchActions({
 
   async function handleSearchAction(action, payload = {}) {
     if (action === 'open-import-sheet') {
+      state.importWorkNoticeTone = '';
       state.importSheetOpen = true;
       renderSearch();
       return;
@@ -308,6 +333,7 @@ export function createSearchActions({
     }
 
     if (action === 'search-aozora-catalog') {
+      state.importWorkNoticeTone = '';
       runCatalogSearch(payload.query ?? state.aozoraCatalogQuery);
       return;
     }
@@ -328,6 +354,7 @@ export function createSearchActions({
         await saveImportedWork();
       } catch (error) {
         console.error(error);
+        state.importWorkNoticeTone = '';
         state.importWorkStatus = `保存に失敗しました: ${error?.message ?? '不明なエラー'}`;
       }
       renderSearch();
@@ -336,6 +363,7 @@ export function createSearchActions({
 
     if (action === 'clear-preview') {
       state.importPreview = null;
+      state.importWorkNoticeTone = '';
       state.importWorkStatus = '';
       state.importSheetOpen = false;
       renderSearch();

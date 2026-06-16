@@ -224,6 +224,26 @@ select {
   background: var(--panel-soft);
 }
 
+.search-import-notice {
+  padding: 22px 20px;
+}
+
+.search-import-notice .section-title {
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+
+.search-import-notice .section-text {
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.search-import-notice-success {
+  border-color: rgba(63, 123, 92, 0.24);
+  background: linear-gradient(180deg, rgba(232, 247, 238, 0.98), rgba(244, 252, 247, 0.98));
+  box-shadow: 0 18px 40px rgba(45, 88, 67, 0.12);
+}
+
 .panel-link {
   display: block;
   color: inherit;
@@ -774,6 +794,19 @@ rt {
   .info-panel,
   .preview-card {
     padding: 14px;
+  }
+
+  .search-import-notice {
+    padding: 18px 16px;
+  }
+
+  .search-import-notice .section-title {
+    font-size: 18px;
+  }
+
+  .search-import-notice .section-text {
+    font-size: 16px;
+    line-height: 1.62;
   }
 
   .aozora-result-link {
