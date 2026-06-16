@@ -346,14 +346,23 @@ select {
     color 120ms ease,
     background-color 120ms ease,
     border-color 120ms ease,
-    opacity 120ms ease;
+    opacity 120ms ease,
+    box-shadow 120ms ease;
 }
 
-.fragment-overlay-bookmark.is-active {
+.fragment-overlay-bookmark.is-bookmark {
   border-color: rgba(138, 59, 18, 0.14);
   background: rgba(242, 216, 195, 0.06);
   color: rgba(138, 59, 18, 0.48);
   font-weight: 700;
+}
+
+.fragment-overlay-bookmark.is-like {
+  border-color: rgba(171, 93, 100, 0.12);
+  background:
+    radial-gradient(circle at 26% 28%, rgba(255, 255, 255, 0.52), transparent 28%),
+    linear-gradient(180deg, rgba(244, 217, 220, 0.72), rgba(247, 231, 233, 0.86));
+  color: rgba(143, 78, 84, 0.76);
 }
 
 .fragment-overlay-bookmark.is-overlay-risk {
@@ -362,10 +371,16 @@ select {
   color: rgba(107, 93, 80, 0.18);
 }
 
-.fragment-overlay-bookmark.is-active.is-overlay-risk {
+.fragment-overlay-bookmark.is-bookmark.is-overlay-risk {
   border-color: rgba(138, 59, 18, 0.08);
   background: rgba(242, 216, 195, 0.03);
   color: rgba(138, 59, 18, 0.28);
+}
+
+.fragment-overlay-bookmark.is-like.is-overlay-risk {
+  border-color: rgba(171, 93, 100, 0.08);
+  background: rgba(247, 231, 233, 0.54);
+  color: rgba(143, 78, 84, 0.38);
 }
 
 .fragment-overlay-bookmark:hover,
@@ -377,12 +392,23 @@ select {
   outline: none;
 }
 
-.fragment-overlay-bookmark.is-active:hover,
-.fragment-overlay-bookmark.is-active:focus-visible,
-.fragment-overlay-bookmark.is-active:active {
+.fragment-overlay-bookmark.is-bookmark:hover,
+.fragment-overlay-bookmark.is-bookmark:focus-visible,
+.fragment-overlay-bookmark.is-bookmark:active {
   border-color: rgba(138, 59, 18, 0.24);
   background: rgba(242, 216, 195, 0.8);
   color: var(--accent);
+}
+
+.fragment-overlay-bookmark.is-like:hover,
+.fragment-overlay-bookmark.is-like:focus-visible,
+.fragment-overlay-bookmark.is-like:active {
+  border-color: rgba(171, 93, 100, 0.22);
+  background:
+    radial-gradient(circle at 26% 28%, rgba(255, 255, 255, 0.64), transparent 30%),
+    linear-gradient(180deg, rgba(246, 222, 224, 0.92), rgba(249, 236, 237, 0.96));
+  color: rgba(130, 66, 74, 0.96);
+  box-shadow: 0 0 0 1px rgba(171, 93, 100, 0.06);
 }
 
 ruby {

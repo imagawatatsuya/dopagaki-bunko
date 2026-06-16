@@ -342,7 +342,7 @@ export function workFragmentCardMarkup({
   fragmentIndex,
   detailHref,
   displayHtml,
-  bookmarkedClassName,
+  overlayStateClassName,
   overlayRiskClassName,
   ariaLabel,
   ariaPressed
@@ -359,8 +359,8 @@ export function workFragmentCardMarkup({
       <div class="fragment-overlay-meta">
         <button
           type="button"
-          class="fragment-overlay-bookmark ${bookmarkedClassName} ${overlayRiskClassName}"
-          data-work-action="bookmark"
+          class="fragment-overlay-bookmark ${overlayStateClassName} ${overlayRiskClassName}"
+          data-work-action="cycle-marker"
           data-fragment-id="${fragmentId}"
           data-fragment-index="${fragmentIndex}"
           aria-label="${ariaLabel}"

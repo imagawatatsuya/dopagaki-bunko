@@ -22,12 +22,12 @@ export function bindCollectionActions(root, onRemove) {
   });
 }
 
-export function bindWorkOverlayActions(root, onBookmark) {
-  root.querySelectorAll('[data-work-action="bookmark"]').forEach((button) => {
+export function bindWorkOverlayActions(root, onCycleMarker) {
+  root.querySelectorAll('[data-work-action="cycle-marker"]').forEach((button) => {
     button.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();
-      await onBookmark(button.dataset.fragmentId);
+      await onCycleMarker(button.dataset.fragmentId);
     });
   });
 }

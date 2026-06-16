@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260616092900';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617031434';
 import {
   buildHomeTimelineEvents,
   buildSavedItems,
@@ -9,30 +9,30 @@ import {
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords
-} from './state.js?v=20260616092900';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260616092900';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260616092900';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260616092900';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260616092900';
+} from './state.js?v=20260617031434';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617031434';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617031434';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617031434';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617031434';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260616092900';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260616092900';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260616092900';
-import { derivePreviewFromText } from './import-preview.js?v=20260616092900';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260616092900';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260616092900';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260616092900';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260616092900';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260616092900';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260616092900';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260616092900';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260616092900';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260616092900';
+} from './app-actions.js?v=20260617031434';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617031434';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617031434';
+import { derivePreviewFromText } from './import-preview.js?v=20260617031434';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617031434';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617031434';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617031434';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617031434';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617031434';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617031434';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617031434';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617031434';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617031434';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -41,7 +41,7 @@ import {
   bindSettingsInteractions,
   bindWorkHeaderActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260616092900';
+} from './ui-bindings.js?v=20260617031434';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -61,7 +61,7 @@ import {
   timelineCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260616092900';
+} from './views.js?v=20260617031434';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -380,27 +380,68 @@ function sliceWorkFragmentsForVisibleCount(workId, visibleTextCount) {
 function renderWorkFragmentCard(fragment, returnToHash) {
   const safeDisplayHtml = normalizeFragmentDisplayHtml(fragment.displayHtml);
   const bookmarked = state.bookmarks.has(fragment.id);
+  const liked = state.likes.has(fragment.id);
   const overlayRisk = estimateFragmentOverlayRisk(safeDisplayHtml);
+  const overlayState = bookmarked ? 'bookmark' : liked ? 'like' : 'idle';
   return workFragmentCardMarkup({
     fragmentId: escapeHtml(fragment.id),
     fragmentIndex: fragment.index,
     detailHref: buildFragmentHash(fragment.id, { returnTo: returnToHash }),
     displayHtml: safeDisplayHtml,
-    bookmarkedClassName: bookmarked ? 'is-active' : '',
+    overlayStateClassName: `is-${overlayState}`,
     overlayRiskClassName: overlayRisk ? 'is-overlay-risk' : '',
-    ariaLabel: bookmarked ? `断片 ${fragment.index} が現在のしおりです` : `断片 ${fragment.index} を現在のしおりにする`,
-    ariaPressed: bookmarked ? 'true' : 'false'
+    ariaLabel: overlayButtonAriaLabel(fragment.index, overlayState),
+    ariaPressed: overlayState === 'idle' ? 'false' : 'true'
   });
 }
 
-function updateWorkOverlayBookmarkButton(button, bookmarked) {
+function getWorkOverlayState(fragmentId) {
+  if (state.bookmarks.has(fragmentId)) {
+    return 'bookmark';
+  }
+  if (state.likes.has(fragmentId)) {
+    return 'like';
+  }
+  return 'idle';
+}
+
+function overlayButtonAriaLabel(fragmentIndex, overlayState) {
+  if (overlayState === 'bookmark') {
+    return `断片 ${fragmentIndex} は現在のしおりです。もう一度押すとしおりを外していいねにします`;
+  }
+  if (overlayState === 'like') {
+    return `断片 ${fragmentIndex} はいいね済みです。もう一度押すと何もない状態に戻します`;
+  }
+  return `断片 ${fragmentIndex} を現在のしおりにする`;
+}
+
+function updateWorkOverlayButton(button, overlayState) {
   const fragmentIndex = Number(button.dataset.fragmentIndex || 0);
-  button.classList.toggle('is-active', bookmarked);
-  button.setAttribute('aria-pressed', bookmarked ? 'true' : 'false');
-  button.setAttribute(
-    'aria-label',
-    bookmarked ? `断片 ${fragmentIndex} が現在のしおりです` : `断片 ${fragmentIndex} を現在のしおりにする`
-  );
+  button.classList.remove('is-idle', 'is-bookmark', 'is-like');
+  button.classList.add(`is-${overlayState}`);
+  button.setAttribute('aria-pressed', overlayState === 'idle' ? 'false' : 'true');
+  button.setAttribute('aria-label', overlayButtonAriaLabel(fragmentIndex, overlayState));
+}
+
+async function cycleWorkOverlayState(fragmentId) {
+  const fragment = getFragmentById(state.fragments, fragmentId);
+  if (!fragment || fragment.type === 'break') {
+    return;
+  }
+
+  const overlayState = getWorkOverlayState(fragmentId);
+  if (overlayState === 'bookmark') {
+    await removeBookmark(fragment.workId);
+    if (!state.likes.has(fragmentId)) {
+      await saveLike(fragmentId);
+    }
+  } else if (overlayState === 'like') {
+    await removeLike(fragmentId);
+  } else {
+    await saveBookmark(fragment);
+  }
+
+  await loadStateFromDb();
 }
 
 function bindWorkHeaderProgress(totalTextFragments) {
@@ -785,9 +826,9 @@ function renderWorkPage(workId, options = {}) {
   bindWorkHeaderProgress(totalTextFragments);
   bindWorkAutoLoad(workId, shownTextCount, totalTextFragments);
   bindWorkOverlayActions(app, async (fragmentId) => {
-    await toggleBookmark(fragmentId, { rerender: false });
-    app.querySelectorAll('[data-work-action="bookmark"]').forEach((item) => {
-      updateWorkOverlayBookmarkButton(item, state.bookmarks.has(item.dataset.fragmentId));
+    await cycleWorkOverlayState(fragmentId);
+    app.querySelectorAll('[data-work-action="cycle-marker"]').forEach((item) => {
+      updateWorkOverlayButton(item, getWorkOverlayState(item.dataset.fragmentId));
     });
   });
 }

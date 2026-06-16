@@ -9,6 +9,7 @@
 - After a ZIP save succeeds, the add screen now also scrolls the in-page `取り込み完了` notice into view beneath the sticky header, keeping completion feedback visible across phones, tablets, and desktop browsers.
 - Promoted successful ZIP-save feedback into a large in-page success notice with a clearer green-tinted treatment, instead of hiding the completion message inside the closed import sheet.
 - After successful ZIP import preview creation, the add screen now scrolls the preview block into view beneath the sticky header so users land on the new primary task instead of staying visually anchored to older search results.
+- Changed the work-page bottom-right fragment label from a bookmark-only toggle into a three-step cycle of none, bookmark, and like, and differentiated the states with outline-first bookmark styling plus a quiet rose background for likes.
 - Changed work-timeline continuation to default to automatic loading near the bottom, added a settings toggle to switch between automatic and manual continuation, and persisted that preference in the exported `settings` store.
 - Cleared the transient catalog hit-count status after saving an imported ZIP, so finished imports no longer leave stale `x件見つかりました` search messaging on the add screen.
 - Removed the fixed `縦スクロール読書` eyebrow from every screen header and reduced the shared page-title scale so top bars read as navigation context rather than a second hero.
