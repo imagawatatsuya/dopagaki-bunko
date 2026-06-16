@@ -49,11 +49,6 @@ export function errorBodyMarkup(message) {
 
 export function homeBodyMarkup(timelineCardsHtml) {
   return `
-    <section class="hero-panel">
-      <p class="hero-kicker">Timeline</p>
-      <h2 class="hero-title">作品名と本文だけを流す。</h2>
-      <p class="hero-text">読みかけの作品、気に入った断片、追加した作品がここに流れます。まずは気になった断片を開いて読んでください。</p>
-    </section>
     <section class="timeline" aria-label="ホームタイムライン">
       ${timelineCardsHtml}
     </section>
