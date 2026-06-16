@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617042534';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617043934';
 import {
   buildHomeTimelineEvents,
   buildLibraryWorksByStatus,
@@ -13,30 +13,30 @@ import {
   savedCollectionLabel,
   sortSavedRecords,
   sortUpdatedRecords
-} from './state.js?v=20260617042534';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617042534';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260617042534';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617042534';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617042534';
+} from './state.js?v=20260617043934';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617043934';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617043934';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617043934';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617043934';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260617042534';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617042534';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260617042534';
-import { derivePreviewFromText } from './import-preview.js?v=20260617042534';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617042534';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617042534';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617042534';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617042534';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617042534';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617042534';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617042534';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617042534';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260617042534';
+} from './app-actions.js?v=20260617043934';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617043934';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617043934';
+import { derivePreviewFromText } from './import-preview.js?v=20260617043934';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617043934';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617043934';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617043934';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617043934';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617043934';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617043934';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617043934';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617043934';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617043934';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -46,7 +46,7 @@ import {
   bindWorkHeaderActions,
   bindWorkStateActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260617042534';
+} from './ui-bindings.js?v=20260617043934';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -68,7 +68,7 @@ import {
   workEndingCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260617042534';
+} from './views.js?v=20260617043934';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -345,14 +345,46 @@ function renderBreakCard() {
   return breakCardMarkup();
 }
 
+function decodeHtmlEntities(value) {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = String(value ?? '');
+  return textarea.value;
+}
+
+function buildHomeCardTitle(workTitle, fragment) {
+  const sourceText = String(fragment?.displayHtml ?? '')
+    .replace(/<br\s*\/?>/giu, '\n')
+    .replace(/<[^>]+>/gu, '')
+    .replace(/&nbsp;/gu, ' ');
+  const lineText = decodeHtmlEntities(sourceText || String(fragment?.plainText ?? ''))
+    .replace(/\r\n?/gu, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(' ');
+
+  if (!lineText) {
+    return String(workTitle ?? '無題');
+  }
+
+  return `${String(workTitle ?? '無題')}　${lineText}`;
+}
+
+function scrollToPageTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+}
+
 function renderTimelineCard(fragment, workTitle, options = {}) {
   const detailHref = options.detailHref ?? `#/fragment/${encodeURIComponent(fragment.id)}`;
   const safeDisplayHtml = normalizeFragmentDisplayHtml(fragment.displayHtml);
   return timelineCardMarkup({
     fragmentId: escapeHtml(fragment.id),
     detailHref,
-    workTitle: escapeHtml(workTitle ?? '無題'),
+    workTitle: escapeHtml(options.titleText ?? workTitle ?? '無題'),
     metaLabel: options.metaLabel ? escapeHtml(options.metaLabel) : '',
+    statusLabel: options.statusLabel ? escapeHtml(options.statusLabel) : '',
+    cardClassName: options.cardClassName ? escapeHtml(options.cardClassName) : '',
     displayHtml: safeDisplayHtml,
     ariaLabel: escapeHtml((workTitle ?? '無題') + ' の断片を開く')
   });
@@ -657,7 +689,10 @@ function renderHome(options = {}) {
           visible: WORK_PAGE_BATCH_SIZE
         });
     return renderTimelineCard(event.fragment, event.workTitle, {
+      titleText: buildHomeCardTitle(event.workTitle, event.fragment),
       metaLabel: event.metaLabel,
+      statusLabel: getWorkReadingStatus(event.fragment.workId) === 'completed' ? '読了中' : '',
+      cardClassName: getWorkReadingStatus(event.fragment.workId) === 'completed' ? 'is-completed-home' : '',
       detailHref
     });
   }).join('');
@@ -943,7 +978,7 @@ function renderWorkPage(workId, options = {}) {
       return;
     }
 
-    await saveWorkReadingState(workId, 'completed');
+    await saveWorkReadingState(workId, getWorkReadingStatus(workId) === 'completed' ? 'reading' : 'completed');
     route();
   });
   bindWorkOverlayActions(app, async (fragmentId) => {
@@ -1228,19 +1263,25 @@ function route() {
 
   switch (routeState.path) {
     case '#/library':
+      scrollToPageTop();
       renderLibrary({
         tab: routeState.params.get('tab') || ''
       });
       break;
     case '#/search':
+      scrollToPageTop();
       renderSearch();
       void ensureAozoraCatalogReady();
       break;
     case '#/settings':
+      scrollToPageTop();
       renderSettings();
       break;
     case '#/':
     default:
+      if (!routeState.params.get('focus')) {
+        scrollToPageTop();
+      }
       renderHome({
         focusFragmentId: routeState.params.get('focus') || ''
       });
@@ -1252,6 +1293,9 @@ async function startApp() {
   renderLoading();
 
   try {
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
     loadReaderFontScale();
     await ensureSampleData();
     await loadStateFromDb();

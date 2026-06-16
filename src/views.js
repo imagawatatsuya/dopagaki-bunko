@@ -360,18 +360,19 @@ export function workEndingCardMarkup({ isCompleted = false }) {
         class="break-action-button"
         data-work-state-action="mark-complete"
         aria-pressed="${isCompleted ? 'true' : 'false'}"
-      >原文終端</button>
+      >${isCompleted ? '読了中' : '原文終端'}</button>
     </article>
   `;
 }
 
-export function timelineCardMarkup({ fragmentId, detailHref, workTitle, metaLabel, displayHtml, ariaLabel }) {
+export function timelineCardMarkup({ fragmentId, detailHref, workTitle, metaLabel, displayHtml, ariaLabel, cardClassName = '', statusLabel = '' }) {
   return `
-    <article class="fragment-card" data-fragment-id="${fragmentId}">
+    <article class="fragment-card ${cardClassName}" data-fragment-id="${fragmentId}">
       <a class="fragment-card-link" href="${detailHref}" aria-label="${ariaLabel}">
         <span class="fragment-card-link-inner">
           <h2 class="fragment-work-title">${workTitle}</h2>
           ${metaLabel ? `<p class="fragment-meta-label">${metaLabel}</p>` : ''}
+          ${statusLabel ? `<p class="fragment-state-label">${statusLabel}</p>` : ''}
           <p class="fragment-body">${displayHtml}</p>
         </span>
       </a>

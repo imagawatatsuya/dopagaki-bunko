@@ -305,6 +305,22 @@ select {
   box-shadow: 0 0 0 3px rgba(138, 59, 18, 0.18), var(--shadow);
 }
 
+.fragment-card.is-completed-home {
+  border-color: rgba(107, 93, 80, 0.12);
+  background: rgba(252, 248, 241, 0.9);
+  box-shadow: 0 12px 28px rgba(66, 42, 24, 0.05);
+}
+
+.fragment-card.is-completed-home .fragment-card-link {
+  color: rgba(36, 29, 23, 0.78);
+}
+
+.fragment-card.is-completed-home .fragment-work-title,
+.fragment-card.is-completed-home .fragment-meta-label,
+.fragment-card.is-completed-home .fragment-body {
+  color: rgba(107, 93, 80, 0.78);
+}
+
 .fragment-card-link {
   display: block;
   padding: 20px 18px;
@@ -326,6 +342,9 @@ select {
   color: var(--muted);
   font-size: 14px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fragment-meta-label {
@@ -333,6 +352,13 @@ select {
   color: var(--accent);
   font-size: 13px;
   font-weight: 700;
+}
+
+.fragment-state-label {
+  margin: -6px 0 12px;
+  color: rgba(107, 93, 80, 0.64);
+  font-size: 12px;
+  letter-spacing: 0.06em;
 }
 
 .fragment-body {
@@ -504,8 +530,8 @@ rt {
 }
 
 .fragment-card-break-action.is-completed {
-  border-color: rgba(63, 123, 92, 0.24);
-  background: rgba(232, 247, 238, 0.72);
+  border-color: rgba(63, 123, 92, 0.28);
+  background: linear-gradient(180deg, rgba(232, 247, 238, 0.92), rgba(242, 251, 245, 0.96));
 }
 
 .break-label {
@@ -524,6 +550,7 @@ rt {
   background: transparent;
   color: var(--muted);
   font-size: 13px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-align: center;
   cursor: pointer;
@@ -531,7 +558,6 @@ rt {
 
 .fragment-card-break-action.is-completed .break-action-button {
   color: #2e6a4e;
-  font-weight: 700;
 }
 
 .break-action-button:focus-visible,
