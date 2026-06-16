@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617032133';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617032736';
 import {
   buildHomeTimelineEvents,
   buildSavedItems,
@@ -9,30 +9,30 @@ import {
   sameBookmarkRecords,
   savedCollectionLabel,
   sortSavedRecords
-} from './state.js?v=20260617032133';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617032133';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260617032133';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617032133';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617032133';
+} from './state.js?v=20260617032736';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617032736';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617032736';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617032736';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617032736';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260617032133';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617032133';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260617032133';
-import { derivePreviewFromText } from './import-preview.js?v=20260617032133';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617032133';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617032133';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617032133';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617032133';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617032133';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617032133';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617032133';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617032133';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260617032133';
+} from './app-actions.js?v=20260617032736';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617032736';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617032736';
+import { derivePreviewFromText } from './import-preview.js?v=20260617032736';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617032736';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617032736';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617032736';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617032736';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617032736';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617032736';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617032736';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617032736';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617032736';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -41,7 +41,7 @@ import {
   bindSettingsInteractions,
   bindWorkHeaderActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260617032133';
+} from './ui-bindings.js?v=20260617032736';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -61,7 +61,7 @@ import {
   timelineCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260617032133';
+} from './views.js?v=20260617032736';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -589,11 +589,13 @@ function renderHome(options = {}) {
     findWorkById
   });
   const timelineCardsHtml = timelineEvents.map((event) => {
+    const detailHref = buildWorkHash(event.fragment.workId, {
+      visible: Math.max(WORK_PAGE_BATCH_SIZE, Number(event.fragment.index) || WORK_PAGE_BATCH_SIZE),
+      focus: event.fragment.id
+    });
     return renderTimelineCard(event.fragment, event.workTitle, {
       metaLabel: event.metaLabel,
-      detailHref: buildFragmentHash(event.fragment.id, {
-        returnTo: buildHomeHash({ focus: event.fragment.id })
-      })
+      detailHref
     });
   }).join('');
 
