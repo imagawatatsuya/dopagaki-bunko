@@ -95,7 +95,7 @@ pwsh ./publish-pages.ps1
 
 バックアップ対象は `works`, `fragments`, `likes`, `bookmarks`, `quotes`, `settings` です。
 
-`bookmarks` は作品ごとに常に1件だけ保持される最新しおりです。気になった断片を複数残す用途は `likes` を使います。
+`bookmarks` は作品ごとに常に1件だけ保持される最新しおりです。気になった断片へふせんを複数残す用途は `likes` を使います。
 
 ## 青空文庫 ZIP 取り込み
 

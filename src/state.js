@@ -62,7 +62,7 @@ export function savedCollectionLabel(kind) {
     case 'bookmarks':
       return 'しおり';
     case 'likes':
-      return 'いいね';
+      return 'ふせん';
     case 'quotes':
       return '引用保存';
     default:
@@ -199,7 +199,7 @@ export function buildHomeTimelineEvents({ works, fragments, bookmarkRecords, lik
         id: `like:${record.fragmentId}:${record.savedAt}`,
         fragment,
         workTitle: findWorkById(fragment.workId)?.title ?? '無題',
-        metaLabel: `いいね追加 / 断片 ${fragment.index}`,
+        metaLabel: `ふせん追加 / 断片 ${fragment.index}`,
         occurredAt: record.savedAt
       };
     })

@@ -13,30 +13,30 @@ import {
   savedCollectionLabel,
   sortSavedRecords,
   sortUpdatedRecords
-} from './state.js?v=20260617084039';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617084039';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260617084039';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617084039';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617084039';
+} from './state.js?v=20260617085008';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617085008';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617085008';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617085008';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617085008';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260617084039';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617084039';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260617084039';
-import { derivePreviewFromText } from './import-preview.js?v=20260617084039';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617084039';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617084039';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617084039';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617084039';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617084039';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617084039';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617084039';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617084039';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260617084039';
+} from './app-actions.js?v=20260617085008';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617085008';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617085008';
+import { derivePreviewFromText } from './import-preview.js?v=20260617085008';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617085008';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617085008';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617085008';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617085008';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617085008';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617085008';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617085008';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617085008';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617085008';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -47,7 +47,7 @@ import {
   bindWorkHeaderActions,
   bindWorkStateActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260617084039';
+} from './ui-bindings.js?v=20260617085008';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -69,7 +69,7 @@ import {
   workEndingCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260617084039';
+} from './views.js?v=20260617085008';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -415,6 +415,15 @@ function returnLinkLabel(returnTo) {
     return 'ホームTLへ戻る';
   }
   if (path.startsWith('#/collection/')) {
+    if (path === '#/collection/likes') {
+      return 'ふせん一覧へ戻る';
+    }
+    if (path === '#/collection/bookmarks') {
+      return 'しおり一覧へ戻る';
+    }
+    if (path === '#/collection/quotes') {
+      return '引用保存一覧へ戻る';
+    }
     return '保存一覧へ戻る';
   }
   if (path.startsWith('#/work/')) {
@@ -494,10 +503,10 @@ function getWorkOverlayState(fragmentId) {
 
 function overlayButtonAriaLabel(fragmentIndex, overlayState) {
   if (overlayState === 'bookmark') {
-    return `断片 ${fragmentIndex} は現在のしおりです。もう一度押すとしおりを外していいねにします`;
+    return `断片 ${fragmentIndex} は現在のしおりです。もう一度押すとしおりを外してふせんにします`;
   }
   if (overlayState === 'like') {
-    return `断片 ${fragmentIndex} はいいね済みです。もう一度押すと何もない状態に戻します`;
+    return `断片 ${fragmentIndex} はふせん済みです。もう一度押すと何もない状態に戻します`;
   }
   return `断片 ${fragmentIndex} を現在のしおりにする`;
 }
@@ -742,7 +751,7 @@ function renderFragment(fragmentId, options = {}) {
       displayHtml: safeDisplayHtml,
       previousLinkHtml: previousFragment ? `<a class="detail-nav-link" href="${buildFragmentHash(previousFragment.id, { returnTo: options.returnTo })}">前へ</a>` : `<span class="detail-nav-link is-disabled" aria-disabled="true">前へ</span>`,
       nextLinkHtml: nextFragment ? `<a class="detail-nav-link" href="${buildFragmentHash(nextFragment.id, { returnTo: options.returnTo })}">次へ</a>` : `<span class="detail-nav-link is-disabled" aria-disabled="true">次へ</span>`,
-      likeButtonHtml: `<button type="button" class="detail-action-button ${liked ? 'is-active' : ''}" data-action="like" data-fragment-id="${escapeHtml(fragment.id)}">${liked ? 'いいね済み' : 'いいね'}</button>`,
+      likeButtonHtml: `<button type="button" class="detail-action-button ${liked ? 'is-active' : ''}" data-action="like" data-fragment-id="${escapeHtml(fragment.id)}">${liked ? 'ふせん済み' : 'ふせん'}</button>`,
       bookmarkButtonHtml: `<button type="button" class="detail-action-button ${bookmarked ? 'is-active' : ''}" data-action="bookmark" data-fragment-id="${escapeHtml(fragment.id)}">${bookmarked ? '現在のしおり' : 'しおり'}</button>`,
       quoteButtonHtml: `<button type="button" class="detail-action-button ${quoted ? 'is-active' : ''}" data-action="quote" data-fragment-id="${escapeHtml(fragment.id)}">${quoted ? '引用保存済み' : '引用保存'}</button>`,
       workLinkHtml: `<a class="detail-action-button detail-action-link" href="${workHash}">作品TLのこの位置へ</a>`,
@@ -843,10 +852,10 @@ function renderLibrary(options = {}) {
   const collectionsHtml = `
     <article class="info-panel">
       <h2 class="section-title">保存一覧</h2>
-      <p class="settings-status settings-status-subtle">しおり ${state.bookmarkRecords.length}件 / いいね ${state.likeRecords.length}件 / 引用保存 ${state.quoteRecords.length}件</p>
+      <p class="settings-status settings-status-subtle">しおり ${state.bookmarkRecords.length}件 / ふせん ${state.likeRecords.length}件 / 引用保存 ${state.quoteRecords.length}件</p>
       <div class="settings-button-grid">
         <a class="detail-action-button detail-action-link" href="${buildCollectionHash('bookmarks')}">しおり一覧を開く</a>
-        <a class="detail-action-button detail-action-link" href="${buildCollectionHash('likes')}">いいね一覧を開く</a>
+        <a class="detail-action-button detail-action-link" href="${buildCollectionHash('likes')}">ふせん一覧を開く</a>
         <a class="detail-action-button detail-action-link" href="${buildCollectionHash('quotes')}">引用保存一覧を開く</a>
       </div>
     </article>
