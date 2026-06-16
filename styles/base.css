@@ -250,6 +250,11 @@ select {
   text-decoration: none;
 }
 
+.panel-link-library-work {
+  display: grid;
+  gap: 4px;
+}
+
 .library-tab-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -291,6 +296,26 @@ select {
   font-size: 18px;
 }
 
+.info-panel-library-work {
+  padding: 14px 16px;
+}
+
+.library-work-title {
+  margin-bottom: 2px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.library-work-author {
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.info-panel-library-work .settings-status {
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
 .fragment-card {
   position: relative;
   border: 1px solid var(--border);
@@ -317,7 +342,8 @@ select {
 
 .fragment-card.is-completed-home .fragment-work-title,
 .fragment-card.is-completed-home .fragment-meta-label,
-.fragment-card.is-completed-home .fragment-body {
+.fragment-card.is-completed-home .fragment-body,
+.fragment-card.is-completed-home .fragment-state-label {
   color: rgba(107, 93, 80, 0.78);
 }
 

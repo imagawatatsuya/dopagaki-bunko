@@ -3,18 +3,21 @@ export const sampleWorks = [
     id: 'work-joseito',
     title: '女生徒',
     author: '太宰治',
+    sourceTitleLines: ['女生徒', '太宰治'],
     createdAt: '2026-06-10T09:00:00.000Z'
   },
   {
     id: 'work-ningen-shikkaku',
     title: '人間失格',
     author: '太宰治',
+    sourceTitleLines: ['人間失格', '太宰治'],
     createdAt: '2026-06-11T09:00:00.000Z'
   },
   {
     id: 'work-yume-juya',
     title: '夢十夜',
     author: '夏目漱石',
+    sourceTitleLines: ['夢十夜', '夏目漱石'],
     createdAt: '2026-06-12T09:00:00.000Z'
   }
 ];

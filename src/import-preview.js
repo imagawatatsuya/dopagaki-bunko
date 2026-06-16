@@ -1,7 +1,7 @@
-import { cleanAozoraText } from './aozora-cleaner.js?v=20260617043934';
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260617043934';
-import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260617043934';
-import { fragmentText } from './fragmenter.js?v=20260617043934';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260617044837';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260617044837';
+import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260617044837';
+import { fragmentText } from './fragmenter.js?v=20260617044837';
 
 function stripInlineAozoraNotation(text) {
   return String(text)
@@ -60,6 +60,15 @@ function guessTitle(lines) {
 function guessAuthor(lines) {
   const candidate = lines.slice(1, 6).find((line) => hasReadableMetadataLine(line)) ?? '';
   return stripInlineAozoraNotation(candidate) || '著者不明';
+}
+
+function extractSourceTitleLines(lines, bodyStartIndex) {
+  return lines
+    .slice(0, Math.max(bodyStartIndex, 0))
+    .filter((line) => hasReadableMetadataLine(line))
+    .map((line) => stripInlineAozoraNotation(line))
+    .filter(Boolean)
+    .slice(0, 2);
 }
 
 function buildOutlineWithFragmentIndex(outline, fragments) {
@@ -131,6 +140,7 @@ export function derivePreviewFromText(rawText, encoding) {
   return {
     title,
     author,
+    sourceTitleLines: extractSourceTitleLines(lines, bodyStartIndex),
     encoding,
     fragments,
     outline: buildOutlineWithFragmentIndex(renderedBody.outline, fragments),

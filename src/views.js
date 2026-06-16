@@ -360,7 +360,7 @@ export function workEndingCardMarkup({ isCompleted = false }) {
         class="break-action-button"
         data-work-state-action="mark-complete"
         aria-pressed="${isCompleted ? 'true' : 'false'}"
-      >${isCompleted ? '読了中' : '原文終端'}</button>
+      >${isCompleted ? '読了' : '原文終端'}</button>
     </article>
   `;
 }

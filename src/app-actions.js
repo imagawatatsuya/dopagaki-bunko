@@ -148,6 +148,9 @@ export function createSearchActions({
       aozoraWorkId: state.importPreview.aozoraWorkId || '',
       title: state.importPreview.title,
       author: state.importPreview.author,
+      sourceTitleLines: Array.isArray(state.importPreview.sourceTitleLines)
+        ? state.importPreview.sourceTitleLines.slice(0, 2)
+        : [],
       sourceUrl: state.importPreview.sourceUrl || '',
       sourceFileName: state.importPreview.sourceFileName || '',
       importedAt,
