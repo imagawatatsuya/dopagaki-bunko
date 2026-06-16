@@ -34,6 +34,16 @@ export function buildCollectionHash(kind) {
   return `#/collection/${encodeURIComponent(kind)}`;
 }
 
+export function buildLibraryHash(options = {}) {
+  const params = new URLSearchParams();
+  if (options.tab) {
+    params.set('tab', options.tab);
+  }
+
+  const query = params.toString();
+  return `#/library${query ? `?${query}` : ''}`;
+}
+
 export function buildHomeHash(options = {}) {
   const params = new URLSearchParams();
   if (options.focus) {

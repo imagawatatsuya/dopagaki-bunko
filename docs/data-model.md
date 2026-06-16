@@ -84,3 +84,15 @@
   createdAt
 }
 ```
+
+## ReadingState
+
+```js
+{
+  id, // workId
+  workId,
+  status, // "reading" | "completed"
+  createdAt,
+  updatedAt
+}
+```

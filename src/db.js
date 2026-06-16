@@ -1,5 +1,5 @@
 const DB_NAME = 'dopagaki-bunko';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const STORE_NAMES = [
   'works',
@@ -7,6 +7,7 @@ export const STORE_NAMES = [
   'likes',
   'bookmarks',
   'quotes',
+  'readingStates',
   'settings'
 ];
 

@@ -40,6 +40,14 @@ export function bindWorkHeaderActions(root, onAction) {
   });
 }
 
+export function bindWorkStateActions(root, onAction) {
+  root.querySelectorAll('[data-work-state-action]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      await onAction(button.dataset.workStateAction);
+    });
+  });
+}
+
 export function bindSearchInteractions(root, { onSelectFile, onDropFile, onAction }) {
   const input = root.querySelector('[data-search-input="aozora-zip"]');
   const catalogQueryInput = root.querySelector('[data-search-input="catalog-query"]');

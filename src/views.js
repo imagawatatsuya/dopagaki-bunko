@@ -60,10 +60,23 @@ export function homeBodyMarkup(timelineCardsHtml) {
   `;
 }
 
-export function libraryBodyMarkup(worksHtml, collectionsHtml) {
+export function libraryBodyMarkup({ tabsHtml, activeTabLabel, count, worksHtml, emptyTitle, emptyText, collectionsHtml }) {
   return `
     <section class="panel-stack">
-      ${worksHtml}
+      <article class="info-panel">
+        <div class="library-tab-list" role="tablist" aria-label="本棚の読書状態">
+          ${tabsHtml}
+        </div>
+        <p class="settings-status settings-status-subtle">${activeTabLabel} ${count}件</p>
+      </article>
+    </section>
+    <section class="panel-stack" id="library-works-panel" role="tabpanel" aria-label="${activeTabLabel}の作品一覧">
+      ${worksHtml || `
+        <article class="info-panel info-panel-muted">
+          <h2 class="section-title">${emptyTitle}</h2>
+          <p class="section-text">${emptyText}</p>
+        </article>
+      `}
       ${collectionsHtml}
     </section>
   `;
@@ -295,7 +308,8 @@ export function workBodyMarkup({
   bookmarkHtml,
   readerScaleControlsHtml,
   fragmentsHtml,
-  moreLinkHtml
+  moreLinkHtml,
+  endingCardHtml = ''
 }) {
   return `
     <section class="panel-stack">
@@ -310,15 +324,43 @@ export function workBodyMarkup({
     </section>
     <section class="timeline" aria-label="作品断片一覧">
       ${fragmentsHtml}
+      ${endingCardHtml}
     </section>
     ${moreLinkHtml}
   `;
 }
 
-export function breakCardMarkup() {
+export function libraryTabButtonMarkup({ label, href, isActive, panelId, tabId }) {
+  return `
+    <a
+      class="library-tab-button ${isActive ? 'is-active' : ''}"
+      href="${href}"
+      id="${tabId}"
+      role="tab"
+      aria-selected="${isActive ? 'true' : 'false'}"
+      aria-controls="${panelId}"
+      ${isActive ? 'tabindex="0"' : 'tabindex="-1"'}
+    >${label}</a>
+  `;
+}
+
+export function breakCardMarkup(label = '原文空行') {
   return `
     <article class="fragment-card fragment-card-break">
-      <p class="break-label">原文空行</p>
+      <p class="break-label">${label}</p>
+    </article>
+  `;
+}
+
+export function workEndingCardMarkup({ isCompleted = false }) {
+  return `
+    <article class="fragment-card fragment-card-break fragment-card-break-action ${isCompleted ? 'is-completed' : ''}">
+      <button
+        type="button"
+        class="break-action-button"
+        data-work-state-action="mark-complete"
+        aria-pressed="${isCompleted ? 'true' : 'false'}"
+      >原文終端</button>
     </article>
   `;
 }

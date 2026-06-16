@@ -1,38 +1,42 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617033254';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617042534';
 import {
   buildHomeTimelineEvents,
+  buildLibraryWorksByStatus,
   buildSavedItems,
   canonicalizeBookmarkRecords,
+  deriveWorkReadingStatus,
   getBookmarkForWork,
   getFirstReadableFragmentForWork,
   getFragmentById,
+  getReadingStateForWork,
   sameBookmarkRecords,
   savedCollectionLabel,
-  sortSavedRecords
-} from './state.js?v=20260617033254';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617033254';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260617033254';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617033254';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617033254';
+  sortSavedRecords,
+  sortUpdatedRecords
+} from './state.js?v=20260617042534';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617042534';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617042534';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617042534';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617042534';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260617033254';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617033254';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260617033254';
-import { derivePreviewFromText } from './import-preview.js?v=20260617033254';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617033254';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617033254';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617033254';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617033254';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617033254';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617033254';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617033254';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617033254';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260617033254';
+} from './app-actions.js?v=20260617042534';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617042534';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617042534';
+import { derivePreviewFromText } from './import-preview.js?v=20260617042534';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617042534';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617042534';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617042534';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617042534';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617042534';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617042534';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617042534';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617042534';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617042534';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -40,8 +44,9 @@ import {
   bindSearchInteractions,
   bindSettingsInteractions,
   bindWorkHeaderActions,
+  bindWorkStateActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260617033254';
+} from './ui-bindings.js?v=20260617042534';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -49,6 +54,7 @@ import {
   errorBodyMarkup,
   fragmentDetailBodyMarkup,
   homeBodyMarkup,
+  libraryTabButtonMarkup,
   layoutMarkup,
   libraryBodyMarkup,
   loadingBodyMarkup,
@@ -59,15 +65,22 @@ import {
   settingsBodyMarkup,
   settingsPendingImportMarkup,
   timelineCardMarkup,
+  workEndingCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260617033254';
+} from './views.js?v=20260617042534';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
 const SEARCH_RESULTS_BATCH_SIZE = 25;
 const READER_FONT_SCALE_STORAGE_KEY = 'dopagaki-reader-font-scale';
 const WORK_LOAD_MODE_SETTING_ID = 'setting:work-load-mode';
+const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
+const LIBRARY_TAB_LABELS = {
+  reading: '読書中',
+  unread: '未読',
+  completed: '読了'
+};
 const READER_FONT_SCALES = [
   { value: 0.92, label: 'A-' },
   { value: 1, label: '標準' },
@@ -82,6 +95,7 @@ const state = {
   likeRecords: [],
   bookmarkRecords: [],
   quoteRecords: [],
+  readingStateRecords: [],
   exportStatus: '',
   importStatus: '',
   releaseStatus: '',
@@ -235,6 +249,50 @@ function renderWorkHeaderMeta(shownCount, totalCount) {
 
 function findWorkById(workId) {
   return state.works.find((item) => item.id === workId) ?? null;
+}
+
+function normalizeLibraryTab(value) {
+  return LIBRARY_TAB_ORDER.includes(value) ? value : 'reading';
+}
+
+function readingStatusLabel(status) {
+  return LIBRARY_TAB_LABELS[normalizeLibraryTab(status)] ?? LIBRARY_TAB_LABELS.reading;
+}
+
+function getWorkReadingStatus(workId) {
+  return deriveWorkReadingStatus({
+    workId,
+    readingStateRecords: state.readingStateRecords,
+    bookmarkRecords: state.bookmarkRecords
+  });
+}
+
+async function saveWorkReadingState(workId, status) {
+  const normalizedStatus = status === 'completed' ? 'completed' : 'reading';
+  const currentRecord = getReadingStateForWork(state.readingStateRecords, workId);
+  const record = {
+    id: workId,
+    workId,
+    status: normalizedStatus,
+    updatedAt: new Date().toISOString(),
+    createdAt: currentRecord?.createdAt ?? new Date().toISOString()
+  };
+
+  await putRecord('readingStates', record);
+  const existingIndex = state.readingStateRecords.findIndex((item) => item.workId === workId);
+  if (existingIndex >= 0) {
+    state.readingStateRecords.splice(existingIndex, 1, record);
+  } else {
+    state.readingStateRecords = [record, ...state.readingStateRecords];
+  }
+}
+
+function ensureWorkMarkedReading(workId) {
+  if (!workId || getWorkReadingStatus(workId) !== 'unread') {
+    return;
+  }
+
+  void saveWorkReadingState(workId, 'reading');
 }
 
 function fragmentSequenceOf(fragment) {
@@ -622,6 +680,10 @@ function renderFragment(fragmentId, options = {}) {
   const readableFragments = getReadableFragments();
   const currentIndex = readableFragments.findIndex((item) => item.id === fragmentId);
   const fragment = currentIndex >= 0 ? readableFragments[currentIndex] : readableFragments[0];
+  if (!fragment) {
+    renderLoading('断片データを読み込んでいます。');
+    return;
+  }
   const resolvedIndex = currentIndex >= 0 ? currentIndex : 0;
   const work = findWorkById(fragment?.workId);
   const previousFragment = readableFragments[resolvedIndex - 1] ?? null;
@@ -663,6 +725,8 @@ function renderFragment(fragmentId, options = {}) {
     saveReaderFontScale(value);
     route();
   });
+
+  ensureWorkMarkedReading(fragment.workId);
 }
 
 function buildImportSummary(stores) {
@@ -672,19 +736,29 @@ function buildImportSummary(stores) {
     `likes ${stores.likes.length}件`,
     `bookmarks ${stores.bookmarks.length}件`,
     `quotes ${stores.quotes.length}件`,
+    `readingStates ${stores.readingStates.length}件`,
     `settings ${stores.settings.length}件`
   ].join(' / ');
 }
 
-function renderLibrary() {
-  const worksHtml = state.works.map((work) => {
+function renderLibrary(options = {}) {
+  const activeTab = normalizeLibraryTab(options.tab);
+  const worksByStatus = buildLibraryWorksByStatus({
+    works: state.works,
+    bookmarkRecords: state.bookmarkRecords,
+    readingStateRecords: state.readingStateRecords
+  });
+  const visibleWorks = worksByStatus[activeTab] ?? [];
+  const worksHtml = visibleWorks.map((work) => {
     const bookmark = getBookmarkForWork(state.bookmarkRecords, work.id);
+    const readingStatus = getWorkReadingStatus(work.id);
     return `
       <article class="info-panel">
         <a class="panel-link" href="#/work/${encodeURIComponent(work.id)}">
           <h2 class="section-title">${escapeHtml(work.title)}</h2>
           <p class="section-text">${escapeHtml(work.author ?? '')}</p>
           <p class="settings-status settings-status-subtle">${countWorkTextFragments(work.id)}断片</p>
+          <p class="settings-status settings-status-subtle">${escapeHtml(readingStatusLabel(readingStatus))}</p>
           ${bookmark ? `<p class="settings-status settings-status-subtle">しおり: 断片 ${bookmark.fragmentIndex}</p>` : ''}
         </a>
       </article>
@@ -705,7 +779,25 @@ function renderLibrary() {
     current: 'library',
     title: '本棚',
     subtitle: '保存した作品をここで読み継ぎます。',
-    body: libraryBodyMarkup(worksHtml, collectionsHtml)
+    body: libraryBodyMarkup({
+      tabsHtml: LIBRARY_TAB_ORDER.map((tab) => libraryTabButtonMarkup({
+        label: `${readingStatusLabel(tab)} ${worksByStatus[tab]?.length ?? 0}`,
+        href: buildLibraryHash({ tab }),
+        isActive: tab === activeTab,
+        panelId: 'library-works-panel',
+        tabId: `library-tab-${tab}`
+      })).join(''),
+      activeTabLabel: readingStatusLabel(activeTab),
+      count: visibleWorks.length,
+      worksHtml,
+      emptyTitle: `${readingStatusLabel(activeTab)}の作品はまだありません`,
+      emptyText: activeTab === 'reading'
+        ? '読み始めた作品はここに並びます。'
+        : activeTab === 'unread'
+          ? '追加した作品のうち、まだ開いていないものがここに並びます。'
+          : '原文終端を押した作品がここに並びます。',
+      collectionsHtml
+    })
   });
 }
 
@@ -749,6 +841,10 @@ function renderCollectionPage(kind) {
 
 function renderWorkPage(workId, options = {}) {
   const work = findWorkById(workId);
+  if (!work) {
+    renderError(new Error('作品が見つかりませんでした。'));
+    return;
+  }
   const totalTextFragments = countWorkTextFragments(workId);
   const readableWorkFragments = getReadableWorkFragments(workId);
   const visibleTextCount = Math.min(
@@ -769,6 +865,9 @@ function renderWorkPage(workId, options = {}) {
     ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${bookmarkJumpHash}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>`
     : '';
   const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break' ? renderBreakCard() : renderWorkFragmentCard(fragment, returnToHash)).join('');
+  const endingCardHtml = shownTextCount >= totalTextFragments && totalTextFragments > 0
+    ? workEndingCardMarkup({ isCompleted: getWorkReadingStatus(workId) === 'completed' })
+    : '';
   const moreLinkHtml = remainingTextCount > 0
     ? (state.workLoadMode === 'manual'
       ? `
@@ -795,7 +894,8 @@ function renderWorkPage(workId, options = {}) {
       bookmarkHtml,
       readerScaleControlsHtml: renderReaderScaleControls(),
       fragmentsHtml,
-      moreLinkHtml
+      moreLinkHtml,
+      endingCardHtml
     })
   });
 
@@ -838,12 +938,22 @@ function renderWorkPage(workId, options = {}) {
   });
   bindWorkHeaderProgress(totalTextFragments);
   bindWorkAutoLoad(workId, shownTextCount, totalTextFragments);
+  bindWorkStateActions(app, async (action) => {
+    if (action !== 'mark-complete') {
+      return;
+    }
+
+    await saveWorkReadingState(workId, 'completed');
+    route();
+  });
   bindWorkOverlayActions(app, async (fragmentId) => {
     await cycleWorkOverlayState(fragmentId);
     app.querySelectorAll('[data-work-action="cycle-marker"]').forEach((item) => {
       updateWorkOverlayButton(item, getWorkOverlayState(item.dataset.fragmentId));
     });
   });
+
+  ensureWorkMarkedReading(workId);
 }
 
 function renderSearch() {
@@ -990,6 +1100,7 @@ async function loadStateFromDb() {
   }
   state.bookmarkRecords = canonicalBookmarks;
   state.quoteRecords = sortSavedRecords(await listQuotes());
+  state.readingStateRecords = sortUpdatedRecords(await getAllRecords('readingStates'));
   state.likes = new Set(state.likeRecords.map((item) => item.fragmentId));
   state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
   state.quotes = new Set(state.quoteRecords.map((item) => item.fragmentId));
@@ -1117,7 +1228,9 @@ function route() {
 
   switch (routeState.path) {
     case '#/library':
-      renderLibrary();
+      renderLibrary({
+        tab: routeState.params.get('tab') || ''
+      });
       break;
     case '#/search':
       renderSearch();

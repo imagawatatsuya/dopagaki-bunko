@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a tappable `原文終端` marker at the end of fully shown work pages, reusing the quiet source-break card style and marking the work as `読了` when pressed.
+- Reworked the library into `読書中 / 未読 / 読了` tabs backed by a per-work reading-state store, while keeping bookmarks as restart positions rather than completion state.
 - Added inline handling for Aozora `横組み` and `割り注` notes, covering both adjacent target-note forms and range forms so these annotations render as lightweight inline spans instead of remaining raw.
 - Added a conservative fallback for annotation-only lines so even unsupported `［＃...］` directives now collapse into short reader-facing labels instead of leaking raw notation.
 - Started handling note-only page-break directives such as `［＃改ページ］` and `［＃改丁］` as lightweight in-reader separators instead of silently dropping or leaking raw notation.

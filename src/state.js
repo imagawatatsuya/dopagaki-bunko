@@ -9,6 +9,54 @@ export function sortSavedRecords(records) {
   });
 }
 
+export function sortUpdatedRecords(records) {
+  return [...records].sort((left, right) => {
+    const timeCompare = String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? ''));
+    if (timeCompare !== 0) {
+      return timeCompare;
+    }
+
+    return String(left.id ?? '').localeCompare(String(right.id ?? ''));
+  });
+}
+
+export function normalizeReadingStatus(status) {
+  if (status === 'completed') {
+    return 'completed';
+  }
+  if (status === 'reading') {
+    return 'reading';
+  }
+  return 'unread';
+}
+
+export function getReadingStateForWork(readingStateRecords, workId) {
+  return readingStateRecords.find((item) => item.workId === workId) ?? null;
+}
+
+export function deriveWorkReadingStatus({ workId, readingStateRecords, bookmarkRecords }) {
+  const readingState = getReadingStateForWork(readingStateRecords, workId);
+  if (readingState) {
+    const normalized = normalizeReadingStatus(readingState.status);
+    if (normalized !== 'unread') {
+      return normalized;
+    }
+  }
+
+  return getBookmarkForWork(bookmarkRecords, workId) ? 'reading' : 'unread';
+}
+
+export function sortWorksForLibrary(works) {
+  return [...works].sort((left, right) => {
+    const createdCompare = String(right.createdAt ?? '').localeCompare(String(left.createdAt ?? ''));
+    if (createdCompare !== 0) {
+      return createdCompare;
+    }
+
+    return String(left.id ?? '').localeCompare(String(right.id ?? ''));
+  });
+}
+
 export function savedCollectionLabel(kind) {
   switch (kind) {
     case 'bookmarks':
@@ -179,4 +227,23 @@ export function buildSavedItems({ kind, bookmarkRecords, likeRecords, quoteRecor
       excerpt: summarizeFragmentText(plainText)
     };
   });
+}
+
+export function buildLibraryWorksByStatus({ works, bookmarkRecords, readingStateRecords }) {
+  const grouped = {
+    reading: [],
+    unread: [],
+    completed: []
+  };
+
+  sortWorksForLibrary(works).forEach((work) => {
+    const status = deriveWorkReadingStatus({
+      workId: work.id,
+      readingStateRecords,
+      bookmarkRecords
+    });
+    grouped[status].push(work);
+  });
+
+  return grouped;
 }
