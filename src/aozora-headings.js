@@ -1,4 +1,4 @@
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616090513';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260616092900';
 
 const AOZORA_NUMBER_PATTERN = '[0-9０-９]+';
 const HEADING_INLINE_PATTERN = /^(.*?)[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;
@@ -8,6 +8,10 @@ const END_INDENT_PATTERN = /^[［\[]＃ここで字下げ終わり[］\]]\s*$/u;
 const SINGLE_INDENT_NOTE_PATTERN = new RegExp(`^[［\\[]＃(${AOZORA_NUMBER_PATTERN})字下げ[］\\]]\\s*$`, 'u');
 const LEADING_INDENT_PATTERN = new RegExp(`^(?:[［\\[]＃(?:ここから)?(${AOZORA_NUMBER_PATTERN})字下げ[］\\]]\\s*)+`, 'u');
 const NOTE_ONLY_LINE_PATTERN = /^(?:[［\[]＃[^］\]]+[］\]]\s*)+$/u;
+const LEADING_NOTE_TOKEN_PATTERN = /^[［\[]＃([^］\]]+)[］\]]\s*/u;
+const BOTTOM_ATTACH_NOTE_PATTERN = new RegExp(`^地から(${AOZORA_NUMBER_PATTERN})字(上げ|下げ)$`, 'u');
+const PAGE_BREAK_NOTE_PATTERN = /[［\[]＃(?:改ページ|改丁)[］\]]/u;
+const NOTE_TOKEN_PATTERN = /[［\[]＃([^］\]]+)[］\]]/gu;
 
 function normalizeAozoraDigits(text) {
   return String(text).replace(/[０-９]/gu, (digit) => {
@@ -63,8 +67,135 @@ function stripLeadingIndentNotes(line) {
   };
 }
 
+function parseLeadingLayoutNotes(line) {
+  let rest = String(line);
+  let indentCount = null;
+  let bottomMode = '';
+  let bottomOffsetCount = null;
+  let bottomOffsetDirection = '';
+  let matched = false;
+
+  while (true) {
+    const match = rest.match(LEADING_NOTE_TOKEN_PATTERN);
+    if (!match) {
+      break;
+    }
+
+    const noteText = normalizeAozoraDigits(match[1].trim());
+    const singleIndentMatch = noteText.match(/^(\d+)字下げ$/u);
+    const bottomAttachMatch = noteText.match(BOTTOM_ATTACH_NOTE_PATTERN);
+
+    if (singleIndentMatch) {
+      indentCount = Number.parseInt(singleIndentMatch[1], 10);
+      matched = true;
+      rest = rest.slice(match[0].length);
+      continue;
+    }
+
+    if (noteText === '地付き') {
+      bottomMode = 'bottom';
+      matched = true;
+      rest = rest.slice(match[0].length);
+      continue;
+    }
+
+    if (bottomAttachMatch) {
+      bottomMode = 'bottom-offset';
+      bottomOffsetCount = Number.parseInt(bottomAttachMatch[1], 10);
+      bottomOffsetDirection = bottomAttachMatch[2];
+      matched = true;
+      rest = rest.slice(match[0].length);
+      continue;
+    }
+
+    break;
+  }
+
+  return {
+    text: rest,
+    matched,
+    indentCount,
+    bottomMode,
+    bottomOffsetCount,
+    bottomOffsetDirection
+  };
+}
+
 function buildHeadingHtml(titleHtml, headingId, level, indentStep) {
   return `<span class="aozora-heading aozora-heading-level-${level} aozora-heading-indent-${indentStep}" data-heading-id="${headingId}" data-outline-level="${level}">${titleHtml}</span>`;
+}
+
+function buildLayoutLineHtml(textHtml, layout) {
+  const classNames = ['aozora-layout-line'];
+  const indentStep = normalizeIndentStep(layout.indentCount);
+  if (indentStep > 0) {
+    classNames.push(`aozora-layout-indent-${indentStep}`);
+  }
+  if (layout.bottomMode) {
+    classNames.push('aozora-layout-bottom');
+  }
+  if (layout.bottomMode === 'bottom-offset') {
+    classNames.push(
+      layout.bottomOffsetDirection === '下げ'
+        ? 'aozora-layout-bottom-lowered'
+        : 'aozora-layout-bottom-raised'
+    );
+  }
+
+  return `<span class="${classNames.join(' ')}">${textHtml}</span>`;
+}
+
+function buildDirectiveBreakHtml(label) {
+  return `<span class="aozora-directive-break">${label}</span>`;
+}
+
+function directiveLabelFromNote(noteText) {
+  const note = normalizeAozoraDigits(String(noteText).trim());
+  if (!note) {
+    return '';
+  }
+
+  if (note === '改ページ' || note === '改丁') {
+    return '改ページ';
+  }
+  if (note === 'ページの左右中央') {
+    return '中央寄せ';
+  }
+  if (note === '地付き') {
+    return '地付き';
+  }
+  if (BOTTOM_ATTACH_NOTE_PATTERN.test(note)) {
+    return note;
+  }
+  if (/^\d+字下げ$/u.test(note) || /^ここから\d+字下げ$/u.test(note) || note === 'ここで字下げ終わり') {
+    return note;
+  }
+  if (note.includes('横組み')) {
+    return '横組み指定';
+  }
+  if (note.includes('割り注')) {
+    return '割り注';
+  }
+  if (note.includes('罫囲み')) {
+    return '罫囲み';
+  }
+  if (note.includes('窓見出し')) {
+    return '窓見出し';
+  }
+
+  return note;
+}
+
+function renderDirectiveOnlyLineHtml(line) {
+  const labels = [...String(line).matchAll(NOTE_TOKEN_PATTERN)]
+    .map((match) => directiveLabelFromNote(match[1] ?? ''))
+    .filter(Boolean);
+
+  if (labels.length === 0) {
+    return '';
+  }
+
+  return labels.map((label) => buildDirectiveBreakHtml(label)).join('');
 }
 
 function pushBreak(segments) {
@@ -163,8 +294,10 @@ function renderAozoraLinesWithHeadings(lines, renderTextBlock, renderHeadingText
     }
 
     const { text: lineWithoutLeadingIndent, indentCount: inlineIndentCount } = stripLeadingIndentNotes(originalLine);
-    const effectiveIndentCount = inlineIndentCount ?? activeIndentCount;
-    const inlineHeadingMatch = lineWithoutLeadingIndent.trim().match(HEADING_INLINE_PATTERN);
+    const layoutNotes = parseLeadingLayoutNotes(originalLine);
+    const lineForHeading = inlineIndentCount === null ? layoutNotes.text : lineWithoutLeadingIndent;
+    const effectiveIndentCount = inlineIndentCount ?? layoutNotes.indentCount ?? activeIndentCount;
+    const inlineHeadingMatch = lineForHeading.trim().match(HEADING_INLINE_PATTERN);
 
     if (inlineHeadingMatch) {
       flushTextBuffer(textBuffer, segments, renderTextBlock);
@@ -181,12 +314,12 @@ function renderAozoraLinesWithHeadings(lines, renderTextBlock, renderHeadingText
 
     const nextTrimmed = String(lines[index + 1] ?? '').trim();
     const headingNoteOnlyMatch = nextTrimmed.match(HEADING_NOTE_ONLY_PATTERN);
-    if (headingNoteOnlyMatch && lineWithoutLeadingIndent.trim()) {
+    if (headingNoteOnlyMatch && lineForHeading.trim()) {
       flushTextBuffer(textBuffer, segments, renderTextBlock);
       appendHeadingSegment(
         segments,
         outline,
-        lineWithoutLeadingIndent.trim(),
+        lineForHeading.trim(),
         headingNoteOnlyMatch[2],
         effectiveIndentCount,
         renderHeadingText
@@ -196,10 +329,34 @@ function renderAozoraLinesWithHeadings(lines, renderTextBlock, renderHeadingText
     }
 
     if (NOTE_ONLY_LINE_PATTERN.test(trimmed)) {
+      const directiveHtml = renderDirectiveOnlyLineHtml(trimmed);
+      if (directiveHtml) {
+        flushTextBuffer(textBuffer, segments, renderTextBlock);
+        pushBreak(segments);
+        segments.push({
+          type: 'html',
+          html: directiveHtml
+        });
+        pushBreak(segments);
+      }
       continue;
     }
 
-    textBuffer.push(lineWithoutLeadingIndent);
+    if (layoutNotes.matched && lineForHeading.trim()) {
+      flushTextBuffer(textBuffer, segments, renderTextBlock);
+      segments.push({
+        type: 'html',
+        html: buildLayoutLineHtml(renderTextBlock(lineForHeading), {
+          indentCount: effectiveIndentCount,
+          bottomMode: layoutNotes.bottomMode,
+          bottomOffsetCount: layoutNotes.bottomOffsetCount,
+          bottomOffsetDirection: layoutNotes.bottomOffsetDirection
+        })
+      });
+      continue;
+    }
+
+    textBuffer.push(lineForHeading);
   }
 
   flushTextBuffer(textBuffer, segments, renderTextBlock);
@@ -227,7 +384,13 @@ export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
 
 export function repairAozoraHeadingNotesInHtml(htmlText) {
   const source = String(htmlText ?? '');
-  if (!source.includes('見出し') || !source.includes('［＃') || source.includes('aozora-heading')) {
+  if (
+    !source.includes('［＃') ||
+    (
+      !source.includes('見出し') &&
+      !/［＃(?:地付き|地から[0-9０-９]+字[上下]げ|[0-9０-９]+字下げ|改ページ|改丁)］/u.test(source)
+    )
+  ) {
     return source;
   }
 
@@ -237,4 +400,23 @@ export function repairAozoraHeadingNotesInHtml(htmlText) {
     (text) => text
   );
   return rendered.html || source;
+}
+
+export function repairAozoraLayoutNotesInHtml(htmlText) {
+  const source = String(htmlText ?? '');
+  if (!source.includes('［＃') || source.includes('aozora-layout-line')) {
+    return source;
+  }
+
+  const lines = source.replace(/<br\s*\/?>/gu, '\n').split('\n');
+  const repaired = lines.map((line) => {
+    const layout = parseLeadingLayoutNotes(line);
+    if (!layout.matched || !layout.text.trim()) {
+      return line;
+    }
+
+    return buildLayoutLineHtml(layout.text, layout);
+  }).join('<br>');
+
+  return repaired || source;
 }

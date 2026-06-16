@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added inline handling for Aozora `横組み` and `割り注` notes, covering both adjacent target-note forms and range forms so these annotations render as lightweight inline spans instead of remaining raw.
+- Added a conservative fallback for annotation-only lines so even unsupported `［＃...］` directives now collapse into short reader-facing labels instead of leaking raw notation.
+- Started handling note-only page-break directives such as `［＃改ページ］` and `［＃改丁］` as lightweight in-reader separators instead of silently dropping or leaking raw notation.
+- Extended Aozora layout-note handling beyond headings so leading notes such as `［＃地付き］...`, `［＃地から１字上げ］...`, and digit-based `字下げ` no longer leak raw into the reader and are instead rendered as lightweight right-aligned or indented lines.
+- After a ZIP save succeeds, the add screen now also scrolls the in-page `取り込み完了` notice into view beneath the sticky header, keeping completion feedback visible across phones, tablets, and desktop browsers.
 - Promoted successful ZIP-save feedback into a large in-page success notice with a clearer green-tinted treatment, instead of hiding the completion message inside the closed import sheet.
 - After successful ZIP import preview creation, the add screen now scrolls the preview block into view beneath the sticky header so users land on the new primary task instead of staying visually anchored to older search results.
 - Changed work-timeline continuation to default to automatic loading near the bottom, added a settings toggle to switch between automatic and manual continuation, and persisted that preference in the exported `settings` store.

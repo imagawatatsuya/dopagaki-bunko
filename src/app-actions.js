@@ -72,14 +72,22 @@ export function createSearchActions({
   }
 
   function scrollSearchPreviewIntoView() {
-    const preview = document.querySelector('[data-search-preview]');
-    if (!preview) {
+    scrollElementIntoView('[data-search-preview]');
+  }
+
+  function scrollImportNoticeIntoView() {
+    scrollElementIntoView('[data-search-import-notice]');
+  }
+
+  function scrollElementIntoView(selector) {
+    const element = document.querySelector(selector);
+    if (!element) {
       return;
     }
 
     const headerBottom = document.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
-    const previewTop = window.scrollY + preview.getBoundingClientRect().top;
-    const targetTop = Math.max(0, previewTop - headerBottom - 8);
+    const elementTop = window.scrollY + element.getBoundingClientRect().top;
+    const targetTop = Math.max(0, elementTop - headerBottom - 8);
     window.scrollTo({ top: targetTop, behavior: 'smooth' });
   }
 
@@ -358,6 +366,13 @@ export function createSearchActions({
         state.importWorkStatus = `保存に失敗しました: ${error?.message ?? '不明なエラー'}`;
       }
       renderSearch();
+      if (state.importWorkNoticeTone === 'success') {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollImportNoticeIntoView();
+          });
+        });
+      }
       return;
     }
 

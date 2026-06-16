@@ -1,5 +1,5 @@
-import { replaceAozoraGaijiNotation } from './aozora-gaiji.js?v=20260616090513';
-import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260616090513';
+import { replaceAozoraGaijiNotation } from './aozora-gaiji.js?v=20260616092900';
+import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260616092900';
 
 function emphasisStyleFromNote(note) {
   if (note.includes('白丸傍点')) {
@@ -73,7 +73,29 @@ function emphasisSpecFromNote(note) {
   return null;
 }
 
-function wrapWithEmphasis(contentHtml, spec) {
+function inlineLayoutSpecFromNote(note) {
+  if (note.includes('横組み')) {
+    return {
+      className: 'aozora-inline-horizontal',
+      inlineStyle: 'writing-mode: horizontal-tb; text-orientation: mixed; display: inline-block;'
+    };
+  }
+
+  if (note.includes('割り注')) {
+    return {
+      className: 'aozora-inline-warichu',
+      inlineStyle: 'display: inline-block; font-size: 0.72em; line-height: 1.35; vertical-align: text-top;'
+    };
+  }
+
+  return null;
+}
+
+function noteSpecFromNote(note) {
+  return emphasisSpecFromNote(note) ?? inlineLayoutSpecFromNote(note);
+}
+
+function wrapWithNoteSpec(contentHtml, spec) {
   return `<span class="${spec.className}" style="${spec.inlineStyle}">${contentHtml}</span>`;
 }
 
@@ -93,10 +115,10 @@ function convertWithRenderer(text, renderChunk) {
 
     if (adjacentMatch) {
       const target = adjacentMatch[1];
-      const spec = emphasisSpecFromNote(adjacentMatch[2].trim());
+      const spec = noteSpecFromNote(adjacentMatch[2].trim());
       if (spec && before.endsWith(target)) {
         output += renderChunk(before.slice(0, -target.length));
-        output += wrapWithEmphasis(renderChunk(target), spec);
+        output += wrapWithNoteSpec(renderChunk(target), spec);
       } else {
         output += renderChunk(before);
         output += renderChunk(fullMatch);
@@ -117,7 +139,7 @@ function convertWithRenderer(text, renderChunk) {
       continue;
     }
 
-    const spec = emphasisSpecFromNote(noteText);
+    const spec = noteSpecFromNote(noteText);
     output += renderChunk(before);
     if (spec) {
       openStack.push(spec);

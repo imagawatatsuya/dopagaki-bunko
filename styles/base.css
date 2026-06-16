@@ -712,6 +712,17 @@ rt {
   text-underline-offset: 0.14em;
 }
 
+.aozora-inline-horizontal {
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+}
+
+.aozora-inline-warichu {
+  font-size: 0.72em;
+  line-height: 1.35;
+  vertical-align: text-top;
+}
+
 .aozora-heading {
   display: block;
   margin: 0.4em 0 0.25em;
@@ -740,6 +751,39 @@ rt {
 
 .aozora-heading-indent-2 {
   padding-left: 1.6em;
+}
+
+.aozora-layout-line {
+  display: block;
+}
+
+.aozora-layout-indent-1 {
+  padding-left: 0.9em;
+}
+
+.aozora-layout-indent-2 {
+  padding-left: 1.6em;
+}
+
+.aozora-layout-bottom {
+  text-align: right;
+}
+
+.aozora-layout-bottom-raised {
+  margin-top: 0.9em;
+}
+
+.aozora-layout-bottom-lowered {
+  margin-top: 1.4em;
+}
+
+.aozora-directive-break {
+  display: block;
+  margin: 0.8em 0;
+  color: var(--muted);
+  font-size: 0.78em;
+  text-align: center;
+  letter-spacing: 0.08em;
 }
 
 .line-indent {
