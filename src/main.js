@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617045446';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617050903';
 import {
   buildHomeTimelineEvents,
   buildLibraryWorksByStatus,
@@ -13,40 +13,41 @@ import {
   savedCollectionLabel,
   sortSavedRecords,
   sortUpdatedRecords
-} from './state.js?v=20260617045446';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617045446';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260617045446';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617045446';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617045446';
+} from './state.js?v=20260617050903';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617050903';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617050903';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617050903';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617050903';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260617045446';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617045446';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260617045446';
-import { derivePreviewFromText } from './import-preview.js?v=20260617045446';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617045446';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617045446';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617045446';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617045446';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617045446';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617045446';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617045446';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617045446';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260617045446';
+} from './app-actions.js?v=20260617050903';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617050903';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617050903';
+import { derivePreviewFromText } from './import-preview.js?v=20260617050903';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617050903';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617050903';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617050903';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617050903';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617050903';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617050903';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617050903';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617050903';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617050903';
 import {
   bindCollectionActions,
   bindDetailActions,
+  bindLibrarySwipeActions,
   bindReaderScaleControls,
   bindSearchInteractions,
   bindSettingsInteractions,
   bindWorkHeaderActions,
   bindWorkStateActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260617045446';
+} from './ui-bindings.js?v=20260617050903';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -68,7 +69,7 @@ import {
   workEndingCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260617045446';
+} from './views.js?v=20260617050903';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -763,6 +764,25 @@ function buildImportSummary(stores) {
   ].join(' / ');
 }
 
+async function deleteWorkCascade(workId) {
+  if (!workId) {
+    return;
+  }
+
+  const workFragments = state.fragments.filter((fragment) => fragment.workId === workId);
+  const fragmentIds = workFragments.map((fragment) => fragment.id);
+
+  await deleteRecord('works', workId);
+  await deleteRecord('bookmarks', workId);
+  await deleteRecord('readingStates', workId);
+
+  for (const fragmentId of fragmentIds) {
+    await deleteRecord('fragments', fragmentId);
+    await deleteRecord('likes', fragmentId);
+    await deleteRecord('quotes', fragmentId);
+  }
+}
+
 function renderLibrary(options = {}) {
   const activeTab = normalizeLibraryTab(options.tab);
   const worksByStatus = buildLibraryWorksByStatus({
@@ -773,16 +793,29 @@ function renderLibrary(options = {}) {
   const visibleWorks = worksByStatus[activeTab] ?? [];
   const worksHtml = visibleWorks.map((work) => {
     const bookmark = getBookmarkForWork(state.bookmarkRecords, work.id);
-    const readingStatus = getWorkReadingStatus(work.id);
-    return `
+    const cardInnerHtml = `
       <article class="info-panel info-panel-library-work">
         <a class="panel-link panel-link-library-work" href="#/work/${encodeURIComponent(work.id)}">
           <h2 class="section-title library-work-title">${escapeHtml(work.title)}</h2>
           <p class="section-text library-work-author">${escapeHtml(work.author ?? '')}</p>
           <p class="settings-status settings-status-subtle">${countWorkTextFragments(work.id)}断片</p>
-          <p class="settings-status settings-status-subtle">${escapeHtml(readingStatusLabel(readingStatus))}</p>
           ${bookmark ? `<p class="settings-status settings-status-subtle">しおり: 断片 ${bookmark.fragmentIndex}</p>` : ''}
         </a>
+      </article>
+    `;
+
+    if (activeTab !== 'unread') {
+      return cardInnerHtml;
+    }
+
+    return `
+      <article class="library-swipe-item" data-library-swipe-item>
+        <div class="library-swipe-action" aria-hidden="true">
+          <button type="button" class="library-delete-button" data-library-action="delete-work" data-work-id="${escapeHtml(work.id)}">削除</button>
+        </div>
+        <div class="library-swipe-surface" data-library-swipe-surface>
+          ${cardInnerHtml}
+        </div>
       </article>
     `;
   }).join('');
@@ -821,6 +854,24 @@ function renderLibrary(options = {}) {
       collectionsHtml
     })
   });
+
+  if (activeTab === 'unread') {
+    bindLibrarySwipeActions(app, async (workId) => {
+      const work = findWorkById(workId);
+      if (!work) {
+        return;
+      }
+
+      const confirmed = window.confirm(`「${work.title}」を未読一覧から削除します。よろしいですか。`);
+      if (!confirmed) {
+        return;
+      }
+
+      await deleteWorkCascade(workId);
+      await loadStateFromDb();
+      renderLibrary({ tab: 'unread' });
+    });
+  }
 }
 
 function renderCollectionPage(kind) {

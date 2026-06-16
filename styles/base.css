@@ -316,6 +316,44 @@ select {
   line-height: 1.4;
 }
 
+.library-swipe-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.library-swipe-action {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  width: 104px;
+}
+
+.library-delete-button {
+  width: 104px;
+  border: 0;
+  border-radius: 20px;
+  background: #b6472a;
+  color: #fffdf8;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.library-swipe-surface {
+  position: relative;
+  z-index: 1;
+  transform: translateX(0);
+  transition: transform 180ms ease;
+  touch-action: pan-y;
+}
+
+.library-swipe-item.is-swipe-open .library-swipe-surface {
+  transform: translateX(-104px);
+}
+
 .fragment-card {
   position: relative;
   border: 1px solid var(--border);

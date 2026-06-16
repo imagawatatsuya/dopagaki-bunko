@@ -48,6 +48,96 @@ export function bindWorkStateActions(root, onAction) {
   });
 }
 
+export function bindLibrarySwipeActions(root, onDeleteWork) {
+  const swipeItems = [...root.querySelectorAll('[data-library-swipe-item]')];
+
+  let openItem = null;
+
+  function closeItem(item) {
+    item?.classList.remove('is-swipe-open');
+    if (openItem === item) {
+      openItem = null;
+    }
+  }
+
+  function openSwipe(item) {
+    if (openItem && openItem !== item) {
+      closeItem(openItem);
+    }
+    item.classList.add('is-swipe-open');
+    openItem = item;
+  }
+
+  root.addEventListener('click', (event) => {
+    const deleteButton = event.target.closest('[data-library-action="delete-work"]');
+    if (deleteButton) {
+      void onDeleteWork(deleteButton.dataset.workId);
+      return;
+    }
+
+    if (openItem && !event.target.closest('[data-library-swipe-item]')) {
+      closeItem(openItem);
+    }
+  });
+
+  swipeItems.forEach((item) => {
+    const surface = item.querySelector('[data-library-swipe-surface]');
+    if (!surface) {
+      return;
+    }
+
+    let startX = 0;
+    let startY = 0;
+    let swiping = false;
+    let active = false;
+
+    surface.addEventListener('pointerdown', (event) => {
+      startX = event.clientX;
+      startY = event.clientY;
+      swiping = false;
+      active = true;
+    });
+
+    surface.addEventListener('pointermove', (event) => {
+      if (!active) {
+        return;
+      }
+
+      const deltaX = event.clientX - startX;
+      const deltaY = event.clientY - startY;
+      if (Math.abs(deltaY) > 18 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        active = false;
+        return;
+      }
+
+      if (deltaX < -18 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        swiping = true;
+      }
+    });
+
+    surface.addEventListener('pointerup', (event) => {
+      if (!active) {
+        return;
+      }
+
+      const deltaX = event.clientX - startX;
+      if (swiping && deltaX <= -48) {
+        openSwipe(item);
+      } else if (deltaX >= 24 || item.classList.contains('is-swipe-open')) {
+        closeItem(item);
+      }
+
+      active = false;
+      swiping = false;
+    });
+
+    surface.addEventListener('pointercancel', () => {
+      active = false;
+      swiping = false;
+    });
+  });
+}
+
 export function bindSearchInteractions(root, { onSelectFile, onDropFile, onAction }) {
   const input = root.querySelector('[data-search-input="aozora-zip"]');
   const catalogQueryInput = root.querySelector('[data-search-input="catalog-query"]');
