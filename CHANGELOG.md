@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Removed the automatic three-work sample seeding, so first launch and app reset now return to an empty library instead of repopulating demo works.
 - Replaced the unread-library swipe/delete experiment with a quiet `…` menu per unread card, keeping titles readable on both touch and desktop screens while preserving confirmed cascade deletion of the work and its related fragments, bookmarks, likes, quotes, and reading state.
 - Stopped Home TL heading fallback from using fragment body text, so works without stored source-title lines now show only the work title instead of leaking bookmark-target first lines.
 - Changed the work-end marker into a quiet two-state loop of `原文終端` and `読了`, with color changes on the marker itself and lower-contrast completed styling on Home TL cards.

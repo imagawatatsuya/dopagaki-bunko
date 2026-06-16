@@ -483,7 +483,6 @@ export function createSettingsActions({
   buildImportSummary,
   loadStateFromDb,
   clearAllStores,
-  ensureSampleData,
   pickImportInput,
   saveWorkLoadMode
 }) {
@@ -605,9 +604,8 @@ export function createSettingsActions({
 
     try {
       await clearAllStores();
-      await ensureSampleData();
       await loadStateFromDb();
-      state.importStatus = 'アプリを初期化しました。初期データを再投入しています。';
+      state.importStatus = 'アプリを初期化しました。';
     } catch (error) {
       console.error(error);
       state.importStatus = `初期化に失敗しました: ${error?.message ?? '不明なエラー'}`;
