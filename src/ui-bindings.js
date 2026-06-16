@@ -48,92 +48,76 @@ export function bindWorkStateActions(root, onAction) {
   });
 }
 
-export function bindLibrarySwipeActions(root, onDeleteWork) {
-  const swipeItems = [...root.querySelectorAll('[data-library-swipe-item]')];
+export function bindLibraryWorkActions(root, onDeleteWork) {
+  const menus = [...root.querySelectorAll('[data-library-menu]')];
+  let openMenu = null;
 
-  let openItem = null;
+  function closeMenu(menu) {
+    if (!menu) {
+      return;
+    }
 
-  function closeItem(item) {
-    item?.classList.remove('is-swipe-open');
-    if (openItem === item) {
-      openItem = null;
+    menu.classList.remove('is-open');
+    const button = menu.querySelector('[data-library-action="toggle-menu"]');
+    button?.setAttribute('aria-expanded', 'false');
+    if (openMenu === menu) {
+      openMenu = null;
     }
   }
 
-  function openSwipe(item) {
-    if (openItem && openItem !== item) {
-      closeItem(openItem);
+  function openMenuFor(menu) {
+    if (openMenu && openMenu !== menu) {
+      closeMenu(openMenu);
     }
-    item.classList.add('is-swipe-open');
-    openItem = item;
+
+    menu.classList.add('is-open');
+    const button = menu.querySelector('[data-library-action="toggle-menu"]');
+    button?.setAttribute('aria-expanded', 'true');
+    openMenu = menu;
   }
 
   root.addEventListener('click', (event) => {
+    const toggleButton = event.target.closest('[data-library-action="toggle-menu"]');
+    if (toggleButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      const menu = toggleButton.closest('[data-library-menu]');
+      if (!menu) {
+        return;
+      }
+
+      if (menu.classList.contains('is-open')) {
+        closeMenu(menu);
+      } else {
+        openMenuFor(menu);
+      }
+      return;
+    }
+
     const deleteButton = event.target.closest('[data-library-action="delete-work"]');
     if (deleteButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(deleteButton.closest('[data-library-menu]'));
       void onDeleteWork(deleteButton.dataset.workId);
       return;
     }
 
-    if (openItem && !event.target.closest('[data-library-swipe-item]')) {
-      closeItem(openItem);
+    if (openMenu && !event.target.closest('[data-library-menu]')) {
+      closeMenu(openMenu);
     }
   });
 
-  swipeItems.forEach((item) => {
-    const surface = item.querySelector('[data-library-swipe-surface]');
-    if (!surface) {
-      return;
+  root.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && openMenu) {
+      closeMenu(openMenu);
     }
+  });
 
-    let startX = 0;
-    let startY = 0;
-    let swiping = false;
-    let active = false;
-
-    surface.addEventListener('pointerdown', (event) => {
-      startX = event.clientX;
-      startY = event.clientY;
-      swiping = false;
-      active = true;
-    });
-
-    surface.addEventListener('pointermove', (event) => {
-      if (!active) {
-        return;
-      }
-
-      const deltaX = event.clientX - startX;
-      const deltaY = event.clientY - startY;
-      if (Math.abs(deltaY) > 18 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        active = false;
-        return;
-      }
-
-      if (deltaX < -18 && Math.abs(deltaX) > Math.abs(deltaY)) {
-        swiping = true;
-      }
-    });
-
-    surface.addEventListener('pointerup', (event) => {
-      if (!active) {
-        return;
-      }
-
-      const deltaX = event.clientX - startX;
-      if (swiping && deltaX <= -48) {
-        openSwipe(item);
-      } else if (deltaX >= 24 || item.classList.contains('is-swipe-open')) {
-        closeItem(item);
-      }
-
-      active = false;
-      swiping = false;
-    });
-
-    surface.addEventListener('pointercancel', () => {
-      active = false;
-      swiping = false;
+  menus.forEach((menu) => {
+    const link = menu.querySelector('.panel-link-library-work');
+    link?.addEventListener('click', () => {
+      closeMenu(menu);
     });
   });
 }

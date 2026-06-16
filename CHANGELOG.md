@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Added iOS-style swipe-to-delete affordance for unread library cards only, with confirmed cascade deletion of the work and its related fragments, bookmarks, likes, quotes, and reading state.
+- Replaced the unread-library swipe/delete experiment with a quiet `…` menu per unread card, keeping titles readable on both touch and desktop screens while preserving confirmed cascade deletion of the work and its related fragments, bookmarks, likes, quotes, and reading state.
 - Stopped Home TL heading fallback from using fragment body text, so works without stored source-title lines now show only the work title instead of leaking bookmark-target first lines.
 - Changed the work-end marker into a quiet two-state loop of `原文終端` and `読了`, with color changes on the marker itself and lower-contrast completed styling on Home TL cards.
 - Changed Home TL card headings to a single-line `作品名 + 原文2行目まで` summary so related or series works are easier to tell apart at a glance, and made bottom-nav screen switches reopen Home/本棚/追加/設定 from the top instead of preserving old scroll positions.
