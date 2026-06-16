@@ -76,7 +76,7 @@ export function bindLibraryWorkActions(root, onDeleteWork) {
     openMenu = menu;
   }
 
-  root.addEventListener('click', (event) => {
+  const handleClick = (event) => {
     const toggleButton = event.target.closest('[data-library-action="toggle-menu"]');
     if (toggleButton) {
       event.preventDefault();
@@ -106,20 +106,38 @@ export function bindLibraryWorkActions(root, onDeleteWork) {
     if (openMenu && !event.target.closest('[data-library-menu]')) {
       closeMenu(openMenu);
     }
-  });
+  };
 
-  root.addEventListener('keydown', (event) => {
+  const handleKeydown = (event) => {
     if (event.key === 'Escape' && openMenu) {
       closeMenu(openMenu);
     }
-  });
+  };
 
+  root.addEventListener('click', handleClick);
+  root.addEventListener('keydown', handleKeydown);
+
+  const linkCleanups = [];
   menus.forEach((menu) => {
     const link = menu.querySelector('.panel-link-library-work');
-    link?.addEventListener('click', () => {
+    if (!link) {
+      return;
+    }
+
+    const handleLinkClick = () => {
       closeMenu(menu);
+    };
+    link.addEventListener('click', handleLinkClick);
+    linkCleanups.push(() => {
+      link.removeEventListener('click', handleLinkClick);
     });
   });
+
+  return () => {
+    root.removeEventListener('click', handleClick);
+    root.removeEventListener('keydown', handleKeydown);
+    linkCleanups.forEach((cleanup) => cleanup());
+  };
 }
 
 export function bindSearchInteractions(root, { onSelectFile, onDropFile, onAction }) {

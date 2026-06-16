@@ -1,4 +1,4 @@
-import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617051950';
+import { sampleFragments, sampleWorks } from './sample-data.js?v=20260617052406';
 import {
   buildHomeTimelineEvents,
   buildLibraryWorksByStatus,
@@ -13,30 +13,30 @@ import {
   savedCollectionLabel,
   sortSavedRecords,
   sortUpdatedRecords
-} from './state.js?v=20260617051950';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617051950';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260617051950';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617051950';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617051950';
+} from './state.js?v=20260617052406';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617052406';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617052406';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617052406';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617052406';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260617051950';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617051950';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260617051950';
-import { derivePreviewFromText } from './import-preview.js?v=20260617051950';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617051950';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617051950';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617051950';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617051950';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617051950';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617051950';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617051950';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617051950';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260617051950';
+} from './app-actions.js?v=20260617052406';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617052406';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617052406';
+import { derivePreviewFromText } from './import-preview.js?v=20260617052406';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617052406';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617052406';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617052406';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617052406';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617052406';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617052406';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617052406';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617052406';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617052406';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -47,7 +47,7 @@ import {
   bindWorkHeaderActions,
   bindWorkStateActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260617051950';
+} from './ui-bindings.js?v=20260617052406';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -69,7 +69,7 @@ import {
   workEndingCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260617051950';
+} from './views.js?v=20260617052406';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -114,6 +114,7 @@ const state = {
   aozoraCatalogVisibleCount: SEARCH_RESULTS_BATCH_SIZE,
   workLoadMode: 'auto',
   readerFontScale: 1,
+  libraryWorkActionsCleanup: null,
   workHeaderProgressCleanup: null,
   workAutoLoadCleanup: null
 };
@@ -187,6 +188,10 @@ function normalizeFragmentDisplayHtml(html) {
 }
 
 function renderLayout({ current, title, subtitle, body, headerMetaHtml = '' }) {
+  if (typeof state.libraryWorkActionsCleanup === 'function') {
+    state.libraryWorkActionsCleanup();
+    state.libraryWorkActionsCleanup = null;
+  }
   if (typeof state.workHeaderProgressCleanup === 'function') {
     state.workHeaderProgressCleanup();
     state.workHeaderProgressCleanup = null;
@@ -206,6 +211,10 @@ function renderLayout({ current, title, subtitle, body, headerMetaHtml = '' }) {
 }
 
 function renderWorkLayout({ title, subtitle, body, headerMetaHtml = '' }) {
+  if (typeof state.libraryWorkActionsCleanup === 'function') {
+    state.libraryWorkActionsCleanup();
+    state.libraryWorkActionsCleanup = null;
+  }
   if (typeof state.workHeaderProgressCleanup === 'function') {
     state.workHeaderProgressCleanup();
     state.workHeaderProgressCleanup = null;
@@ -865,7 +874,7 @@ function renderLibrary(options = {}) {
   });
 
   if (activeTab === 'unread') {
-    bindLibraryWorkActions(app, async (workId) => {
+    state.libraryWorkActionsCleanup = bindLibraryWorkActions(app, async (workId) => {
       const work = findWorkById(workId);
       if (!work) {
         return;
