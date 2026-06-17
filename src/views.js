@@ -282,6 +282,14 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
   return `
     <section class="panel-stack">
       <article class="info-panel">
+        <h2 class="section-title">更新反映</h2>
+        <p class="section-text">このサイトだけ最新版を確認して読み直します。他サイトのデータやキャッシュには触れません。</p>
+        <div class="settings-actions">
+          <button type="button" class="detail-action-button settings-button" data-settings-action="refresh-release">最新状態に更新</button>
+        </div>
+        ${releaseStatusHtml}
+      </article>
+      <article class="info-panel">
         <h2 class="section-title">JSONエクスポート</h2>
         <p class="section-text">作品、しおり、ふせんをまとめてバックアップします。</p>
         <div class="settings-actions">
@@ -306,14 +314,6 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
           <button type="button" class="detail-action-button settings-button ${workLoadMode === 'manual' ? 'is-active' : ''}" data-settings-action="set-work-load-mode-manual">手動で続ける</button>
         </div>
         ${readingStatusHtml}
-      </article>
-      <article class="info-panel">
-        <h2 class="section-title">更新反映</h2>
-        <p class="section-text">このサイトだけ最新版を確認して読み直します。他サイトのデータやキャッシュには触れません。</p>
-        <div class="settings-actions">
-          <button type="button" class="detail-action-button settings-button" data-settings-action="refresh-release">最新状態に更新</button>
-        </div>
-        ${releaseStatusHtml}
       </article>
       <article class="info-panel">
         <h2 class="section-title">アプリ初期化</h2>
