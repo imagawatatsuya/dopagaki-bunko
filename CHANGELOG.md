@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed the work-page `目次` to render collapsed by default and expand on click/tap, reducing initial header noise while keeping the saved-outline jump list available in place.
 - Added a quiet work-page `目次` list backed by saved `outline` metadata, so imported heading structure can jump directly into the existing `visible/focus` work timeline flow without adding a separate reader mode.
 - Reduced `src/main.js` to app wiring only by moving render/layout helpers into `src/app-shell.js`, IndexedDB/state loading into `src/app-data.js`, and all screen rendering into `src/screen-renderers.js`, while deleting the old unused placeholder files `src/work-account.js` and `src/timeline-renderer.js`.
 - Added a local Aozora catalog refresh workflow with `scripts/update-aozora-catalog.mjs` and PowerShell wrappers, including current-metadata display, rebuild diff summary, and explicit docs for updating `data/aozora-catalog.json` from a locally saved official ZIP.

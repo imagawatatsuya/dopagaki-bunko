@@ -692,8 +692,30 @@ rt {
   margin-top: 14px;
 }
 
-.work-outline-label {
+.work-outline-disclosure {
+  min-width: 0;
+}
+
+.work-outline-summary {
   margin-top: 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.work-outline-summary::-webkit-details-marker {
+  display: none;
+}
+
+.work-outline-summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 6px;
+  color: rgba(107, 93, 80, 0.78);
+  transition: transform 120ms ease;
+}
+
+.work-outline-disclosure[open] .work-outline-summary::before {
+  transform: rotate(90deg);
 }
 
 .work-outline-list {

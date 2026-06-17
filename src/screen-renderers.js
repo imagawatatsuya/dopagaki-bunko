@@ -11,7 +11,7 @@ import {
   getLikeRecordsForWork,
   sliceWorkFragmentsForVisibleCount,
   savedCollectionLabel
-} from './state.js?v=20260617144728';
+} from './state.js?v=20260617150327';
 import {
   buildCollectionHash,
   buildFragmentHash,
@@ -19,7 +19,7 @@ import {
   buildWorkOutlineHash,
   buildWorkHash,
   parseHashRoute
-} from './router.js?v=20260617144728';
+} from './router.js?v=20260617150327';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -34,7 +34,7 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260617144728';
+} from './ui-bindings.js?v=20260617150327';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -54,8 +54,8 @@ import {
   timelineCardMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260617144728';
-import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617144728';
+} from './views.js?v=20260617150327';
+import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617150327';
 
 const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
 const LIBRARY_TAB_LABELS = {
@@ -618,14 +618,16 @@ export function createScreenRenderers({
     const outlineHtml = outlineEntries.length > 0
       ? `
         <section class="work-outline" aria-label="目次">
-          <p class="settings-status settings-status-subtle work-outline-label">目次 ${outlineEntries.length}件</p>
-          <ol class="work-outline-list">
-            ${outlineEntries.map((entry) => `
-              <li class="work-outline-item">
-                <a class="work-outline-link ${outlineLevelClassName(entry.level)}" href="${entry.href}">${escapeHtml(entry.title)}</a>
-              </li>
-            `).join('')}
-          </ol>
+          <details class="work-outline-disclosure">
+            <summary class="settings-status settings-status-subtle work-outline-summary">目次 ${outlineEntries.length}件</summary>
+            <ol class="work-outline-list">
+              ${outlineEntries.map((entry) => `
+                <li class="work-outline-item">
+                  <a class="work-outline-link ${outlineLevelClassName(entry.level)}" href="${entry.href}">${escapeHtml(entry.title)}</a>
+                </li>
+              `).join('')}
+            </ol>
+          </details>
         </section>
       `
       : '';
