@@ -449,23 +449,21 @@ export function savedItemCardMarkup({
 
 export function fragmentDetailBodyMarkup({
   author,
-  readerScaleControlsHtml,
   displayHtml,
-  noteStatusHtml,
+  inlineToolsHtml = '',
   previousLinkHtml,
   nextLinkHtml,
   likeButtonHtml,
   bookmarkButtonHtml,
-  noteButtonHtml,
-  workLinkHtml,
-  backLinkHtml
+  noteButtonHtml = '',
+  workLinkHtml = '',
+  backLinkHtml = ''
 }) {
   return `
     <article class="detail-card">
       <p class="detail-author">${author}</p>
-      ${readerScaleControlsHtml}
       <div class="detail-body">${displayHtml}</div>
-      ${noteStatusHtml}
+      ${inlineToolsHtml}
     </article>
     <div class="detail-nav-row" aria-label="断片移動">
       ${previousLinkHtml}
@@ -474,9 +472,9 @@ export function fragmentDetailBodyMarkup({
     <div class="detail-actions" aria-label="断片の操作">
       ${likeButtonHtml}
       ${bookmarkButtonHtml}
+      ${backLinkHtml}
       ${noteButtonHtml}
       ${workLinkHtml}
-      ${backLinkHtml}
     </div>
   `;
 }

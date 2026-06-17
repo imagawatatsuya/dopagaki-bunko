@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Moved fragment-detail memo editing into a small inline surface directly beneath the body text, paired it with a compact `TLのこの位置へ戻る` link, and hid the fragment-detail top font-size controls to keep the page focused on copy/memo/reopen work.
 - Added a `終端` entry at the end of the work-page `目次`, letting readers jump straight to the page-bottom `原文終端 / 読了` marker without manually scrolling through the full fragment list.
 - Changed the work-page `目次` to render collapsed by default and expand on click/tap, reducing initial header noise while keeping the saved-outline jump list available in place.
 - Added a quiet work-page `目次` list backed by saved `outline` metadata, so imported heading structure can jump directly into the existing `visible/focus` work timeline flow without adding a separate reader mode.

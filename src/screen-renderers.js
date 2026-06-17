@@ -11,7 +11,7 @@ import {
   getLikeRecordsForWork,
   sliceWorkFragmentsForVisibleCount,
   savedCollectionLabel
-} from './state.js?v=20260617150908';
+} from './state.js?v=20260617152050';
 import {
   buildCollectionHash,
   buildFragmentHash,
@@ -20,7 +20,7 @@ import {
   buildWorkOutlineHash,
   buildWorkHash,
   parseHashRoute
-} from './router.js?v=20260617150908';
+} from './router.js?v=20260617152050';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -35,7 +35,7 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260617150908';
+} from './ui-bindings.js?v=20260617152050';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -55,8 +55,8 @@ import {
   timelineCardMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260617150908';
-import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617150908';
+} from './views.js?v=20260617152050';
+import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617152050';
 
 const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
 const LIBRARY_TAB_LABELS = {
@@ -378,43 +378,43 @@ export function createScreenRenderers({
     const bookmarked = state.bookmarks.has(fragment.id);
     const likeRecord = state.likeRecords.find((item) => item.fragmentId === fragment.id) ?? null;
     const noteText = typeof likeRecord?.note === 'string' ? likeRecord.note.trim() : '';
-    const safeDisplayHtml = normalizeFragmentDisplayHtml(fragment.displayHtml);
-    const workHash = buildWorkHash(fragment.workId, {
-      visible: Math.max(workPageBatchSize, fragment.index ?? workPageBatchSize),
-      focus: fragment.id
-    });
-    const backToHash = options.returnTo || workHash;
-    const showBackLink = Boolean(options.returnTo && options.returnTo !== workHash);
+      const safeDisplayHtml = normalizeFragmentDisplayHtml(fragment.displayHtml);
+      const workHash = buildWorkHash(fragment.workId, {
+        visible: Math.max(workPageBatchSize, fragment.index ?? workPageBatchSize),
+        focus: fragment.id
+      });
+      const backToHash = options.returnTo || workHash;
+      const showBackLink = Boolean(options.returnTo && options.returnTo !== workHash);
+      const noteButtonLabel = noteText ? `メモ: ${escapeHtml(noteText)}` : 'メモを追加';
+      const inlineReturnLinkHtml = `<a class="detail-inline-tool detail-inline-tool-link" href="${workHash}">TLのこの位置へ戻る</a>`;
 
-    renderLayout({
-      current: 'detail',
-      title: work?.title ?? '断片個別ページ',
-      subtitle: '断片の前後移動と保存操作はここで行います。',
-      body: fragmentDetailBodyMarkup({
-        author: escapeHtml(work?.author ?? ''),
-        readerScaleControlsHtml: renderReaderScaleControls(),
-        displayHtml: safeDisplayHtml,
-        noteStatusHtml: noteText ? `<p class="settings-status">メモ: ${escapeHtml(noteText)}</p>` : '',
-        previousLinkHtml: previousFragment ? `<a class="detail-nav-link" href="${buildFragmentHash(previousFragment.id, { returnTo: options.returnTo })}">前へ</a>` : `<span class="detail-nav-link is-disabled" aria-disabled="true">前へ</span>`,
-        nextLinkHtml: nextFragment ? `<a class="detail-nav-link" href="${buildFragmentHash(nextFragment.id, { returnTo: options.returnTo })}">次へ</a>` : `<span class="detail-nav-link is-disabled" aria-disabled="true">次へ</span>`,
-        likeButtonHtml: `<button type="button" class="detail-action-button ${liked ? 'is-active' : ''}" data-action="like" data-fragment-id="${escapeHtml(fragment.id)}">${liked ? 'ふせん済み' : 'ふせん'}</button>`,
-        bookmarkButtonHtml: `<button type="button" class="detail-action-button ${bookmarked ? 'is-active' : ''}" data-action="bookmark" data-fragment-id="${escapeHtml(fragment.id)}">${bookmarked ? '現在のしおり' : 'しおり'}</button>`,
-        noteButtonHtml: `<button type="button" class="detail-action-button ${noteText ? 'is-active' : ''}" data-action="memo" data-fragment-id="${escapeHtml(fragment.id)}">${noteText ? 'メモ編集' : 'メモ'}</button>`,
-        workLinkHtml: `<a class="detail-action-button detail-action-link" href="${workHash}">作品TLのこの位置へ</a>`,
-        backLinkHtml: showBackLink ? `<a class="detail-action-button" href="${backToHash}">${returnLinkLabel(options.returnTo)}</a>` : ''
-      })
-    });
+      renderLayout({
+        current: 'detail',
+        title: work?.title ?? '断片個別ページ',
+        subtitle: '断片の前後移動と保存操作はここで行います。',
+        body: fragmentDetailBodyMarkup({
+          author: escapeHtml(work?.author ?? ''),
+          displayHtml: safeDisplayHtml,
+          inlineToolsHtml: `
+            <div class="detail-inline-tools" aria-label="本文まわりの操作">
+              <button type="button" class="detail-inline-tool detail-inline-tool-note ${noteText ? 'has-note' : ''}" data-action="memo" data-fragment-id="${escapeHtml(fragment.id)}">${noteButtonLabel}</button>
+              ${inlineReturnLinkHtml}
+            </div>
+          `,
+          previousLinkHtml: previousFragment ? `<a class="detail-nav-link" href="${buildFragmentHash(previousFragment.id, { returnTo: options.returnTo })}">前へ</a>` : `<span class="detail-nav-link is-disabled" aria-disabled="true">前へ</span>`,
+          nextLinkHtml: nextFragment ? `<a class="detail-nav-link" href="${buildFragmentHash(nextFragment.id, { returnTo: options.returnTo })}">次へ</a>` : `<span class="detail-nav-link is-disabled" aria-disabled="true">次へ</span>`,
+          likeButtonHtml: `<button type="button" class="detail-action-button ${liked ? 'is-active' : ''}" data-action="like" data-fragment-id="${escapeHtml(fragment.id)}">${liked ? 'ふせん済み' : 'ふせん'}</button>`,
+          bookmarkButtonHtml: `<button type="button" class="detail-action-button ${bookmarked ? 'is-active' : ''}" data-action="bookmark" data-fragment-id="${escapeHtml(fragment.id)}">${bookmarked ? '現在のしおり' : 'しおり'}</button>`,
+          backLinkHtml: showBackLink ? `<a class="detail-action-button" href="${backToHash}">${returnLinkLabel(options.returnTo)}</a>` : ''
+        })
+      });
 
-    bindDetailActions(app, async (action, targetFragmentId) => {
-      await handleDetailAction(action, targetFragmentId);
-    });
-    bindReaderScaleControls(app, (value) => {
-      saveReaderFontScale(value);
-      route();
-    });
+      bindDetailActions(app, async (action, targetFragmentId) => {
+        await handleDetailAction(action, targetFragmentId);
+      });
 
-    ensureWorkMarkedReading(fragment.workId);
-  }
+      ensureWorkMarkedReading(fragment.workId);
+    }
 
   function renderLibrary(options = {}) {
     const activeTab = normalizeLibraryTab(options.tab);
