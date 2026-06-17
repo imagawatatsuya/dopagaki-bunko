@@ -7,7 +7,7 @@ import { renderAozoraBodyWithHeadings, repairAozoraLayoutNotesInHtml } from '../
 import { derivePreviewFromText } from '../src/import-preview.js';
 import { extractAozoraTxtFromZip } from '../src/aozora-zip-importer.js';
 import { buildAozoraCatalogPayload, normalizeAozoraCatalogPayload } from '../src/aozora-catalog.js';
-import { searchAozoraCatalog, searchWorkRecords } from '../src/aozora-search.js';
+import { SEARCH_SORT_MODES, searchAozoraCatalog, searchWorkRecords } from '../src/aozora-search.js';
 import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
 import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
@@ -370,7 +370,7 @@ test('Aozora catalog search keeps title hits after exact author matches', () => 
 
   assert.deepEqual(
     searchAozoraCatalog(records, '太宰治').map((record) => record.id),
-    ['author-hit-2', 'author-hit', 'title-hit']
+    ['author-hit', 'author-hit-2', 'title-hit']
   );
 });
 
@@ -382,6 +382,31 @@ test('Aozora catalog search uses title reading for same-score ordering', () => {
 
   assert.deepEqual(
     searchAozoraCatalog(records, '検索著者').map((record) => record.id),
+    ['earlier-reading', 'later-reading']
+  );
+});
+
+test('Aozora catalog search defaults to reader-oriented sorting for same-score results', () => {
+  const records = [
+    { id: 'symbol-title', title: '「断章」', titleReading: 'たんしょう', author: '太宰 治', authorReading: 'だざい おさむ' },
+    { id: 'short-title', title: '斜陽', titleReading: 'しゃよう', author: '太宰 治', authorReading: 'だざい おさむ' },
+    { id: 'long-title', title: '人間失格についての長い作品', titleReading: 'にんげんしっかくについてのながいさくひん', author: '太宰 治', authorReading: 'だざい おさむ' }
+  ];
+
+  assert.deepEqual(
+    searchAozoraCatalog(records, '太宰治').map((record) => record.id),
+    ['long-title', 'short-title', 'symbol-title']
+  );
+});
+
+test('Aozora catalog search can still use reading-order sort mode', () => {
+  const records = [
+    { id: 'later-reading', title: '長い作品名', titleReading: 'んのさくひん', author: '検索 著者', authorReading: 'けんさく ちょしゃ' },
+    { id: 'earlier-reading', title: '短編', titleReading: 'あのさくひん', author: '検索 著者', authorReading: 'けんさく ちょしゃ' }
+  ];
+
+  assert.deepEqual(
+    searchAozoraCatalog(records, '検索著者', { sortMode: SEARCH_SORT_MODES.READING }).map((record) => record.id),
     ['earlier-reading', 'later-reading']
   );
 });

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a default reader-oriented search sort mode that lowers symbol-prefixed titles and promotes longer same-score titles, while keeping reading-order sorting available as a separate mode.
 - Simplified the ZIP import sheet to one shared file entry point for click, tap, keyboard, and drag-and-drop use.
 - Reduced the ZIP import preview from the first 8 fragments to the first 4 fragments.
 - Fixed Aozora and library search so an exact author-name query such as `太宰治` ranks that author's works first while keeping title-only matches visible, and same-score results now use title/author readings for ordering when available.

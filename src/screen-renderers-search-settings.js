@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260617190837';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260617191706';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,7 +6,7 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260617190837';
+} from './views.js?v=20260617191706';
 
 export function createSearchSettingsRenderers({
   app,

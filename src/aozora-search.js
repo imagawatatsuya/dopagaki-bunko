@@ -22,6 +22,15 @@ const AOZORA_SEARCH_VARIANT_MAP = new Map([
   ['德', '徳']
 ]);
 
+export const SEARCH_SORT_MODES = Object.freeze({
+  READER: 'reader',
+  READING: 'reading'
+});
+
+export const DEFAULT_SEARCH_SORT_MODE = SEARCH_SORT_MODES.READER;
+
+const LEADING_READER_NOISE_RE = /^[\s\u3000"'“”‘’「」『』（）()［］[\]【】〔〕〈〉《》,，、。・･:：;；!！?？…‥\-‐‑‒–—―〜～＊*※#＃]/u;
+
 function collapseWhitespace(text) {
   return text.replace(/\s+/gu, ' ').trim();
 }
@@ -163,9 +172,47 @@ function compareRecordSortText(leftRecord, rightRecord, primaryKey, fallbackKey)
   return leftText.localeCompare(rightText, 'ja');
 }
 
+export function normalizeSearchSortMode(sortMode) {
+  return sortMode === SEARCH_SORT_MODES.READING
+    ? SEARCH_SORT_MODES.READING
+    : DEFAULT_SEARCH_SORT_MODE;
+}
+
+function computeReaderSortScore(record) {
+  const title = String(record.title ?? '');
+  const compactTitleLength = compactAozoraSearchText(title).length;
+  let score = Math.min(compactTitleLength, 40);
+
+  if (compactTitleLength <= 2) {
+    score -= 80;
+  } else if (compactTitleLength <= 4) {
+    score -= 20;
+  }
+
+  if (LEADING_READER_NOISE_RE.test(title)) {
+    score -= 1000;
+  }
+
+  return score;
+}
+
+function compareReaderSort(leftRecord, rightRecord) {
+  const scoreCompare = computeReaderSortScore(rightRecord) - computeReaderSortScore(leftRecord);
+  return scoreCompare;
+}
+
+function compareRecordSortMode(leftRecord, rightRecord, sortMode) {
+  if (sortMode === SEARCH_SORT_MODES.READER) {
+    return compareReaderSort(leftRecord, rightRecord);
+  }
+
+  return 0;
+}
+
 function searchRecords(records, query, options = {}) {
   const needles = buildSearchNeedles(query);
   const limit = Number.isFinite(options.limit) ? options.limit : 0;
+  const sortMode = normalizeSearchSortMode(options.sortMode);
 
   if (!needles.normalized) {
     return [];
@@ -190,6 +237,11 @@ function searchRecords(records, query, options = {}) {
       const scoreCompare = right.score - left.score;
       if (scoreCompare !== 0) {
         return scoreCompare;
+      }
+
+      const modeCompare = compareRecordSortMode(left.record, right.record, sortMode);
+      if (modeCompare !== 0) {
+        return modeCompare;
       }
 
       const titleCompare = compareRecordSortText(left.record, right.record, 'titleReading', 'title');
