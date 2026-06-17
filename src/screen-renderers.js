@@ -11,15 +11,16 @@ import {
   getLikeRecordsForWork,
   sliceWorkFragmentsForVisibleCount,
   savedCollectionLabel
-} from './state.js?v=20260617150327';
+} from './state.js?v=20260617150908';
 import {
   buildCollectionHash,
   buildFragmentHash,
   buildLibraryHash,
+  buildWorkEndHash,
   buildWorkOutlineHash,
   buildWorkHash,
   parseHashRoute
-} from './router.js?v=20260617150327';
+} from './router.js?v=20260617150908';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -34,7 +35,7 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260617150327';
+} from './ui-bindings.js?v=20260617150908';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -54,8 +55,8 @@ import {
   timelineCardMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260617150327';
-import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617150327';
+} from './views.js?v=20260617150908';
+import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617150908';
 
 const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
 const LIBRARY_TAB_LABELS = {
@@ -63,6 +64,7 @@ const LIBRARY_TAB_LABELS = {
   unread: '未読',
   completed: '読了'
 };
+const WORK_END_MARKER_ID = 'work-end-marker';
 
 function calculateRemainingPercent(shownCount, totalCount) {
   if (!Number.isFinite(totalCount) || totalCount <= 0) {
@@ -597,8 +599,8 @@ export function createScreenRenderers({
     const markerHtml = likeRecords.length > 0
       ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildCollectionHash('likes', { workId })}">ふせん ${likeRecords.length}枚を開く</a></p>`
       : '';
-    const outlineEntries = Array.isArray(work.outline)
-      ? work.outline
+      const outlineEntries = Array.isArray(work.outline)
+        ? work.outline
         .map((entry) => {
           const title = String(entry?.title ?? '').trim();
           const href = buildWorkOutlineHash(workId, entry, workPageBatchSize);
@@ -612,11 +614,12 @@ export function createScreenRenderers({
             title,
             level: Number.isFinite(level) ? Math.max(1, Math.min(3, level)) : 3
           };
-        })
-        .filter(Boolean)
-      : [];
-    const outlineHtml = outlineEntries.length > 0
-      ? `
+          })
+          .filter(Boolean)
+        : [];
+      const workEndHash = buildWorkEndHash(workId, totalTextFragments, workPageBatchSize, WORK_END_MARKER_ID);
+      const outlineHtml = outlineEntries.length > 0
+        ? `
         <section class="work-outline" aria-label="目次">
           <details class="work-outline-disclosure">
             <summary class="settings-status settings-status-subtle work-outline-summary">目次 ${outlineEntries.length}件</summary>
@@ -626,17 +629,22 @@ export function createScreenRenderers({
                   <a class="work-outline-link ${outlineLevelClassName(entry.level)}" href="${entry.href}">${escapeHtml(entry.title)}</a>
                 </li>
               `).join('')}
+              ${workEndHash ? `
+                <li class="work-outline-item">
+                  <a class="work-outline-link work-outline-link-terminal" href="${workEndHash}">終端</a>
+                </li>
+              ` : ''}
             </ol>
           </details>
         </section>
       `
-      : '';
+        : '';
     const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break'
       ? breakCardMarkup()
       : renderWorkFragmentCard(fragment, returnToHash)).join('');
-    const endingCardHtml = shownTextCount >= totalTextFragments && totalTextFragments > 0
-      ? workEndingCardMarkup({ isCompleted: getWorkReadingStatus(workId) === 'completed' })
-      : '';
+      const endingCardHtml = shownTextCount >= totalTextFragments && totalTextFragments > 0
+        ? workEndingCardMarkup({ isCompleted: getWorkReadingStatus(workId) === 'completed', markerId: WORK_END_MARKER_ID })
+        : '';
     const moreLinkHtml = remainingTextCount > 0
       ? (state.workLoadMode === 'manual'
         ? `

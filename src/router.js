@@ -36,6 +36,21 @@ export function buildWorkOutlineHash(workId, outlineEntry, workPageBatchSize) {
   });
 }
 
+export function buildWorkEndHash(workId, totalTextFragments, workPageBatchSize, endMarkerId = 'work-end-marker') {
+  const totalCount = Number(totalTextFragments);
+  if (!workId || !Number.isFinite(totalCount) || totalCount < 1) {
+    return '';
+  }
+
+  const visible = Number.isFinite(workPageBatchSize)
+    ? Math.max(workPageBatchSize, totalCount)
+    : totalCount;
+  return buildWorkHash(workId, {
+    visible,
+    focus: endMarkerId
+  });
+}
+
 export function buildFragmentHash(fragmentId, options = {}) {
   const params = new URLSearchParams();
   if (options.returnTo) {

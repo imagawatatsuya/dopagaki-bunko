@@ -9,7 +9,7 @@ import { extractAozoraTxtFromZip } from '../src/aozora-zip-importer.js';
 import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
 import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
-import { buildWorkOutlineHash } from '../src/router.js';
+import { buildWorkEndHash, buildWorkOutlineHash } from '../src/router.js';
 import { canonicalizeBookmarkRecords, sameBookmarkRecords } from '../src/state.js';
 
 const tests = [];
@@ -161,6 +161,16 @@ test('outline jump helper reuses work visible/focus routing', () => {
   assert.equal(earlyHref, '#/work/work-1?visible=5&focus=work-1-fragment-0002');
 
   assert.equal(buildWorkOutlineHash('work-1', { fragmentIndex: 3 }, 5), '');
+});
+
+test('work end jump helper targets the page-bottom marker', () => {
+  const href = buildWorkEndHash('work-1', 12, 5);
+  assert.equal(href, '#/work/work-1?visible=12&focus=work-end-marker');
+
+  const shortHref = buildWorkEndHash('work-1', 3, 5);
+  assert.equal(shortHref, '#/work/work-1?visible=5&focus=work-end-marker');
+
+  assert.equal(buildWorkEndHash('work-1', 0, 5), '');
 });
 
 test('zip importer extracts a single stored txt file', async () => {

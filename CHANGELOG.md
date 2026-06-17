@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a `終端` entry at the end of the work-page `目次`, letting readers jump straight to the page-bottom `原文終端 / 読了` marker without manually scrolling through the full fragment list.
 - Changed the work-page `目次` to render collapsed by default and expand on click/tap, reducing initial header noise while keeping the saved-outline jump list available in place.
 - Added a quiet work-page `目次` list backed by saved `outline` metadata, so imported heading structure can jump directly into the existing `visible/focus` work timeline flow without adding a separate reader mode.
 - Reduced `src/main.js` to app wiring only by moving render/layout helpers into `src/app-shell.js`, IndexedDB/state loading into `src/app-data.js`, and all screen rendering into `src/screen-renderers.js`, while deleting the old unused placeholder files `src/work-account.js` and `src/timeline-renderer.js`.

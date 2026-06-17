@@ -355,13 +355,13 @@ export function breakCardMarkup(label = '原文空行') {
   `;
 }
 
-export function workEndingCardMarkup({ isCompleted = false }) {
+export function workEndingCardMarkup({ isCompleted = false, markerId = 'work-end-marker' }) {
   return `
-    <article class="fragment-card fragment-card-break fragment-card-break-action ${isCompleted ? 'is-completed' : ''}">
-      <button
-        type="button"
-        class="break-action-button"
-        data-work-state-action="mark-complete"
+    <article class="fragment-card fragment-card-break fragment-card-break-action ${isCompleted ? 'is-completed' : ''}" data-fragment-id="${markerId}">
+        <button
+          type="button"
+          class="break-action-button"
+          data-work-state-action="mark-complete"
         aria-pressed="${isCompleted ? 'true' : 'false'}"
       >${isCompleted ? '読了' : '原文終端'}</button>
     </article>

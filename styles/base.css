@@ -760,6 +760,11 @@ rt {
   padding-left: 24px;
 }
 
+.work-outline-link-terminal {
+  margin-top: 4px;
+  padding-left: 0;
+}
+
 .work-summary-reader-scale {
   display: flex;
   justify-content: flex-end;
