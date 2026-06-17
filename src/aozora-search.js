@@ -153,6 +153,16 @@ function isExactAuthorMatch(record, needles) {
   return compactAuthorValues.some((value) => value === needles.compact);
 }
 
+function sortText(value, fallback = '') {
+  return normalizeAozoraSearchText(value || fallback);
+}
+
+function compareRecordSortText(leftRecord, rightRecord, primaryKey, fallbackKey) {
+  const leftText = sortText(leftRecord[primaryKey], leftRecord[fallbackKey]);
+  const rightText = sortText(rightRecord[primaryKey], rightRecord[fallbackKey]);
+  return leftText.localeCompare(rightText, 'ja');
+}
+
 function searchRecords(records, query, options = {}) {
   const needles = buildSearchNeedles(query);
   const limit = Number.isFinite(options.limit) ? options.limit : 0;
@@ -182,14 +192,12 @@ function searchRecords(records, query, options = {}) {
         return scoreCompare;
       }
 
-      const leftTitle = String(left.record.title ?? '');
-      const rightTitle = String(right.record.title ?? '');
-      const titleCompare = leftTitle.localeCompare(rightTitle, 'ja');
+      const titleCompare = compareRecordSortText(left.record, right.record, 'titleReading', 'title');
       if (titleCompare !== 0) {
         return titleCompare;
       }
 
-      return String(left.record.author ?? '').localeCompare(String(right.record.author ?? ''), 'ja');
+      return compareRecordSortText(left.record, right.record, 'authorReading', 'author');
     })
     .map((entry) => entry.record)
   ;

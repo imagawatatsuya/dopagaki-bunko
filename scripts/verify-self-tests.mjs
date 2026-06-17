@@ -347,6 +347,18 @@ test('Aozora catalog search keeps title hits after exact author matches', () => 
   );
 });
 
+test('Aozora catalog search uses title reading for same-score ordering', () => {
+  const records = [
+    { id: 'later-reading', title: '乙作品', titleReading: 'んのさくひん', author: '検索 著者', authorReading: 'けんさく ちょしゃ' },
+    { id: 'earlier-reading', title: '甲作品', titleReading: 'あのさくひん', author: '検索 著者', authorReading: 'けんさく ちょしゃ' }
+  ];
+
+  assert.deepEqual(
+    searchAozoraCatalog(records, '検索著者').map((record) => record.id),
+    ['earlier-reading', 'later-reading']
+  );
+});
+
 test('local work search uses titles, authors, and source title lines', () => {
   const works = [
     {
