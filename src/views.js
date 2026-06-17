@@ -1,5 +1,12 @@
 const IMPORT_PREVIEW_FRAGMENT_LIMIT = 4;
 
+const KANA_TYPE_LABELS = new Map([
+  ['新字新仮名', '新字・新かな'],
+  ['新字旧仮名', '新字・旧かな'],
+  ['旧字新仮名', '旧字・新かな'],
+  ['旧字旧仮名', '旧字・旧かな']
+]);
+
 export function navMarkup(current) {
   const items = [
     ['home', 'ホーム', '#/'],
@@ -169,6 +176,19 @@ export function searchImportSheetMarkup({ isOpen = false, importStatusHtml = '' 
   `;
 }
 
+function kanaTypeLabelMarkup(kanaType) {
+  const source = String(kanaType ?? '').trim();
+  if (!source) {
+    return '';
+  }
+
+  const label = KANA_TYPE_LABELS.get(source) ?? source;
+  const className = source === '新字新仮名'
+    ? 'aozora-kana-label aozora-kana-label-modern'
+    : 'aozora-kana-label';
+  return `<span class="${className}">${label}</span>`;
+}
+
 export function aozoraSearchResultsMarkup(results, options = {}) {
   const emptyMessage = options.emptyMessage || '作品名または著者名で検索してください。';
   const resultSummaryHtml = options.resultSummaryHtml || '';
@@ -181,9 +201,10 @@ export function aozoraSearchResultsMarkup(results, options = {}) {
         const href = result.href || result.cardUrl || '#/';
         const targetAttrs = result.openInNewTab ? ' target="_blank" rel="noreferrer"' : '';
         const typeLabel = result.resultType === 'library' ? '本棚' : '';
+        const kanaLabelHtml = kanaTypeLabelMarkup(result.kanaType);
         const statusParts = [
           result.author,
-          result.kanaType,
+          kanaLabelHtml,
           typeLabel,
           result.isImported ? '本棚にあります' : '',
           result.copyrightWarning ? '著作権注意' : ''

@@ -31,6 +31,13 @@ export const DEFAULT_SEARCH_SORT_MODE = SEARCH_SORT_MODES.READER;
 
 const LEADING_READER_NOISE_RE = /^[\s\u3000"'“”‘’「」『』（）()［］[\]【】〔〕〈〉《》,，、。・･:：;；!！?？…‥\-‐‑‒–—―〜～＊*※#＃]/u;
 
+const KANA_TYPE_PRIORITY = new Map([
+  ['新字新仮名', 0],
+  ['新字旧仮名', 1],
+  ['旧字新仮名', 2],
+  ['旧字旧仮名', 3]
+]);
+
 function collapseWhitespace(text) {
   return text.replace(/\s+/gu, ' ').trim();
 }
@@ -209,6 +216,25 @@ function compareRecordSortMode(leftRecord, rightRecord, sortMode) {
   return 0;
 }
 
+function sameWorkSortKey(record) {
+  return [
+    compactAozoraSearchText(record.title),
+    compactAozoraSearchText(record.author)
+  ].join('\u0000');
+}
+
+function kanaTypePriority(record) {
+  return KANA_TYPE_PRIORITY.get(String(record.kanaType ?? '')) ?? 99;
+}
+
+function compareSameWorkKanaType(leftRecord, rightRecord) {
+  if (sameWorkSortKey(leftRecord) !== sameWorkSortKey(rightRecord)) {
+    return 0;
+  }
+
+  return kanaTypePriority(leftRecord) - kanaTypePriority(rightRecord);
+}
+
 function searchRecords(records, query, options = {}) {
   const needles = buildSearchNeedles(query);
   const limit = Number.isFinite(options.limit) ? options.limit : 0;
@@ -237,6 +263,11 @@ function searchRecords(records, query, options = {}) {
       const scoreCompare = right.score - left.score;
       if (scoreCompare !== 0) {
         return scoreCompare;
+      }
+
+      const kanaTypeCompare = compareSameWorkKanaType(left.record, right.record);
+      if (kanaTypeCompare !== 0) {
+        return kanaTypeCompare;
       }
 
       const modeCompare = compareRecordSortMode(left.record, right.record, sortMode);

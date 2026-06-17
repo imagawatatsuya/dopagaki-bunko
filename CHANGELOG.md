@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added readable kana-type labels to Aozora search results, highlighting `新字・新かな` with a low-contrast accessible chip and prioritizing it only among duplicate versions of the same work.
 - Added a default reader-oriented search sort mode that lowers symbol-prefixed titles and promotes longer same-score titles, while keeping reading-order sorting available as a separate mode.
 - Simplified the ZIP import sheet to one shared file entry point for click, tap, keyboard, and drag-and-drop use.
 - Reduced the ZIP import preview from the first 8 fragments to the first 4 fragments.

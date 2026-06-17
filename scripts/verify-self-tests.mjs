@@ -15,7 +15,7 @@ import { buildWorkEndHash, buildWorkOutlineHash } from '../src/router.js';
 import { canonicalizeBookmarkRecords, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { returnLinkLabel } from '../src/renderer-shared.js';
-import { searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
+import { aozoraSearchResultsMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
 
@@ -409,6 +409,43 @@ test('Aozora catalog search can still use reading-order sort mode', () => {
     searchAozoraCatalog(records, '検索著者', { sortMode: SEARCH_SORT_MODES.READING }).map((record) => record.id),
     ['earlier-reading', 'later-reading']
   );
+});
+
+test('Aozora catalog search prioritizes modern kana only within the same work', () => {
+  const sameWorkRecords = [
+    { id: 'old-same-work', title: '同じ作品', titleReading: 'おなじさくひん', author: '検索 著者', authorReading: 'けんさく ちょしゃ', kanaType: '旧字旧仮名' },
+    { id: 'modern-same-work', title: '同じ作品', titleReading: 'おなじさくひん', author: '検索 著者', authorReading: 'けんさく ちょしゃ', kanaType: '新字新仮名' }
+  ];
+
+  assert.deepEqual(
+    searchAozoraCatalog(sameWorkRecords, '検索著者').map((record) => record.id),
+    ['modern-same-work', 'old-same-work']
+  );
+
+  const differentWorkRecords = [
+    { id: 'long-old-work', title: '長い別作品名', titleReading: 'ながいべつさくひんめい', author: '検索 著者', authorReading: 'けんさく ちょしゃ', kanaType: '旧字旧仮名' },
+    { id: 'short-modern-work', title: '短編', titleReading: 'たんぺん', author: '検索 著者', authorReading: 'けんさく ちょしゃ', kanaType: '新字新仮名' }
+  ];
+
+  assert.deepEqual(
+    searchAozoraCatalog(differentWorkRecords, '検索著者').map((record) => record.id),
+    ['long-old-work', 'short-modern-work']
+  );
+});
+
+test('Aozora search results render readable kana labels for every kana type', () => {
+  const markup = aozoraSearchResultsMarkup([
+    { id: 'modern', title: '現代版', author: '著者', kanaType: '新字新仮名' },
+    { id: 'old-kana', title: '旧かな版', author: '著者', kanaType: '新字旧仮名' },
+    { id: 'old-kanji', title: '旧字版', author: '著者', kanaType: '旧字新仮名' },
+    { id: 'old-both', title: '旧字旧かな版', author: '著者', kanaType: '旧字旧仮名' }
+  ]);
+
+  assert.match(markup, /新字・新かな/u);
+  assert.match(markup, /aozora-kana-label-modern/u);
+  assert.match(markup, /新字・旧かな/u);
+  assert.match(markup, /旧字・新かな/u);
+  assert.match(markup, /旧字・旧かな/u);
 });
 
 test('local work search uses titles, authors, and source title lines', () => {

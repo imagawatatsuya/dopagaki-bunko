@@ -644,6 +644,25 @@ rt {
   line-height: 1.45;
 }
 
+.aozora-kana-label {
+  display: inline-block;
+  margin: 0 2px;
+  padding: 2px 7px;
+  border: 1px solid rgba(107, 93, 80, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.78);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+  vertical-align: middle;
+}
+
+.aozora-kana-label-modern {
+  border-color: rgba(36, 95, 80, 0.34);
+  background: rgba(36, 95, 80, 0.11);
+  color: #245f50;
+}
+
 .fragment-card-break {
   padding: 14px 18px;
   background: rgba(255, 253, 248, 0.55);
