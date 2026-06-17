@@ -1,4 +1,4 @@
-import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260617085008';
+import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260617090147';
 
 const STORE_NAME = 'likes';
 
@@ -6,11 +6,12 @@ export function listLikes() {
   return getAllRecords(STORE_NAME);
 }
 
-export function saveLike(fragmentId) {
+export function saveLike(fragmentId, options = {}) {
   return putRecord(STORE_NAME, {
     id: fragmentId,
     fragmentId,
-    savedAt: new Date().toISOString()
+    savedAt: options.savedAt ?? new Date().toISOString(),
+    note: typeof options.note === 'string' ? options.note : ''
   });
 }
 

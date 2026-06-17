@@ -420,6 +420,7 @@ export function savedItemCardMarkup({
   workAuthor,
   savedDateHtml,
   excerpt,
+  noteHtml,
   fragmentIndexHtml,
   openFragmentHtml,
   openTimelineHtml,
@@ -431,6 +432,7 @@ export function savedItemCardMarkup({
       <p class="section-text">${workAuthor}</p>
       ${savedDateHtml}
       <p class="fragment-body">${excerpt}</p>
+      ${noteHtml}
       ${fragmentIndexHtml}
       <div class="settings-button-grid">
         ${openFragmentHtml}
@@ -445,11 +447,12 @@ export function fragmentDetailBodyMarkup({
   author,
   readerScaleControlsHtml,
   displayHtml,
+  noteStatusHtml,
   previousLinkHtml,
   nextLinkHtml,
   likeButtonHtml,
   bookmarkButtonHtml,
-  quoteButtonHtml,
+  noteButtonHtml,
   workLinkHtml,
   backLinkHtml
 }) {
@@ -458,6 +461,7 @@ export function fragmentDetailBodyMarkup({
       <p class="detail-author">${author}</p>
       ${readerScaleControlsHtml}
       <div class="detail-body">${displayHtml}</div>
+      ${noteStatusHtml}
     </article>
     <div class="detail-nav-row" aria-label="断片移動">
       ${previousLinkHtml}
@@ -466,7 +470,7 @@ export function fragmentDetailBodyMarkup({
     <div class="detail-actions" aria-label="断片の操作">
       ${likeButtonHtml}
       ${bookmarkButtonHtml}
-      ${quoteButtonHtml}
+      ${noteButtonHtml}
       ${workLinkHtml}
       ${backLinkHtml}
     </div>

@@ -416,18 +416,43 @@ export function createDetailActions({
     }
 
     const work = findWorkById(fragment.workId);
+    const currentLikeRecord = state.likeRecords.find((item) => item.fragmentId === fragmentId) ?? null;
 
     if (action === 'like') {
       if (state.likes.has(fragmentId)) {
         await removeLike(fragmentId);
         state.likes.delete(fragmentId);
       } else {
-        await saveLike(fragmentId);
+        await saveLike(fragmentId, {
+          savedAt: currentLikeRecord?.savedAt,
+          note: currentLikeRecord?.note ?? ''
+        });
         state.likes.add(fragmentId);
       }
     } else if (action === 'bookmark') {
       await toggleBookmark(fragmentId);
       return;
+    } else if (action === 'memo') {
+      const answer = globalThis.prompt(
+        state.likes.has(fragmentId)
+          ? 'ふせんメモを編集します。空欄でメモだけ外せます。'
+          : 'ふせんメモを入力します。保存するとふせんも付きます。',
+        currentLikeRecord?.note ?? ''
+      );
+      if (answer === null) {
+        return;
+      }
+
+      const note = String(answer).trim();
+      if (!state.likes.has(fragmentId) && !note) {
+        return;
+      }
+
+      await saveLike(fragmentId, {
+        savedAt: currentLikeRecord?.savedAt,
+        note
+      });
+      state.likes.add(fragmentId);
     } else if (action === 'quote') {
       if (state.quotes.has(fragmentId)) {
         await removeQuote(fragmentId);

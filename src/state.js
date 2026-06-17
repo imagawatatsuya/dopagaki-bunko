@@ -229,13 +229,15 @@ export function buildSavedItems({ kind, bookmarkRecords, likeRecords, quoteRecor
     const work = findWorkById(record.workId ?? fragment?.workId) ?? null;
     const plainText = record.plainText ?? fragment?.plainText ?? '';
     const fragmentIndex = fragment?.index ?? record.fragmentIndex ?? null;
+    const note = typeof record.note === 'string' ? record.note.trim() : '';
 
     return {
       record,
       fragment,
       work,
       fragmentIndex,
-      excerpt: summarizeFragmentText(plainText)
+      excerpt: summarizeFragmentText(plainText),
+      note
     };
   });
 }
