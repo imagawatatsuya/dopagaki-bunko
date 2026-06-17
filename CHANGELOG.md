@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Extracted `src/app-config.js`, `src/app-state.js`, `src/app-router.js`, and `src/app-runtime.js`, leaving `src/main.js` as a thin entrypoint while keeping the same hash-routing, startup, and GitHub Pages behavior.
+- Split `src/screen-renderers.js` into shared renderer helpers plus focused screen modules for home/detail, library/collections, work, and search/settings, keeping the existing UI flows while making screen ownership explicit.
 - Fixed all focused fragment jumps to account for the sticky page header, so work TL returns, outline jumps, bookmark/fusen jumps, terminal jumps, and fragment-number jumps land with the target card visible below the header.
 - Fixed work-page to fragment-page navigation so the fragment screen resets to the page top before rendering, keeping the body text and inline memo/return tools immediately visible instead of reopening mid-scroll.
 - Moved fragment-detail memo editing into a small inline surface directly beneath the body text, paired it with a compact `TLのこの位置へ戻る` link, and hid the fragment-detail top font-size controls to keep the page focused on copy/memo/reopen work.

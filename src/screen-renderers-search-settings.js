@@ -1,0 +1,147 @@
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260617180204';
+import {
+  aozoraSearchResultsMarkup,
+  searchBodyMarkup,
+  searchImportSheetMarkup,
+  searchPreviewMarkup,
+  settingsBodyMarkup,
+  settingsPendingImportMarkup
+} from './views.js?v=20260617180204';
+
+export function createSearchSettingsRenderers({
+  app,
+  state,
+  renderLayout,
+  handleAozoraZipFile,
+  handleSearchAction,
+  handleSettingsAction,
+  handleImportFileSelection,
+  searchResultsBatchSize,
+  helpers
+}) {
+  const { escapeHtml } = helpers;
+
+  function renderSearch() {
+    const preview = state.importPreview;
+    const totalResultCount = state.aozoraCatalogResults.length;
+    const shownResultCount = Math.min(state.aozoraCatalogVisibleCount, totalResultCount);
+    const visibleResults = state.aozoraCatalogResults.slice(0, shownResultCount);
+    const previewMarkup = searchPreviewMarkup(preview ? {
+      ...preview,
+      title: escapeHtml(preview.title),
+      author: escapeHtml(preview.author),
+      encoding: escapeHtml(preview.encoding)
+    } : null, `
+      <article class="fragment-card fragment-card-break preview-card">
+        <p class="break-label">原文空行</p>
+      </article>
+    `);
+    const fetchedAt = state.aozoraCatalogMeta?.fetchedAt
+      ? new Date(state.aozoraCatalogMeta.fetchedAt).toLocaleString('ja-JP')
+      : '';
+    const catalogMetaHtml = fetchedAt
+      ? `<p class="settings-status settings-status-subtle">最終更新: ${escapeHtml(fetchedAt)} / ${escapeHtml(String(state.aozoraCatalogMeta?.recordCount ?? 0))}件</p>`
+      : `<p class="settings-status settings-status-subtle">${state.aozoraCatalogLoading ? '作品一覧を読み込んでいます。' : '作品一覧を準備しています。'}</p>`;
+    const emptyMessage = state.aozoraCatalogQuery
+      ? '一致する作品が見つかりませんでした。'
+      : (state.aozoraCatalogRecords.length > 0
+        ? '作品名または著者名で検索してください。'
+        : (state.aozoraCatalogLoading ? '作品一覧を読み込んでいます。' : '作品一覧を準備しています。'));
+    const catalogResultsMarkup = aozoraSearchResultsMarkup(
+      visibleResults.map((result) => ({
+        ...result,
+        title: escapeHtml(result.title),
+        author: escapeHtml(result.author),
+        kanaType: escapeHtml(result.kanaType),
+        workId: escapeHtml(result.workId),
+        cardUrl: escapeHtml(result.cardUrl)
+      })),
+      {
+        emptyMessage: escapeHtml(emptyMessage),
+        resultSummaryHtml: totalResultCount > 0
+          ? `<p class="settings-status settings-status-subtle">全 ${escapeHtml(String(totalResultCount))} 件中 ${escapeHtml(String(shownResultCount))} 件を表示</p>`
+          : '',
+        resultActionsHtml: totalResultCount > 0
+          ? `
+            <div class="settings-button-grid">
+              ${totalResultCount > shownResultCount
+                ? `<button type="button" class="detail-action-button settings-button" data-search-action="show-more-aozora-results">さらに${searchResultsBatchSize}件表示</button>`
+                : ''}
+              ${shownResultCount > searchResultsBatchSize
+                ? '<button type="button" class="detail-action-button settings-button" data-search-action="scroll-search-results-top">先頭へ戻る</button>'
+                : ''}
+            </div>
+          `
+          : ''
+      }
+    );
+    const importSheetMarkup = searchImportSheetMarkup({
+      isOpen: state.importSheetOpen,
+      importStatusHtml: state.importWorkStatus ? `<p class="settings-status">${escapeHtml(state.importWorkStatus)}</p>` : ''
+    });
+    const importNoticeHtml = state.importWorkNoticeTone === 'success' && state.importWorkStatus
+      ? `
+        <article class="info-panel search-import-notice search-import-notice-success" data-search-import-notice aria-live="polite">
+          <h2 class="section-title">取り込み完了</h2>
+          <p class="section-text">${escapeHtml(state.importWorkStatus)}</p>
+        </article>
+      `
+      : '';
+
+    renderLayout({
+      current: 'search',
+      title: '作品を追加',
+      subtitle: '青空文庫で作品を探し、保存したZIPをここへ追加できます。',
+      body: searchBodyMarkup({
+        importNoticeHtml,
+        catalogQuery: escapeHtml(state.aozoraCatalogQuery),
+        catalogStatusHtml: state.aozoraCatalogStatus ? `<p class="settings-status">${escapeHtml(state.aozoraCatalogStatus)}</p>` : '',
+        catalogMetaHtml,
+        catalogResultsMarkup,
+        importSheetMarkup,
+        previewMarkup
+      })
+    });
+
+    bindSearchInteractions(app, {
+      onSelectFile: handleAozoraZipFile,
+      onDropFile: handleAozoraZipFile,
+      onAction: async (action, payload) => {
+        await handleSearchAction(action, payload);
+      }
+    });
+  }
+
+  function renderSettings() {
+    const pendingImportSummary = settingsPendingImportMarkup(state.pendingImport ? {
+      ...state.pendingImport,
+      fileName: escapeHtml(state.pendingImport.fileName)
+    } : null, escapeHtml(state.pendingImport?.summary ?? ''));
+
+    renderLayout({
+      current: 'settings',
+      title: '設定',
+      subtitle: 'バックアップや読み込みはここで扱えます。',
+      body: settingsBodyMarkup({
+        exportStatusHtml: state.exportStatus ? `<p class="settings-status">${escapeHtml(state.exportStatus)}</p>` : '',
+        importStatusHtml: state.importStatus ? `<p class="settings-status">${escapeHtml(state.importStatus)}</p>` : '',
+        readingStatusHtml: `<p class="settings-status settings-status-subtle">現在: ${escapeHtml(state.workLoadMode === 'auto' ? '自動で続ける' : '手動で続ける')}</p>`,
+        workLoadMode: state.workLoadMode,
+        releaseStatusHtml: state.releaseStatus ? `<p class="settings-status">${escapeHtml(state.releaseStatus)}</p>` : '',
+        pendingImportMarkup: pendingImportSummary
+      })
+    });
+
+    bindSettingsInteractions(app, {
+      onAction: async (action) => {
+        await handleSettingsAction(action);
+      },
+      onImportFile: handleImportFileSelection
+    });
+  }
+
+  return {
+    renderSearch,
+    renderSettings
+  };
+}

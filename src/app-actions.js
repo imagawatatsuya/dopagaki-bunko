@@ -1,3 +1,5 @@
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617180204';
+
 export function createBookmarkActions({
   state,
   getFragmentById,
@@ -52,8 +54,6 @@ export function createSearchActions({
   putRecords,
   loadStateFromDb
 }) {
-  const SEARCH_RESULTS_BATCH_SIZE = 25;
-
   function resetCatalogSearchSession() {
     state.aozoraCatalogQuery = '';
     state.aozoraCatalogStatus = '';

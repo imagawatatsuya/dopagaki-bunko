@@ -11,6 +11,8 @@ import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
 import { buildWorkEndHash, buildWorkOutlineHash } from '../src/router.js';
 import { canonicalizeBookmarkRecords, sameBookmarkRecords } from '../src/state.js';
+import { createInitialAppState } from '../src/app-state.js';
+import { returnLinkLabel } from '../src/renderer-shared.js';
 
 const tests = [];
 
@@ -231,6 +233,20 @@ test('bookmark canonicalization keeps the latest entry per work', () => {
   assert.equal(canonical[0].fragmentId, 'work-a-fragment-0002');
   assert.equal(canonical[1].workId, 'work-b');
   assert.equal(sameBookmarkRecords(canonical, canonical.map((item) => ({ ...item }))), true);
+});
+
+test('initial app state starts with empty collections and search batch size', () => {
+  const state = createInitialAppState();
+  assert.deepEqual(state.works, []);
+  assert.equal(state.likes instanceof Set, true);
+  assert.equal(state.aozoraCatalogVisibleCount, 25);
+  assert.equal(state.workLoadMode, 'auto');
+});
+
+test('return link labels match current route semantics', () => {
+  assert.equal(returnLinkLabel('#/'), 'ホームTLへ戻る');
+  assert.equal(returnLinkLabel('#/collection/likes'), 'ふせん一覧へ戻る');
+  assert.equal(returnLinkLabel('#/work/work-1?visible=24'), '作品TLへ戻る');
 });
 
 let failures = 0;
