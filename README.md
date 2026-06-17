@@ -93,7 +93,7 @@ pwsh ./publish-pages.ps1
 - `JSONを選ぶ` でバックアップを読み込めます
 - 読み込み後に `上書きする` か `追加する` かを選べます
 
-バックアップ対象は `works`, `fragments`, `likes`, `bookmarks`, `quotes`, `settings` です。
+バックアップ対象は `works`, `fragments`, `likes`, `bookmarks`, `settings` です。
 
 `bookmarks` は作品ごとに常に1件だけ保持される最新しおりです。気になった断片へふせんを複数残す用途は `likes` を使います。
 

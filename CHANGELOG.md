@@ -6,6 +6,7 @@
 - Moved the work-page reader-size controls into a quiet right-aligned utility position beside the work summary, keeping bookmark and per-work tab links primary in the information panel.
 - Renamed visible `いいね` UI copy to `ふせん`, including saved-list labels, detail actions, timeline event labels, and collection return links, while keeping the underlying `likes` data store unchanged.
 - Trialed `ふせんメモ` on top of the existing `likes` store by replacing the fragment-detail quote action with a memo editor and showing saved memo text inside `ふせん一覧`.
+- Hid the remaining visible `引用保存` library and settings copy so the current UI no longer exposes quote-save collections while the legacy `quotes` store stays in place internally.
 - Removed the automatic three-work sample seeding, so first launch and app reset now return to an empty library instead of repopulating demo works.
 - Replaced the unread-library swipe/delete experiment with a quiet `…` menu per unread card, keeping titles readable on both touch and desktop screens while preserving confirmed cascade deletion of the work and its related fragments, bookmarks, likes, quotes, and reading state.
 - Stopped Home TL heading fallback from using fragment body text, so works without stored source-title lines now show only the work title instead of leaking bookmark-target first lines.

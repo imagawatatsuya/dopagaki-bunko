@@ -231,7 +231,7 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
     <section class="panel-stack">
       <article class="info-panel">
         <h2 class="section-title">JSONエクスポート</h2>
-        <p class="section-text">作品、しおり、ふせん、引用保存をまとめてバックアップします。</p>
+        <p class="section-text">作品、しおり、ふせんをまとめてバックアップします。</p>
         <div class="settings-actions">
           <button type="button" class="detail-action-button settings-button" data-settings-action="export-json">JSONを書き出す</button>
         </div>
@@ -265,7 +265,7 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
       </article>
       <article class="info-panel">
         <h2 class="section-title">アプリ初期化</h2>
-        <p class="section-text">保存した作品、断片、ふせん、しおり、引用、設定を消去して最初の状態へ戻します。</p>
+        <p class="section-text">保存した作品、断片、ふせん、しおり、設定を消去して最初の状態へ戻します。</p>
         <div class="settings-actions">
           <button type="button" class="detail-action-button settings-button" data-settings-action="reset-app">アプリを初期化する</button>
         </div>

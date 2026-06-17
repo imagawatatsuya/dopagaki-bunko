@@ -614,7 +614,7 @@ export function createSettingsActions({
   }
 
   async function resetAppData() {
-    const confirmed = globalThis.confirm('保存した作品、断片、ふせん、しおり、引用、設定を消去して初期状態へ戻します。続行しますか。');
+    const confirmed = globalThis.confirm('保存した作品、断片、ふせん、しおり、設定を消去して初期状態へ戻します。続行しますか。');
     if (!confirmed) {
       return;
     }
