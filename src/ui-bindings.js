@@ -204,3 +204,118 @@ export function bindSettingsInteractions(root, { onAction, onImportFile }) {
     });
   }
 }
+
+export function focusFragmentCard(root, fragmentId) {
+  if (!fragmentId) {
+    return;
+  }
+
+  const selector = `[data-fragment-id="${CSS.escape(fragmentId)}"]`;
+  const element = root.querySelector(selector);
+  if (!element) {
+    return;
+  }
+
+  element.scrollIntoView({ block: 'start', behavior: 'auto' });
+  element.classList.add('is-focused-fragment');
+  setTimeout(() => {
+    element.classList.remove('is-focused-fragment');
+  }, 1800);
+}
+
+export function updateWorkOverlayButton(button, overlayState, ariaLabel) {
+  button.classList.remove('is-idle', 'is-bookmark', 'is-like');
+  button.classList.add(`is-${overlayState}`);
+  button.setAttribute('aria-pressed', overlayState === 'idle' ? 'false' : 'true');
+  button.setAttribute('aria-label', ariaLabel);
+}
+
+export function bindWorkHeaderProgress(root, totalTextFragments, getRemainingPercent) {
+  const currentNode = root.querySelector('[data-work-progress-current]');
+  const totalNode = root.querySelector('[data-work-progress-total]');
+  const remainingNode = root.querySelector('[data-work-progress-remaining]');
+  const cards = [...root.querySelectorAll('[data-work-fragment-index]')];
+
+  if (!currentNode || !totalNode || !remainingNode || cards.length === 0) {
+    return null;
+  }
+
+  totalNode.textContent = String(totalTextFragments);
+
+  const readCurrentIndex = () => {
+    const headerBottom = root.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
+    let activeIndex = Number(cards[0].dataset.workFragmentIndex || 1);
+
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect();
+      const index = Number(card.dataset.workFragmentIndex || activeIndex);
+
+      if (rect.top <= headerBottom + 12) {
+        activeIndex = index;
+        continue;
+      }
+
+      const distance = rect.top - (headerBottom + 12);
+      if (distance < Math.max(rect.height * 0.5, 80)) {
+        activeIndex = index;
+      }
+      break;
+    }
+
+    currentNode.textContent = String(activeIndex);
+    remainingNode.textContent = String(getRemainingPercent(activeIndex, totalTextFragments));
+  };
+
+  let frameRequested = false;
+  const scheduleUpdate = () => {
+    if (frameRequested) {
+      return;
+    }
+    frameRequested = true;
+    requestAnimationFrame(() => {
+      frameRequested = false;
+      readCurrentIndex();
+    });
+  };
+
+  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', scheduleUpdate);
+  scheduleUpdate();
+
+  return () => {
+    window.removeEventListener('scroll', scheduleUpdate);
+    window.removeEventListener('resize', scheduleUpdate);
+  };
+}
+
+export function bindWorkAutoLoad(root, { enabled, shownTextCount, totalTextFragments, onIntersect }) {
+  if (!enabled || shownTextCount >= totalTextFragments) {
+    return null;
+  }
+
+  const sentinel = root.querySelector('[data-work-auto-load-sentinel]');
+  if (!sentinel || typeof IntersectionObserver !== 'function') {
+    return null;
+  }
+
+  let triggered = false;
+  const observer = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (!entry?.isIntersecting || triggered) {
+      return;
+    }
+
+    triggered = true;
+    observer.disconnect();
+    onIntersect();
+  }, {
+    root: null,
+    rootMargin: '0px 0px 320px 0px',
+    threshold: 0.01
+  });
+
+  observer.observe(sentinel);
+  return () => {
+    observer.disconnect();
+  };
+}

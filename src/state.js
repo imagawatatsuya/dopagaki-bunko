@@ -256,3 +256,84 @@ export function buildLibraryWorksByStatus({ works, bookmarkRecords, readingState
 
   return grouped;
 }
+
+export function fragmentSequenceOf(fragment) {
+  if (Number.isFinite(fragment?.sequence)) {
+    return fragment.sequence;
+  }
+
+  const suffix = String(fragment?.id ?? '').match(/-(\d{4,})$/u);
+  if (suffix) {
+    return Number(suffix[1]);
+  }
+
+  return Number.isFinite(fragment?.index) ? fragment.index : 0;
+}
+
+export function sortFragments(records) {
+  return [...records].sort((left, right) => {
+    const workCompare = String(left.workId ?? '').localeCompare(String(right.workId ?? ''));
+    if (workCompare !== 0) {
+      return workCompare;
+    }
+
+    const sequenceCompare = fragmentSequenceOf(left) - fragmentSequenceOf(right);
+    if (sequenceCompare !== 0) {
+      return sequenceCompare;
+    }
+
+    return String(left.id ?? '').localeCompare(String(right.id ?? ''));
+  });
+}
+
+export function getReadableFragments(fragments) {
+  return fragments.filter((fragment) => fragment.type !== 'break');
+}
+
+export function countWorkTextFragments(fragments, workId) {
+  return fragments.filter((fragment) => fragment.workId === workId && fragment.type !== 'break').length;
+}
+
+export function getReadableWorkFragments(fragments, workId) {
+  return fragments.filter((fragment) => fragment.workId === workId && fragment.type !== 'break');
+}
+
+export function getVisibleCountParam(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+export function sliceWorkFragmentsForVisibleCount(fragments, workId, visibleTextCount) {
+  const workFragments = fragments.filter((fragment) => fragment.workId === workId);
+  const limited = [];
+  let textCount = 0;
+
+  for (const fragment of workFragments) {
+    if (fragment.type === 'break') {
+      if (limited.length > 0) {
+        limited.push(fragment);
+      }
+      continue;
+    }
+
+    if (textCount >= visibleTextCount) {
+      break;
+    }
+
+    limited.push(fragment);
+    textCount += 1;
+  }
+
+  while (limited.at(-1)?.type === 'break') {
+    limited.pop();
+  }
+
+  return {
+    fragments: limited,
+    shownTextCount: textCount
+  };
+}
