@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617181233';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617184854';
 
 export function createBookmarkActions({
   state,
@@ -46,6 +46,7 @@ export function createSearchActions({
   decodeAozoraText,
   derivePreviewFromText,
   searchAozoraCatalog,
+  searchWorkRecords,
   AOZORA_CATALOG_META_ID,
   AOZORA_CATALOG_ASSET_PATH,
   getAllRecords,
@@ -61,9 +62,52 @@ export function createSearchActions({
     state.aozoraCatalogVisibleCount = SEARCH_RESULTS_BATCH_SIZE;
   }
 
+  function normalizeSearchScope(scope) {
+    return scope === 'library' ? 'library' : 'aozora';
+  }
+
+  function importedWorkByAozoraId() {
+    return new Map(state.works
+      .filter((work) => work.aozoraWorkId)
+      .map((work) => [String(work.aozoraWorkId), work]));
+  }
+
+  function toCatalogSearchResult(record, importedWorks) {
+    const importedWork = importedWorks.get(String(record.workId ?? record.id ?? '')) ?? null;
+    return {
+      ...record,
+      resultType: 'aozora',
+      href: record.cardUrl,
+      openInNewTab: true,
+      isImported: Boolean(importedWork),
+      importedWorkId: importedWork?.id ?? ''
+    };
+  }
+
+  function toLibrarySearchResult(work) {
+    return {
+      id: work.id,
+      workId: work.id,
+      title: work.title ?? '無題',
+      author: work.author ?? '',
+      kanaType: '',
+      href: `#/work/${encodeURIComponent(work.id)}`,
+      resultType: 'library',
+      isImported: false,
+      importedWorkId: ''
+    };
+  }
+
   function applyCatalogSearchResults(query) {
     state.aozoraCatalogQuery = String(query ?? '');
-    state.aozoraCatalogResults = searchAozoraCatalog(state.aozoraCatalogRecords, state.aozoraCatalogQuery);
+    if (state.searchScope === 'library') {
+      state.aozoraCatalogResults = searchWorkRecords(state.works, state.aozoraCatalogQuery)
+        .map((work) => toLibrarySearchResult(work));
+    } else {
+      const importedWorks = importedWorkByAozoraId();
+      state.aozoraCatalogResults = searchAozoraCatalog(state.aozoraCatalogRecords, state.aozoraCatalogQuery)
+        .map((record) => toCatalogSearchResult(record, importedWorks));
+    }
     state.aozoraCatalogVisibleCount = SEARCH_RESULTS_BATCH_SIZE;
   }
 
@@ -318,7 +362,8 @@ export function createSearchActions({
   }
 
   function runCatalogSearch(query) {
-    if (state.aozoraCatalogRecords.length === 0) {
+    const scope = normalizeSearchScope(state.searchScope);
+    if (scope === 'aozora' && state.aozoraCatalogRecords.length === 0) {
       state.aozoraCatalogQuery = String(query ?? '');
       state.aozoraCatalogResults = [];
       state.aozoraCatalogStatus = state.aozoraCatalogLoading
@@ -329,9 +374,10 @@ export function createSearchActions({
     }
 
     applyCatalogSearchResults(query);
+    const scopeLabel = scope === 'library' ? '本棚' : '青空文庫';
     state.aozoraCatalogStatus = state.aozoraCatalogResults.length > 0
-      ? `${state.aozoraCatalogResults.length}件見つかりました。`
-      : '一致する作品が見つかりませんでした。';
+      ? `${scopeLabel}で${state.aozoraCatalogResults.length}件見つかりました。`
+      : `${scopeLabel}で一致する作品が見つかりませんでした。`;
     renderSearch();
   }
 
@@ -362,6 +408,15 @@ export function createSearchActions({
     if (action === 'search-aozora-catalog') {
       state.importWorkNoticeTone = '';
       runCatalogSearch(payload.query ?? state.aozoraCatalogQuery);
+      return;
+    }
+
+    if (action === 'set-search-scope-aozora' || action === 'set-search-scope-library') {
+      state.importWorkNoticeTone = '';
+      state.searchScope = action === 'set-search-scope-library' ? 'library' : 'aozora';
+      applyCatalogSearchResults(payload.query ?? state.aozoraCatalogQuery);
+      state.aozoraCatalogStatus = '';
+      renderSearch();
       return;
     }
 

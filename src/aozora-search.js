@@ -4,6 +4,24 @@ function katakanaToHiragana(text) {
   });
 }
 
+const AOZORA_SEARCH_VARIANT_MAP = new Map([
+  ['鷗', '鴎'],
+  ['龍', '竜'],
+  ['澤', '沢'],
+  ['聲', '声'],
+  ['國', '国'],
+  ['獨', '独'],
+  ['齋', '斎'],
+  ['齊', '斎'],
+  ['圓', '円'],
+  ['與', '与'],
+  ['濱', '浜'],
+  ['瀧', '滝'],
+  ['邊', '辺'],
+  ['邉', '辺'],
+  ['德', '徳']
+]);
+
 function collapseWhitespace(text) {
   return text.replace(/\s+/gu, ' ').trim();
 }
@@ -12,11 +30,19 @@ function stripSearchSeparators(text) {
   return text.replace(/[\s\u3000・･\-‐‑‒–—―ーｰ～〜「」『』（）()\[\]［］【】〔〕〈〉《》,，、。]/gu, '');
 }
 
+function normalizeAozoraSearchVariants(text) {
+  return text.replace(/[鷗龍澤聲國獨齋齊圓與濱瀧邊邉德]/gu, (char) => {
+    return AOZORA_SEARCH_VARIANT_MAP.get(char) ?? char;
+  });
+}
+
 export function normalizeAozoraSearchText(text) {
   return collapseWhitespace(katakanaToHiragana(
-    String(text ?? '')
-      .normalize('NFKC')
-      .toLowerCase()
+    normalizeAozoraSearchVariants(
+      String(text ?? '')
+        .normalize('NFKC')
+        .toLowerCase()
+    )
   ));
 }
 
@@ -40,7 +66,15 @@ function buildCatalogSearchSource(record) {
   ].filter(Boolean).join(' ');
 }
 
-function buildSearchNeedles(query) {
+function buildWorkSearchSource(record) {
+  return [
+    record.title,
+    record.author,
+    ...(Array.isArray(record.sourceTitleLines) ? record.sourceTitleLines : [])
+  ].filter(Boolean).join(' ');
+}
+
+export function buildSearchNeedles(query) {
   const normalized = normalizeAozoraSearchText(query);
   const compact = compactAozoraSearchText(query);
   const tokens = normalized.split(' ').filter(Boolean);
@@ -56,17 +90,21 @@ function buildSearchNeedles(query) {
   };
 }
 
-function computeMatchScore(record, needles) {
-  const source = buildCatalogSearchSource(record);
+function computeRecordMatchScore(record, needles, options = {}) {
+  const source = options.sourceBuilder ? options.sourceBuilder(record) : buildCatalogSearchSource(record);
   const normalizedSource = normalizeAozoraSearchText(source);
   const compactSource = compactAozoraSearchText(source);
-  const compactTitle = compactAozoraSearchText([record.title, record.titleReading].filter(Boolean).join(' '));
-  const compactAuthor = compactAozoraSearchText([
+  const compactTitleValues = [
+    record.title,
+    record.titleReading,
+    ...(Array.isArray(record.sourceTitleLines) ? record.sourceTitleLines : [])
+  ].map((value) => compactAozoraSearchText(value)).filter(Boolean);
+  const compactAuthorValues = [
     record.author,
     record.authorReading,
     ...(Array.isArray(record.authors) ? record.authors : []),
     ...(Array.isArray(record.authorsReading) ? record.authorsReading : [])
-  ].filter(Boolean).join(' '));
+  ].map((value) => compactAozoraSearchText(value)).filter(Boolean);
 
   const normalizedMatched = needles.tokens.every((token) => normalizedSource.includes(token));
   const compactMatched = needles.compactTokens.every((token) => compactSource.includes(token));
@@ -76,20 +114,20 @@ function computeMatchScore(record, needles) {
 
   let score = 0;
 
-  if (needles.compact && compactTitle === needles.compact) {
-    score += 600;
-  } else if (needles.compact && compactTitle.startsWith(needles.compact)) {
+  if (needles.compact && compactTitleValues.some((value) => value === needles.compact)) {
+    score += 1000;
+  } else if (needles.compact && compactTitleValues.some((value) => value.startsWith(needles.compact))) {
+    score += 760;
+  } else if (needles.compact && compactTitleValues.some((value) => value.includes(needles.compact))) {
     score += 420;
-  } else if (needles.compact && compactTitle.includes(needles.compact)) {
-    score += 280;
   }
 
-  if (needles.compact && compactAuthor === needles.compact) {
-    score += 520;
-  } else if (needles.compact && compactAuthor.startsWith(needles.compact)) {
-    score += 360;
-  } else if (needles.compact && compactAuthor.includes(needles.compact)) {
-    score += 220;
+  if (needles.compact && compactAuthorValues.some((value) => value === needles.compact)) {
+    score += 940;
+  } else if (needles.compact && compactAuthorValues.some((value) => value.startsWith(needles.compact))) {
+    score += 620;
+  } else if (needles.compact && compactAuthorValues.some((value) => value.includes(needles.compact))) {
+    score += 320;
   }
 
   if (needles.normalized && normalizedSource.startsWith(needles.normalized)) {
@@ -100,7 +138,7 @@ function computeMatchScore(record, needles) {
   return score;
 }
 
-export function searchAozoraCatalog(records, query, options = {}) {
+function searchRecords(records, query, options = {}) {
   const needles = buildSearchNeedles(query);
   const limit = Number.isFinite(options.limit) ? options.limit : 0;
 
@@ -112,7 +150,7 @@ export function searchAozoraCatalog(records, query, options = {}) {
     .filter((record) => record.id !== 'catalog:meta')
     .map((record) => ({
       record,
-      score: computeMatchScore(record, needles)
+      score: computeRecordMatchScore(record, needles, options)
     }))
     .filter((entry) => entry.score >= 0)
     .sort((left, right) => {
@@ -138,4 +176,18 @@ export function searchAozoraCatalog(records, query, options = {}) {
   }
 
   return matched;
+}
+
+export function searchAozoraCatalog(records, query, options = {}) {
+  return searchRecords(records, query, {
+    ...options,
+    sourceBuilder: buildCatalogSearchSource
+  });
+}
+
+export function searchWorkRecords(records, query, options = {}) {
+  return searchRecords(records, query, {
+    ...options,
+    sourceBuilder: buildWorkSearchSource
+  });
 }

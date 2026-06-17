@@ -5,7 +5,7 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260617181233';
+} from './state.js?v=20260617184854';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
@@ -112,6 +112,7 @@ export function createAppData({
     state.aozoraCatalogRecords = [];
     state.aozoraCatalogResults = [];
     state.aozoraCatalogVisibleCount = searchResultsBatchSize;
+    state.searchScope = 'aozora';
     state.importSheetOpen = false;
   }
 

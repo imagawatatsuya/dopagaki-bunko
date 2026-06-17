@@ -219,6 +219,40 @@ select {
   outline-offset: 1px;
 }
 
+.search-scope-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 4px;
+  border: 1px solid rgba(107, 93, 80, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.6);
+}
+
+.search-scope-tab {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.search-scope-tab.is-active {
+  background: rgba(242, 216, 195, 0.72);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.search-scope-tab:focus-visible,
+.search-scope-tab:hover {
+  outline: none;
+  background: rgba(242, 216, 195, 0.5);
+}
+
 .info-panel {
   padding: 18px;
   background: var(--panel-soft);

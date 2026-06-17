@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260617181233';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260617184854';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,7 +6,7 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260617181233';
+} from './views.js?v=20260617184854';
 
 export function createSearchSettingsRenderers({
   app,
@@ -39,14 +39,19 @@ export function createSearchSettingsRenderers({
     const fetchedAt = state.aozoraCatalogMeta?.fetchedAt
       ? new Date(state.aozoraCatalogMeta.fetchedAt).toLocaleString('ja-JP')
       : '';
-    const catalogMetaHtml = fetchedAt
-      ? `<p class="settings-status settings-status-subtle">最終更新: ${escapeHtml(fetchedAt)} / ${escapeHtml(String(state.aozoraCatalogMeta?.recordCount ?? 0))}件</p>`
-      : `<p class="settings-status settings-status-subtle">${state.aozoraCatalogLoading ? '作品一覧を読み込んでいます。' : '作品一覧を準備しています。'}</p>`;
+    const isLibraryScope = state.searchScope === 'library';
+    const catalogMetaHtml = isLibraryScope
+      ? `<p class="settings-status settings-status-subtle">本棚 ${escapeHtml(String(state.works.length))}件</p>`
+      : (fetchedAt
+        ? `<p class="settings-status settings-status-subtle">最終更新: ${escapeHtml(fetchedAt)} / ${escapeHtml(String(state.aozoraCatalogMeta?.recordCount ?? 0))}件</p>`
+        : `<p class="settings-status settings-status-subtle">${state.aozoraCatalogLoading ? '作品一覧を読み込んでいます。' : '作品一覧を準備しています。'}</p>`);
     const emptyMessage = state.aozoraCatalogQuery
       ? '一致する作品が見つかりませんでした。'
-      : (state.aozoraCatalogRecords.length > 0
-        ? '作品名または著者名で検索してください。'
-        : (state.aozoraCatalogLoading ? '作品一覧を読み込んでいます。' : '作品一覧を準備しています。'));
+      : (isLibraryScope
+        ? (state.works.length > 0 ? '作品名または著者名で本棚を検索してください。' : '本棚に作品はまだありません。')
+        : (state.aozoraCatalogRecords.length > 0
+          ? '作品名または著者名で検索してください。'
+          : (state.aozoraCatalogLoading ? '作品一覧を読み込んでいます。' : '作品一覧を準備しています。')));
     const catalogResultsMarkup = aozoraSearchResultsMarkup(
       visibleResults.map((result) => ({
         ...result,
@@ -54,7 +59,11 @@ export function createSearchSettingsRenderers({
         author: escapeHtml(result.author),
         kanaType: escapeHtml(result.kanaType),
         workId: escapeHtml(result.workId),
-        cardUrl: escapeHtml(result.cardUrl)
+        href: escapeHtml(result.href ?? result.cardUrl ?? ''),
+        cardUrl: escapeHtml(result.cardUrl ?? ''),
+        resultType: escapeHtml(result.resultType ?? 'aozora'),
+        isImported: Boolean(result.isImported),
+        openInNewTab: Boolean(result.openInNewTab)
       })),
       {
         emptyMessage: escapeHtml(emptyMessage),
@@ -95,6 +104,7 @@ export function createSearchSettingsRenderers({
       body: searchBodyMarkup({
         importNoticeHtml,
         catalogQuery: escapeHtml(state.aozoraCatalogQuery),
+        searchScope: state.searchScope,
         catalogStatusHtml: state.aozoraCatalogStatus ? `<p class="settings-status">${escapeHtml(state.aozoraCatalogStatus)}</p>` : '',
         catalogMetaHtml,
         catalogResultsMarkup,

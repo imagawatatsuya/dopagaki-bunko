@@ -80,12 +80,14 @@ export function libraryBodyMarkup({ tabsHtml, activeTabLabel, count, worksHtml, 
 export function searchBodyMarkup({
   importNoticeHtml = '',
   catalogQuery = '',
+  searchScope = 'aozora',
   catalogStatusHtml = '',
   catalogMetaHtml = '',
   catalogResultsMarkup = '',
   importSheetMarkup = '',
   previewMarkup = ''
 }) {
+  const normalizedScope = searchScope === 'library' ? 'library' : 'aozora';
   return `
     <section class="panel-stack">
       ${importNoticeHtml}
@@ -103,8 +105,26 @@ export function searchBodyMarkup({
           >
           <div class="search-toolbar-actions">
             <button type="button" class="detail-action-button settings-button" data-search-action="search-aozora-catalog">検索</button>
-            <button type="button" class="detail-action-button settings-button" data-search-action="refresh-aozora-catalog">一覧を再読込</button>
+            ${normalizedScope === 'aozora'
+              ? '<button type="button" class="detail-action-button settings-button" data-search-action="refresh-aozora-catalog">一覧を再読込</button>'
+              : ''}
           </div>
+        </div>
+        <div class="search-scope-tabs" role="tablist" aria-label="検索対象">
+          <button
+            type="button"
+            class="search-scope-tab ${normalizedScope === 'aozora' ? 'is-active' : ''}"
+            role="tab"
+            aria-selected="${normalizedScope === 'aozora' ? 'true' : 'false'}"
+            data-search-action="set-search-scope-aozora"
+          >青空文庫</button>
+          <button
+            type="button"
+            class="search-scope-tab ${normalizedScope === 'library' ? 'is-active' : ''}"
+            role="tab"
+            aria-selected="${normalizedScope === 'library' ? 'true' : 'false'}"
+            data-search-action="set-search-scope-library"
+          >本棚</button>
         </div>
         ${catalogMetaHtml}
         ${catalogStatusHtml}
@@ -158,14 +178,26 @@ export function aozoraSearchResultsMarkup(results, options = {}) {
   return `
     <div class="preview-list aozora-results-list" aria-label="青空文庫検索結果">
       ${resultSummaryHtml}
-      ${results.length > 0 ? results.map((result) => `
+      ${results.length > 0 ? results.map((result) => {
+        const href = result.href || result.cardUrl || '#/';
+        const targetAttrs = result.openInNewTab ? ' target="_blank" rel="noreferrer"' : '';
+        const typeLabel = result.resultType === 'library' ? '本棚' : '';
+        const statusParts = [
+          result.author,
+          result.kanaType,
+          typeLabel,
+          result.isImported ? '本棚にあります' : '',
+          result.copyrightWarning ? '著作権注意' : ''
+        ].filter(Boolean);
+        return `
         <article class="fragment-card aozora-result-card">
-          <a class="aozora-result-link" href="${result.cardUrl}" target="_blank" rel="noreferrer">
+          <a class="aozora-result-link" href="${href}"${targetAttrs}>
             <h3 class="fragment-work-title aozora-result-title">${result.title}</h3>
-            <p class="aozora-result-summary">${result.author}${result.kanaType ? `　${result.kanaType}` : ''}${result.copyrightWarning ? '　著作権注意' : ''}</p>
+            <p class="aozora-result-summary">${statusParts.join('　')}</p>
           </a>
         </article>
-      `).join('') : `
+      `;
+      }).join('') : `
         <article class="info-panel info-panel-muted">
           <p class="section-text">${emptyMessage}</p>
         </article>

@@ -7,6 +7,7 @@ import { renderAozoraBodyWithHeadings, repairAozoraLayoutNotesInHtml } from '../
 import { derivePreviewFromText } from '../src/import-preview.js';
 import { extractAozoraTxtFromZip } from '../src/aozora-zip-importer.js';
 import { buildAozoraCatalogPayload, normalizeAozoraCatalogPayload } from '../src/aozora-catalog.js';
+import { searchAozoraCatalog, searchWorkRecords } from '../src/aozora-search.js';
 import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
 import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
@@ -241,6 +242,7 @@ test('initial app state starts with empty collections and search batch size', ()
   assert.deepEqual(state.works, []);
   assert.equal(state.likes instanceof Set, true);
   assert.equal(state.aozoraCatalogVisibleCount, 25);
+  assert.equal(state.searchScope, 'aozora');
   assert.equal(state.workLoadMode, 'auto');
 });
 
@@ -267,6 +269,97 @@ test('compact Aozora catalog payload expands to searchable records', () => {
   assert.equal(normalized.records[0].title, '作品名');
   assert.equal(normalized.records[0].copyrightWarning, true);
   assert.equal(normalized.meta.recordCount, 1);
+});
+
+test('Aozora catalog search ranks exact and prefix title matches first', () => {
+  const records = [
+    {
+      id: '1',
+      title: '女生徒余話',
+      titleReading: 'じょせいとよわ',
+      author: '太宰 治',
+      authorReading: 'だざい おさむ'
+    },
+    {
+      id: '2',
+      title: '女生徒',
+      titleReading: 'じょせいと',
+      author: '太宰 治',
+      authorReading: 'だざい おさむ'
+    },
+    {
+      id: '3',
+      title: '走れメロス',
+      titleReading: 'はしれめろす',
+      author: '太宰 治',
+      authorReading: 'だざい おさむ'
+    }
+  ];
+
+  const results = searchAozoraCatalog(records, '女生徒');
+  assert.equal(results[0].id, '2');
+  assert.equal(results[1].id, '1');
+});
+
+test('Aozora catalog search accepts common author name variants', () => {
+  const records = [
+    { id: 'ogai', title: '舞姫', author: '森 鴎外' },
+    { id: 'akutagawa', title: '羅生門', author: '芥川 竜之介' },
+    { id: 'miyazawa', title: '銀河鉄道の夜', author: '宮沢 賢治' },
+    { id: 'kunikida', title: '武蔵野', author: '国木田 独歩' },
+    { id: 'saito', title: '赤光', author: '斎藤 茂吉' },
+    { id: 'yano', title: '小説神髄', author: '三遊亭 円朝' },
+    { id: 'yosano', title: 'みだれ髪', author: '与謝野 晶子' },
+    { id: 'yanagita', title: '遠野物語', author: '柳田 国男' },
+    { id: 'takahama', title: '俳句とはどんなものか', author: '高浜 虚子' }
+  ];
+
+  assert.equal(searchAozoraCatalog(records, '森鷗外')[0].id, 'ogai');
+  assert.equal(searchAozoraCatalog(records, '芥川龍之介')[0].id, 'akutagawa');
+  assert.equal(searchAozoraCatalog(records, '宮澤賢治')[0].id, 'miyazawa');
+  assert.equal(searchAozoraCatalog(records, '國木田獨歩')[0].id, 'kunikida');
+  assert.equal(searchAozoraCatalog(records, '齋藤茂吉')[0].id, 'saito');
+  assert.equal(searchAozoraCatalog(records, '三遊亭圓朝')[0].id, 'yano');
+  assert.equal(searchAozoraCatalog(records, '與謝野晶子')[0].id, 'yosano');
+  assert.equal(searchAozoraCatalog(records, '柳田國男')[0].id, 'yanagita');
+  assert.equal(searchAozoraCatalog(records, '高濱虚子')[0].id, 'takahama');
+});
+
+test('Aozora catalog search ranks exact author matches above title prefix matches', () => {
+  const records = [
+    { id: 'essay', title: '宮沢賢治の詩', author: '中原 中也' },
+    { id: 'author-work', title: '銀河鉄道の夜', author: '宮沢 賢治', authorReading: 'みやざわ けんじ' }
+  ];
+
+  assert.equal(searchAozoraCatalog(records, '宮澤賢治')[0].id, 'author-work');
+});
+
+test('local work search uses titles, authors, and source title lines', () => {
+  const works = [
+    {
+      id: 'work-1',
+      title: '保存済み作品',
+      author: '著者A',
+      sourceTitleLines: ['底本タイトル']
+    },
+    {
+      id: 'work-2',
+      title: '別作品',
+      author: '探せる著者',
+      sourceTitleLines: []
+    }
+  ];
+
+  assert.equal(searchWorkRecords(works, '底本')[0].id, 'work-1');
+  assert.equal(searchWorkRecords(works, '探せる著者')[0].id, 'work-2');
+});
+
+test('local work search shares Aozora author variant normalization', () => {
+  const works = [
+    { id: 'work-ogai', title: '保存済み舞姫', author: '森 鴎外', sourceTitleLines: [] }
+  ];
+
+  assert.equal(searchWorkRecords(works, '森鷗外')[0].id, 'work-ogai');
 });
 
 test('return link labels match current route semantics', () => {

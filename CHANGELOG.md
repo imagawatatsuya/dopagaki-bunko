@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added search-only normalization for common Aozora author-name variants such as `森鷗外`, `芥川龍之介`, `宮澤賢治`, and `國木田獨歩`, without changing stored or displayed names.
+- Upgraded the add-screen search with a quiet `青空文庫 / 本棚` scope switch, local library work results, imported-work labels on matching Aozora catalog cards, and clearer title/author match ranking.
 - Reduced the bundled Aozora catalog transfer size by replacing the verbose 12 MB JSON with a compact gzip catalog loaded through `DecompressionStream`.
 - Extracted `src/app-config.js`, `src/app-state.js`, `src/app-router.js`, and `src/app-runtime.js`, leaving `src/main.js` as a thin entrypoint while keeping the same hash-routing, startup, and GitHub Pages behavior.
 - Split `src/screen-renderers.js` into shared renderer helpers plus focused screen modules for home/detail, library/collections, work, and search/settings, keeping the existing UI flows while making screen ownership explicit.
