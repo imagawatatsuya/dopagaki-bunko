@@ -302,6 +302,7 @@ export function workBodyMarkup({
   shownTextCount,
   bookmarkHtml,
   markerHtml,
+  outlineHtml = '',
   readerScaleControlsHtml,
   fragmentsHtml,
   moreLinkHtml,
@@ -318,6 +319,7 @@ export function workBodyMarkup({
             <p class="settings-status settings-status-subtle">表示中: ${shownTextCount}断片</p>
             ${bookmarkHtml}
             ${markerHtml}
+            ${outlineHtml}
           </div>
           ${readerScaleControlsHtml ? `<div class="work-summary-reader-scale">${readerScaleControlsHtml}</div>` : ''}
         </div>

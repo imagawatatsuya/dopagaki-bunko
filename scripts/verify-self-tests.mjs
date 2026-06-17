@@ -9,6 +9,7 @@ import { extractAozoraTxtFromZip } from '../src/aozora-zip-importer.js';
 import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
 import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
+import { buildWorkOutlineHash } from '../src/router.js';
 import { canonicalizeBookmarkRecords, sameBookmarkRecords } from '../src/state.js';
 
 const tests = [];
@@ -144,6 +145,22 @@ test('preview derivation keeps outline fragment indices and readable metadata', 
   assert.equal(preview.textFragmentCount > 0, true);
   assert.equal(preview.outline.length, 1);
   assert.equal(preview.outline[0].fragmentIndex, 1);
+});
+
+test('outline jump helper reuses work visible/focus routing', () => {
+  const href = buildWorkOutlineHash('work-1', {
+    fragmentId: 'work-1-fragment-0007',
+    fragmentIndex: 7
+  }, 5);
+  assert.equal(href, '#/work/work-1?visible=7&focus=work-1-fragment-0007');
+
+  const earlyHref = buildWorkOutlineHash('work-1', {
+    fragmentId: 'work-1-fragment-0002',
+    fragmentIndex: 2
+  }, 5);
+  assert.equal(earlyHref, '#/work/work-1?visible=5&focus=work-1-fragment-0002');
+
+  assert.equal(buildWorkOutlineHash('work-1', { fragmentIndex: 3 }, 5), '');
 });
 
 test('zip importer extracts a single stored txt file', async () => {

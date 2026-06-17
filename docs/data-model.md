@@ -12,9 +12,21 @@
   sourceUrl,
   sourceFileName,
   importedAt,
-  fragmentCount
+  fragmentCount,
+  outline: [
+    {
+      id,
+      title,
+      level,
+      indentStep,
+      fragmentIndex,
+      fragmentId
+    }
+  ]
 }
 ```
+
+`outline` は青空文庫の見出し注記から保存した章構造で、作品ページの目次ジャンプに使う。
 
 ## Fragment
 

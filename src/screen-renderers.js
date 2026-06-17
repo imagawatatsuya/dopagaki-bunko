@@ -11,14 +11,15 @@ import {
   getLikeRecordsForWork,
   sliceWorkFragmentsForVisibleCount,
   savedCollectionLabel
-} from './state.js?v=20260617143238';
+} from './state.js?v=20260617144728';
 import {
   buildCollectionHash,
   buildFragmentHash,
   buildLibraryHash,
+  buildWorkOutlineHash,
   buildWorkHash,
   parseHashRoute
-} from './router.js?v=20260617143238';
+} from './router.js?v=20260617144728';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -33,7 +34,7 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260617143238';
+} from './ui-bindings.js?v=20260617144728';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -53,8 +54,8 @@ import {
   timelineCardMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260617143238';
-import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617143238';
+} from './views.js?v=20260617144728';
+import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617144728';
 
 const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
 const LIBRARY_TAB_LABELS = {
@@ -112,6 +113,16 @@ function returnLinkLabel(returnTo) {
   }
 
   return '一覧へ戻る';
+}
+
+function outlineLevelClassName(level) {
+  if (level === 1) {
+    return 'is-level-1';
+  }
+  if (level === 2) {
+    return 'is-level-2';
+  }
+  return 'is-level-3';
 }
 
 export function createScreenRenderers({
@@ -586,6 +597,38 @@ export function createScreenRenderers({
     const markerHtml = likeRecords.length > 0
       ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildCollectionHash('likes', { workId })}">ふせん ${likeRecords.length}枚を開く</a></p>`
       : '';
+    const outlineEntries = Array.isArray(work.outline)
+      ? work.outline
+        .map((entry) => {
+          const title = String(entry?.title ?? '').trim();
+          const href = buildWorkOutlineHash(workId, entry, workPageBatchSize);
+          const level = Number(entry?.level);
+          if (!title || !href) {
+            return null;
+          }
+
+          return {
+            href,
+            title,
+            level: Number.isFinite(level) ? Math.max(1, Math.min(3, level)) : 3
+          };
+        })
+        .filter(Boolean)
+      : [];
+    const outlineHtml = outlineEntries.length > 0
+      ? `
+        <section class="work-outline" aria-label="目次">
+          <p class="settings-status settings-status-subtle work-outline-label">目次 ${outlineEntries.length}件</p>
+          <ol class="work-outline-list">
+            ${outlineEntries.map((entry) => `
+              <li class="work-outline-item">
+                <a class="work-outline-link ${outlineLevelClassName(entry.level)}" href="${entry.href}">${escapeHtml(entry.title)}</a>
+              </li>
+            `).join('')}
+          </ol>
+        </section>
+      `
+      : '';
     const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break'
       ? breakCardMarkup()
       : renderWorkFragmentCard(fragment, returnToHash)).join('');
@@ -617,6 +660,7 @@ export function createScreenRenderers({
         shownTextCount,
         bookmarkHtml,
         markerHtml,
+        outlineHtml,
         readerScaleControlsHtml: renderReaderScaleControls(),
         fragmentsHtml,
         moreLinkHtml,
