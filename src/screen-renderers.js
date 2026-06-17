@@ -11,7 +11,7 @@ import {
   getLikeRecordsForWork,
   sliceWorkFragmentsForVisibleCount,
   savedCollectionLabel
-} from './state.js?v=20260617152443';
+} from './state.js?v=20260617153623';
 import {
   buildCollectionHash,
   buildFragmentHash,
@@ -20,7 +20,7 @@ import {
   buildWorkOutlineHash,
   buildWorkHash,
   parseHashRoute
-} from './router.js?v=20260617152443';
+} from './router.js?v=20260617153623';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -35,7 +35,7 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260617152443';
+} from './ui-bindings.js?v=20260617153623';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -55,8 +55,8 @@ import {
   timelineCardMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260617152443';
-import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617152443';
+} from './views.js?v=20260617153623';
+import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260617153623';
 
 const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
 const LIBRARY_TAB_LABELS = {

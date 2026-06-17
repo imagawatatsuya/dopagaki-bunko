@@ -216,7 +216,10 @@ export function focusFragmentCard(root, fragmentId) {
     return;
   }
 
-  element.scrollIntoView({ block: 'start', behavior: 'auto' });
+  const headerBottom = root.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
+  const elementTop = window.scrollY + element.getBoundingClientRect().top;
+  const targetTop = Math.max(0, elementTop - headerBottom - 8);
+  window.scrollTo({ top: targetTop, left: 0, behavior: 'auto' });
   element.classList.add('is-focused-fragment');
   setTimeout(() => {
     element.classList.remove('is-focused-fragment');

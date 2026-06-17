@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed all focused fragment jumps to account for the sticky page header, so work TL returns, outline jumps, bookmark/fusen jumps, terminal jumps, and fragment-number jumps land with the target card visible below the header.
 - Fixed work-page to fragment-page navigation so the fragment screen resets to the page top before rendering, keeping the body text and inline memo/return tools immediately visible instead of reopening mid-scroll.
 - Moved fragment-detail memo editing into a small inline surface directly beneath the body text, paired it with a compact `TLのこの位置へ戻る` link, and hid the fragment-detail top font-size controls to keep the page focused on copy/memo/reopen work.
 - Added a `終端` entry at the end of the work-page `目次`, letting readers jump straight to the page-bottom `原文終端 / 読了` marker without manually scrolling through the full fragment list.
