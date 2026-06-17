@@ -63,8 +63,6 @@ export function savedCollectionLabel(kind) {
       return 'しおり';
     case 'likes':
       return 'ふせん';
-    case 'quotes':
-      return '引用保存';
     default:
       return '保存';
   }
@@ -215,14 +213,12 @@ export function buildHomeTimelineEvents({ works, fragments, bookmarkRecords, lik
   });
 }
 
-export function buildSavedItems({ kind, bookmarkRecords, likeRecords, quoteRecords, fragments, findWorkById }) {
+export function buildSavedItems({ kind, bookmarkRecords, likeRecords, fragments, findWorkById }) {
   const records = kind === 'bookmarks'
     ? bookmarkRecords
     : kind === 'likes'
       ? likeRecords
-      : kind === 'quotes'
-        ? quoteRecords
-        : [];
+      : [];
 
   return records.map((record) => {
     const fragment = getFragmentById(fragments, record.fragmentId);

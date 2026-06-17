@@ -1,6 +1,6 @@
 import { STORE_NAMES, clearStore, exportStores, putRecords } from './db.js?v=20260617091928';
 
-function createExportPayload(data) {
+export function createExportPayload(data) {
   return {
     exportedAt: new Date().toISOString(),
     version: 1,
@@ -8,7 +8,7 @@ function createExportPayload(data) {
   };
 }
 
-function buildDownloadName(timestamp) {
+export function buildDownloadName(timestamp) {
   const compact = timestamp.replaceAll(':', '-').replaceAll('.', '-');
   return `dopagaki-bunko-export-${compact}.json`;
 }
@@ -40,7 +40,7 @@ export async function downloadExportJson() {
   };
 }
 
-function parseImportJson(jsonText) {
+export function parseImportJson(jsonText) {
   const parsed = JSON.parse(jsonText);
   const sourceData = parsed && typeof parsed === 'object' && parsed.data ? parsed.data : parsed;
 

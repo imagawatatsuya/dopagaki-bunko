@@ -17,7 +17,6 @@ import {
 import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617091928';
 import { listLikes, removeLike, saveLike } from './likes.js?v=20260617091928';
 import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617091928';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617091928';
 import {
   createBookmarkActions,
   createCollectionActions,
@@ -92,10 +91,8 @@ const state = {
   fragments: [],
   likes: new Set(),
   bookmarks: new Set(),
-  quotes: new Set(),
   likeRecords: [],
   bookmarkRecords: [],
-  quoteRecords: [],
   readingStateRecords: [],
   exportStatus: '',
   importStatus: '',
@@ -781,7 +778,6 @@ function buildImportSummary(stores) {
     `fragments ${stores.fragments.length}件`,
     `likes ${stores.likes.length}件`,
     `bookmarks ${stores.bookmarks.length}件`,
-    `quotes ${stores.quotes.length}件`,
     `readingStates ${stores.readingStates.length}件`,
     `settings ${stores.settings.length}件`
   ].join(' / ');
@@ -802,7 +798,6 @@ async function deleteWorkCascade(workId) {
   for (const fragmentId of fragmentIds) {
     await deleteRecord('fragments', fragmentId);
     await deleteRecord('likes', fragmentId);
-    await deleteRecord('quotes', fragmentId);
   }
 }
 
@@ -916,7 +911,6 @@ function renderCollectionPage(kind, options = {}) {
     kind,
     bookmarkRecords: state.bookmarkRecords,
     likeRecords: state.likeRecords,
-    quoteRecords: state.quoteRecords,
     fragments: state.fragments,
     findWorkById
   });
@@ -1214,11 +1208,9 @@ async function loadStateFromDb() {
     }
   }
   state.bookmarkRecords = canonicalBookmarks;
-  state.quoteRecords = sortSavedRecords(await listQuotes());
   state.readingStateRecords = sortUpdatedRecords(await getAllRecords('readingStates'));
   state.likes = new Set(state.likeRecords.map((item) => item.fragmentId));
   state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
-  state.quotes = new Set(state.quoteRecords.map((item) => item.fragmentId));
   const workLoadModeSetting = await getRecord('settings', WORK_LOAD_MODE_SETTING_ID);
   state.workLoadMode = normalizeWorkLoadMode(workLoadModeSetting?.value);
 }
@@ -1237,11 +1229,8 @@ const { toggleBookmark } = createBookmarkActions({
 const { handleDetailAction, confirmLikeRemovalIfNeeded } = createDetailActions({
   state,
   getFragmentById,
-  findWorkById,
   removeLike,
   saveLike,
-  removeQuote,
-  saveQuote,
   toggleBookmark,
   loadStateFromDb,
   route
@@ -1253,7 +1242,6 @@ const { handleCollectionAction } = createCollectionActions({
   renderCollectionPage,
   removeBookmark,
   removeLike,
-  removeQuote,
   saveLike,
   confirmLikeRemovalIfNeeded
 });

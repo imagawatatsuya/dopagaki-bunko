@@ -13,6 +13,7 @@ if (-not $SkipStamp) {
 }
 
 if (-not $SkipVerify) {
+  & (Join-Path $PSScriptRoot 'verify-self-tests.ps1')
   & (Join-Path $PSScriptRoot 'verify-pages.ps1')
 }
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added a local Aozora catalog refresh workflow with `scripts/update-aozora-catalog.mjs` and PowerShell wrappers, including current-metadata display, rebuild diff summary, and explicit docs for updating `data/aozora-catalog.json` from a locally saved official ZIP.
+- Rewrote `CODEX_TASKS.md` from stale MVP build steps into a current-state maintenance queue, so future Codex runs start from the existing Pages app, current stores, manual ZIP import flow, and present verification gates instead of regressing toward sample-seeded quote-era tasks.
+- Added dependency-free self-contained JS tests under `scripts/` for ruby, emphasis, gaiji, headings, ZIP extraction, JSON import/export parsing, and bookmark canonicalization, and wired them into `publish-pages.ps1`.
+- Removed the legacy internal `quotes` store and its action wiring, bumped the IndexedDB schema to drop old quote records on upgrade, and aligned import/export plus Codex-facing docs around the current bookmark/like/memo model.
 - Added a per-work `ふせん` entry link on work pages plus quiet `ふせん n枚` counts on library cards, so like-marked fragments can be revisited as tabs within each work instead of only through a flat global list.
 - Moved the work-page reader-size controls into a quiet right-aligned utility position beside the work summary, keeping bookmark and per-work tab links primary in the information panel.
 - Renamed visible `いいね` UI copy to `ふせん`, including saved-list labels, detail actions, timeline event labels, and collection return links, while keeping the underlying `likes` data store unchanged.

@@ -400,11 +400,8 @@ export function createSearchActions({
 export function createDetailActions({
   state,
   getFragmentById,
-  findWorkById,
   removeLike,
   saveLike,
-  removeQuote,
-  saveQuote,
   toggleBookmark,
   loadStateFromDb,
   route
@@ -424,7 +421,6 @@ export function createDetailActions({
       return;
     }
 
-    const work = findWorkById(fragment.workId);
     const currentLikeRecord = state.likeRecords.find((item) => item.fragmentId === fragmentId) ?? null;
 
     if (action === 'like') {
@@ -465,14 +461,6 @@ export function createDetailActions({
         note
       });
       state.likes.add(fragmentId);
-    } else if (action === 'quote') {
-      if (state.quotes.has(fragmentId)) {
-        await removeQuote(fragmentId);
-        state.quotes.delete(fragmentId);
-      } else {
-        await saveQuote(fragment, work);
-        state.quotes.add(fragmentId);
-      }
     }
 
     await loadStateFromDb();
@@ -488,7 +476,6 @@ export function createCollectionActions({
   renderCollectionPage,
   removeBookmark,
   removeLike,
-  removeQuote,
   saveLike,
   confirmLikeRemovalIfNeeded
 }) {
@@ -524,8 +511,6 @@ export function createCollectionActions({
         return;
       }
       await removeLike(recordId);
-    } else if (kind === 'quotes') {
-      await removeQuote(recordId);
     } else {
       return;
     }

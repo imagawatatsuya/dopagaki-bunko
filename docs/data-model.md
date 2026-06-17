@@ -57,7 +57,8 @@
 ```js
 {
   fragmentId,
-  createdAt
+  savedAt,
+  note
 }
 ```
 
@@ -73,17 +74,7 @@
 }
 ```
 
-## Quote
-
-```js
-{
-  id,
-  fragmentId,
-  workId,
-  text,
-  createdAt
-}
-```
+`bookmarks` は作品ごとに常に1件だけ保持し、再開位置として使う。
 
 ## ReadingState
 
