@@ -114,6 +114,14 @@ function computeRecordMatchScore(record, needles, options = {}) {
 
   let score = 0;
 
+  if (needles.compact && compactAuthorValues.some((value) => value === needles.compact)) {
+    score += 1200;
+  } else if (needles.compact && compactAuthorValues.some((value) => value.startsWith(needles.compact))) {
+    score += 620;
+  } else if (needles.compact && compactAuthorValues.some((value) => value.includes(needles.compact))) {
+    score += 320;
+  }
+
   if (needles.compact && compactTitleValues.some((value) => value === needles.compact)) {
     score += 1000;
   } else if (needles.compact && compactTitleValues.some((value) => value.startsWith(needles.compact))) {
@@ -122,20 +130,27 @@ function computeRecordMatchScore(record, needles, options = {}) {
     score += 420;
   }
 
-  if (needles.compact && compactAuthorValues.some((value) => value === needles.compact)) {
-    score += 940;
-  } else if (needles.compact && compactAuthorValues.some((value) => value.startsWith(needles.compact))) {
-    score += 620;
-  } else if (needles.compact && compactAuthorValues.some((value) => value.includes(needles.compact))) {
-    score += 320;
-  }
-
   if (needles.normalized && normalizedSource.startsWith(needles.normalized)) {
     score += 140;
   }
 
   score += needles.compactTokens.length * 10;
   return score;
+}
+
+function isExactAuthorMatch(record, needles) {
+  if (!needles.compact) {
+    return false;
+  }
+
+  const compactAuthorValues = [
+    record.author,
+    record.authorReading,
+    ...(Array.isArray(record.authors) ? record.authors : []),
+    ...(Array.isArray(record.authorsReading) ? record.authorsReading : [])
+  ].map((value) => compactAozoraSearchText(value)).filter(Boolean);
+
+  return compactAuthorValues.some((value) => value === needles.compact);
 }
 
 function searchRecords(records, query, options = {}) {
@@ -150,10 +165,18 @@ function searchRecords(records, query, options = {}) {
     .filter((record) => record.id !== 'catalog:meta')
     .map((record) => ({
       record,
-      score: computeRecordMatchScore(record, needles, options)
+      score: computeRecordMatchScore(record, needles, options),
+      exactAuthorMatch: isExactAuthorMatch(record, needles)
     }))
     .filter((entry) => entry.score >= 0)
+  ;
+
+  const ranked = matched
     .sort((left, right) => {
+      if (left.exactAuthorMatch !== right.exactAuthorMatch) {
+        return left.exactAuthorMatch ? -1 : 1;
+      }
+
       const scoreCompare = right.score - left.score;
       if (scoreCompare !== 0) {
         return scoreCompare;
@@ -172,10 +195,10 @@ function searchRecords(records, query, options = {}) {
   ;
 
   if (limit > 0) {
-    return matched.slice(0, limit);
+    return ranked.slice(0, limit);
   }
 
-  return matched;
+  return ranked;
 }
 
 export function searchAozoraCatalog(records, query, options = {}) {

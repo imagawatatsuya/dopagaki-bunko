@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617184854';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617185727';
 
 export function createInitialAppState() {
   return {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed Aozora and library search so an exact author-name query such as `太宰治` ranks that author's works first while keeping title-only matches visible.
 - Added search-only normalization for common Aozora author-name variants such as `森鷗外`, `芥川龍之介`, `宮澤賢治`, and `國木田獨歩`, without changing stored or displayed names.
 - Upgraded the add-screen search with a quiet `青空文庫 / 本棚` scope switch, local library work results, imported-work labels on matching Aozora catalog cards, and clearer title/author match ranking.
 - Reduced the bundled Aozora catalog transfer size by replacing the verbose 12 MB JSON with a compact gzip catalog loaded through `DecompressionStream`.

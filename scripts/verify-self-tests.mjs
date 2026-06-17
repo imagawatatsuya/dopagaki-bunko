@@ -334,6 +334,19 @@ test('Aozora catalog search ranks exact author matches above title prefix matche
   assert.equal(searchAozoraCatalog(records, '宮澤賢治')[0].id, 'author-work');
 });
 
+test('Aozora catalog search keeps title hits after exact author matches', () => {
+  const records = [
+    { id: 'title-hit', title: '太宰治論', author: '坂口 安吾' },
+    { id: 'author-hit', title: '走れメロス', author: '太宰 治', authorReading: 'だざい おさむ' },
+    { id: 'author-hit-2', title: '女生徒', author: '太宰 治', authorReading: 'だざい おさむ' }
+  ];
+
+  assert.deepEqual(
+    searchAozoraCatalog(records, '太宰治').map((record) => record.id),
+    ['author-hit-2', 'author-hit', 'title-hit']
+  );
+});
+
 test('local work search uses titles, authors, and source title lines', () => {
   const works = [
     {
@@ -360,6 +373,15 @@ test('local work search shares Aozora author variant normalization', () => {
   ];
 
   assert.equal(searchWorkRecords(works, '森鷗外')[0].id, 'work-ogai');
+});
+
+test('local work search keeps title hits after exact author matches', () => {
+  const works = [
+    { id: 'title-hit', title: '太宰治覚書', author: '坂口 安吾', sourceTitleLines: [] },
+    { id: 'author-hit', title: '斜陽', author: '太宰 治', sourceTitleLines: [] }
+  ];
+
+  assert.deepEqual(searchWorkRecords(works, '太宰治').map((record) => record.id), ['author-hit', 'title-hit']);
 });
 
 test('return link labels match current route semantics', () => {
