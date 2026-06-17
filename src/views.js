@@ -424,6 +424,7 @@ export function savedItemCardMarkup({
   fragmentIndexHtml,
   openFragmentHtml,
   openTimelineHtml,
+  noteButtonHtml,
   removeButtonHtml
 }) {
   return `
@@ -437,6 +438,7 @@ export function savedItemCardMarkup({
       <div class="settings-button-grid">
         ${openFragmentHtml}
         ${openTimelineHtml}
+        ${noteButtonHtml}
         ${removeButtonHtml}
       </div>
     </article>

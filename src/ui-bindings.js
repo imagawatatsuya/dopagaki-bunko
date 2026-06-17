@@ -14,10 +14,10 @@ export function bindDetailActions(root, onAction) {
   });
 }
 
-export function bindCollectionActions(root, onRemove) {
-  root.querySelectorAll('[data-collection-action="remove"]').forEach((button) => {
+export function bindCollectionActions(root, onAction) {
+  root.querySelectorAll('[data-collection-action]').forEach((button) => {
     button.addEventListener('click', async () => {
-      await onRemove(button.dataset.collectionKind, button.dataset.recordId);
+      await onAction(button.dataset.collectionKind, button.dataset.recordId, button.dataset.collectionAction);
     });
   });
 }

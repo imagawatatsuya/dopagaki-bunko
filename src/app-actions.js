@@ -409,6 +409,15 @@ export function createDetailActions({
   loadStateFromDb,
   route
 }) {
+  function confirmLikeRemovalIfNeeded(record) {
+    const note = typeof record?.note === 'string' ? record.note.trim() : '';
+    if (!note) {
+      return true;
+    }
+
+    return globalThis.confirm('このふせんを外すとメモも消えます。外しますか。');
+  }
+
   async function handleDetailAction(action, fragmentId) {
     const fragment = getFragmentById(state.fragments, fragmentId);
     if (!fragment) {
@@ -420,6 +429,9 @@ export function createDetailActions({
 
     if (action === 'like') {
       if (state.likes.has(fragmentId)) {
+        if (!confirmLikeRemovalIfNeeded(currentLikeRecord)) {
+          return;
+        }
         await removeLike(fragmentId);
         state.likes.delete(fragmentId);
       } else {
@@ -467,24 +479,50 @@ export function createDetailActions({
     route();
   }
 
-  return { handleDetailAction };
+  return { handleDetailAction, confirmLikeRemovalIfNeeded };
 }
 
 export function createCollectionActions({
+  state,
   loadStateFromDb,
   renderCollectionPage,
   removeBookmark,
   removeLike,
-  removeQuote
+  removeQuote,
+  saveLike,
+  confirmLikeRemovalIfNeeded
 }) {
-  async function handleCollectionAction(kind, recordId, options = {}) {
+  async function handleCollectionAction(kind, recordId, action = 'remove', options = {}) {
     if (!recordId) {
+      return;
+    }
+
+    if (kind === 'likes' && action === 'edit-note') {
+      const currentLikeRecord = state.likeRecords.find((item) => item.id === recordId || item.fragmentId === recordId) ?? null;
+      const answer = globalThis.prompt(
+        'ふせんメモを編集します。空欄でメモだけ外せます。',
+        currentLikeRecord?.note ?? ''
+      );
+      if (answer === null) {
+        return;
+      }
+
+      await saveLike(recordId, {
+        savedAt: currentLikeRecord?.savedAt,
+        note: String(answer).trim()
+      });
+      await loadStateFromDb();
+      renderCollectionPage(kind, options);
       return;
     }
 
     if (kind === 'bookmarks') {
       await removeBookmark(recordId);
     } else if (kind === 'likes') {
+      const currentLikeRecord = state.likeRecords.find((item) => item.id === recordId || item.fragmentId === recordId) ?? null;
+      if (!confirmLikeRemovalIfNeeded(currentLikeRecord)) {
+        return;
+      }
       await removeLike(recordId);
     } else if (kind === 'quotes') {
       await removeQuote(recordId);

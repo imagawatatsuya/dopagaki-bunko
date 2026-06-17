@@ -13,30 +13,30 @@ import {
   savedCollectionLabel,
   sortSavedRecords,
   sortUpdatedRecords
-} from './state.js?v=20260617090734';
-import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617090734';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260617090734';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617090734';
-import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617090734';
+} from './state.js?v=20260617091928';
+import { ALL_STORE_NAMES, STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260617091928';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260617091928';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260617091928';
+import { listQuotes, removeQuote, saveQuote } from './quotes.js?v=20260617091928';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260617090734';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617090734';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260617090734';
-import { derivePreviewFromText } from './import-preview.js?v=20260617090734';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617090734';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617090734';
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617090734';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617090734';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617090734';
-import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617090734';
-import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617090734';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617090734';
-import { searchAozoraCatalog } from './aozora-search.js?v=20260617090734';
+} from './app-actions.js?v=20260617091928';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260617091928';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260617091928';
+import { derivePreviewFromText } from './import-preview.js?v=20260617091928';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260617091928';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260617091928';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260617091928';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260617091928';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260617091928';
+import { estimateFragmentOverlayRisk, fragmentText } from './fragmenter.js?v=20260617091928';
+import { buildCollectionHash, buildFragmentHash, buildHomeHash, buildLibraryHash, buildWorkHash, parseHashRoute } from './router.js?v=20260617091928';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260617091928';
+import { searchAozoraCatalog } from './aozora-search.js?v=20260617091928';
 import {
   bindCollectionActions,
   bindDetailActions,
@@ -47,7 +47,7 @@ import {
   bindWorkHeaderActions,
   bindWorkStateActions,
   bindWorkOverlayActions
-} from './ui-bindings.js?v=20260617090734';
+} from './ui-bindings.js?v=20260617091928';
 import {
   aozoraSearchResultsMarkup,
   breakCardMarkup,
@@ -69,7 +69,7 @@ import {
   workEndingCardMarkup,
   workFragmentCardMarkup,
   workBodyMarkup
-} from './views.js?v=20260617090734';
+} from './views.js?v=20260617091928';
 
 const app = document.querySelector('#app');
 const WORK_PAGE_BATCH_SIZE = 24;
@@ -654,6 +654,9 @@ function renderSavedItemCard(kind, item, options = {}) {
     fragmentIndexHtml: item.fragmentIndex ? `<p class="fragment-index-label">断片 ${item.fragmentIndex}</p>` : '',
     openFragmentHtml: item.fragment ? `<a class="detail-action-button detail-action-link" href="${fragmentLink}">断片を開く</a>` : '<span class="detail-action-button is-disabled" aria-disabled="true">断片が見つかりません</span>',
     openTimelineHtml: item.fragment ? `<a class="detail-action-button detail-action-link" href="${timelineLink}">作品TLで開く</a>` : '',
+    noteButtonHtml: kind === 'likes'
+      ? `<button type="button" class="detail-action-button" data-collection-action="edit-note" data-collection-kind="${escapeHtml(kind)}" data-record-id="${escapeHtml(item.record.id)}">${item.note ? 'メモ編集' : 'メモ'}</button>`
+      : '',
     removeButtonHtml: `<button type="button" class="detail-action-button" data-collection-action="remove" data-collection-kind="${escapeHtml(kind)}" data-record-id="${escapeHtml(item.record.id)}">${escapeHtml(label)}を外す</button>`
   });
 }
@@ -951,8 +954,8 @@ function renderCollectionPage(kind, options = {}) {
     })
   });
 
-  bindCollectionActions(app, async (kind, recordId) => {
-    await handleCollectionAction(kind, recordId, { workId });
+  bindCollectionActions(app, async (kind, recordId, action) => {
+    await handleCollectionAction(kind, recordId, action, { workId });
   });
 }
 
@@ -1231,7 +1234,7 @@ const { toggleBookmark } = createBookmarkActions({
   route
 });
 
-const { handleDetailAction } = createDetailActions({
+const { handleDetailAction, confirmLikeRemovalIfNeeded } = createDetailActions({
   state,
   getFragmentById,
   findWorkById,
@@ -1245,11 +1248,14 @@ const { handleDetailAction } = createDetailActions({
 });
 
 const { handleCollectionAction } = createCollectionActions({
+  state,
   loadStateFromDb,
   renderCollectionPage,
   removeBookmark,
   removeLike,
-  removeQuote
+  removeQuote,
+  saveLike,
+  confirmLikeRemovalIfNeeded
 });
 
 const {
