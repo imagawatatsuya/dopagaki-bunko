@@ -6,6 +6,7 @@ import { replaceAozoraGaijiNotation } from '../src/aozora-gaiji.js';
 import { renderAozoraBodyWithHeadings, repairAozoraLayoutNotesInHtml } from '../src/aozora-headings.js';
 import { derivePreviewFromText } from '../src/import-preview.js';
 import { extractAozoraTxtFromZip } from '../src/aozora-zip-importer.js';
+import { buildAozoraCatalogPayload, normalizeAozoraCatalogPayload } from '../src/aozora-catalog.js';
 import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
 import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
@@ -241,6 +242,31 @@ test('initial app state starts with empty collections and search batch size', ()
   assert.equal(state.likes instanceof Set, true);
   assert.equal(state.aozoraCatalogVisibleCount, 25);
   assert.equal(state.workLoadMode, 'auto');
+});
+
+test('compact Aozora catalog payload expands to searchable records', () => {
+  const payload = buildAozoraCatalogPayload([{
+    id: '000001',
+    title: '作品名',
+    titleReading: 'さくひんめい',
+    author: '著者名',
+    authorReading: 'ちょしゃめい',
+    cardUrl: 'https://example.test/card.html',
+    textZipUrl: 'https://example.test/text.zip',
+    kanaType: '新字新仮名',
+    copyrightWarning: true
+  }], 'https://example.test/catalog.zip', '2026-06-17T00:00:00.000Z');
+
+  assert.equal(payload.version, 2);
+  assert.equal(payload.format, 'array-v1');
+  assert.equal(Array.isArray(payload.records[0]), true);
+
+  const normalized = normalizeAozoraCatalogPayload(payload);
+  assert.equal(normalized.records[0].id, '000001');
+  assert.equal(normalized.records[0].workId, '000001');
+  assert.equal(normalized.records[0].title, '作品名');
+  assert.equal(normalized.records[0].copyrightWarning, true);
+  assert.equal(normalized.meta.recordCount, 1);
 });
 
 test('return link labels match current route semantics', () => {

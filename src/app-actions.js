@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617180204';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617181233';
 
 export function createBookmarkActions({
   state,
@@ -89,6 +89,22 @@ export function createSearchActions({
     const elementTop = window.scrollY + element.getBoundingClientRect().top;
     const targetTop = Math.max(0, elementTop - headerBottom - 8);
     window.scrollTo({ top: targetTop, behavior: 'smooth' });
+  }
+
+  async function readCatalogResponseJson(response) {
+    if (!AOZORA_CATALOG_ASSET_PATH.endsWith('.gz')) {
+      return response.json();
+    }
+    if (!('DecompressionStream' in globalThis)) {
+      throw new Error('このブラウザは圧縮された作品一覧を展開できません。');
+    }
+
+    const stream = response.body?.pipeThrough(new DecompressionStream('gzip'));
+    if (!stream) {
+      throw new Error('圧縮された作品一覧を読み取れませんでした。');
+    }
+
+    return new Response(stream).json();
   }
 
   async function handleAozoraZipArrayBuffer(arrayBuffer, sourceMeta = {}) {
@@ -251,7 +267,7 @@ export function createSearchActions({
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const payload = normalizeAozoraCatalogPayload(await response.json());
+      const payload = normalizeAozoraCatalogPayload(await readCatalogResponseJson(response));
       if (payload.records.length === 0) {
         throw new Error('作品一覧を読み取れませんでした。');
       }

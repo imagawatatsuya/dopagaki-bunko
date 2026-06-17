@@ -2,18 +2,19 @@
 
 ## 目的
 
-`data/aozora-catalog.json` は、追加画面 `#/search` で使う同梱の検索用スナップショットです。
+`data/aozora-catalog.json.gz` は、追加画面 `#/search` で使う同梱の検索用スナップショットです。
 
 - ブラウザ実行中に青空文庫の一覧ZIPを直接取りにいかない
 - GitHub Pages とローカル静的配信で同じ検索結果を使う
 - CORS に依存しない
+- 転送量を抑えるため、短い配列形式のJSONをgzipして配信する
 
 このため、一覧ZIPの更新はローカル作業で行います。
 
 ## 更新元
 
 - ZIP: `https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip`
-- 現在の同梱JSON: [data/aozora-catalog.json](/C:/Users/xylitol/github_p/dopagaki-bunko/data/aozora-catalog.json)
+- 現在の同梱カタログ: [data/aozora-catalog.json.gz](/C:/Users/xylitol/github_p/dopagaki-bunko/data/aozora-catalog.json.gz)
 
 ## 使うスクリプト
 
@@ -43,7 +44,7 @@ pwsh ./scripts/update-aozora-catalog.ps1 -StatusOnly
 
 ## 3. 差分だけ確認する
 
-まだ書き換えず、現行JSONとの差分概要だけ見ます。
+まだ書き換えず、現行カタログとの差分概要だけ見ます。
 
 ```powershell
 pwsh ./scripts/update-aozora-catalog.ps1 -ZipPath C:\path\to\list_person_all_extended_utf8.zip
@@ -57,7 +58,7 @@ pwsh ./scripts/update-aozora-catalog.ps1 -ZipPath C:\path\to\list_person_all_ext
 
 ここで件数や変更量が不自然なら、ZIPの取り違えや壊れたダウンロードを疑ってください。
 
-## 4. JSONを書き換える
+## 4. カタログを書き換える
 
 差分確認に問題がなければ、`--write` を付けて更新します。
 
@@ -79,17 +80,18 @@ pwsh ./scripts/update-aozora-catalog.ps1 `
 更新後は、少なくとも次を見ます。
 
 ```powershell
-git diff -- data/aozora-catalog.json
+pwsh ./scripts/update-aozora-catalog.ps1 -StatusOnly
+git diff --stat -- data/aozora-catalog.json.gz
 ```
 
 見るポイント:
 
-- 先頭メタの `fetchedAt`
 - `recordCount`
-- 追加・削除・変更の規模が想定内か
-- 先頭付近のレコードが壊れていないか
+- `fetchedAt`
+- `data/aozora-catalog.json.gz` のサイズ
+- `-Write` なしで見た追加・削除・変更の規模が想定内か
 
-必要なら、再度 `-StatusOnly` で更新後のメタを見直してください。
+gzip済みのため、通常の `git diff` では中身の差分は見ません。更新前の差分概要は `-Write` なしの実行結果で確認します。
 
 ## 6. 既存の検証を通す
 
@@ -104,4 +106,5 @@ pwsh ./verify-pages.ps1
 
 - この更新手順は外部依存を追加しません
 - 生成は既存の `src/aozora-catalog.js` と `src/aozora-zip-importer.js` を再利用します
+- ブラウザでは `DecompressionStream` で gzip を展開し、通常のレコード形へ戻してから IndexedDB へ保存します
 - ブラウザ実行中に公式ZIPへ直接アクセスするための仕組みは追加しません

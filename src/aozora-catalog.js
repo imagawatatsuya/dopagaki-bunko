@@ -1,9 +1,20 @@
-import { parseCsvObjects } from './aozora-csv.js?v=20260617180204';
-import { buildAozoraSearchText } from './aozora-search.js?v=20260617180204';
+import { parseCsvObjects } from './aozora-csv.js?v=20260617181233';
+import { buildAozoraSearchText } from './aozora-search.js?v=20260617181233';
 
 export const AOZORA_CATALOG_SOURCE_URL = 'https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip';
-export const AOZORA_CATALOG_ASSET_PATH = './data/aozora-catalog.json';
+export const AOZORA_CATALOG_ASSET_PATH = './data/aozora-catalog.json.gz';
 export const AOZORA_CATALOG_META_ID = 'catalog:meta';
+export const AOZORA_CATALOG_COMPACT_FIELDS = [
+  'id',
+  'title',
+  'titleReading',
+  'author',
+  'authorReading',
+  'cardUrl',
+  'textZipUrl',
+  'kanaType',
+  'copyrightWarning'
+];
 
 function normalizeFlag(flag) {
   return String(flag ?? '').trim();
@@ -105,8 +116,48 @@ export function buildAozoraCatalogMeta(records, sourceUrl = AOZORA_CATALOG_SOURC
   };
 }
 
+export function compactAozoraCatalogRecords(records) {
+  return records.map((record) => AOZORA_CATALOG_COMPACT_FIELDS.map((field) => {
+    if (field === 'copyrightWarning') {
+      return Boolean(record[field]);
+    }
+    return record[field] ?? '';
+  }));
+}
+
+export function expandAozoraCatalogRecords(records, fields = AOZORA_CATALOG_COMPACT_FIELDS) {
+  if (!Array.isArray(records)) {
+    return [];
+  }
+
+  return records.map((record) => {
+    if (!Array.isArray(record)) {
+      return record;
+    }
+
+    const expanded = {};
+    fields.forEach((field, index) => {
+      expanded[field] = record[index] ?? (field === 'copyrightWarning' ? false : '');
+    });
+    expanded.workId = expanded.id;
+    return expanded;
+  });
+}
+
+export function buildAozoraCatalogPayload(records, sourceUrl = AOZORA_CATALOG_SOURCE_URL, fetchedAt = new Date().toISOString()) {
+  return {
+    version: 2,
+    format: 'array-v1',
+    fetchedAt,
+    sourceUrl,
+    recordCount: records.length,
+    fields: AOZORA_CATALOG_COMPACT_FIELDS,
+    records: compactAozoraCatalogRecords(records)
+  };
+}
+
 export function normalizeAozoraCatalogPayload(payload) {
-  const records = Array.isArray(payload?.records) ? payload.records : [];
+  const records = expandAozoraCatalogRecords(payload?.records, payload?.fields);
   return {
     records,
     meta: buildAozoraCatalogMeta(

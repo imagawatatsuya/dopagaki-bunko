@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reduced the bundled Aozora catalog transfer size by replacing the verbose 12 MB JSON with a compact gzip catalog loaded through `DecompressionStream`.
 - Extracted `src/app-config.js`, `src/app-state.js`, `src/app-router.js`, and `src/app-runtime.js`, leaving `src/main.js` as a thin entrypoint while keeping the same hash-routing, startup, and GitHub Pages behavior.
 - Split `src/screen-renderers.js` into shared renderer helpers plus focused screen modules for home/detail, library/collections, work, and search/settings, keeping the existing UI flows while making screen ownership explicit.
 - Fixed all focused fragment jumps to account for the sticky page header, so work TL returns, outline jumps, bookmark/fusen jumps, terminal jumps, and fragment-number jumps land with the target card visible below the header.
@@ -11,7 +12,7 @@
 - Changed the work-page `目次` to render collapsed by default and expand on click/tap, reducing initial header noise while keeping the saved-outline jump list available in place.
 - Added a quiet work-page `目次` list backed by saved `outline` metadata, so imported heading structure can jump directly into the existing `visible/focus` work timeline flow without adding a separate reader mode.
 - Reduced `src/main.js` to app wiring only by moving render/layout helpers into `src/app-shell.js`, IndexedDB/state loading into `src/app-data.js`, and all screen rendering into `src/screen-renderers.js`, while deleting the old unused placeholder files `src/work-account.js` and `src/timeline-renderer.js`.
-- Added a local Aozora catalog refresh workflow with `scripts/update-aozora-catalog.mjs` and PowerShell wrappers, including current-metadata display, rebuild diff summary, and explicit docs for updating `data/aozora-catalog.json` from a locally saved official ZIP.
+- Added a local Aozora catalog refresh workflow with `scripts/update-aozora-catalog.mjs` and PowerShell wrappers, including current-metadata display, rebuild diff summary, and explicit docs for updating `data/aozora-catalog.json.gz` from a locally saved official ZIP.
 - Rewrote `CODEX_TASKS.md` from stale MVP build steps into a current-state maintenance queue, so future Codex runs start from the existing Pages app, current stores, manual ZIP import flow, and present verification gates instead of regressing toward sample-seeded quote-era tasks.
 - Added dependency-free self-contained JS tests under `scripts/` for ruby, emphasis, gaiji, headings, ZIP extraction, JSON import/export parsing, and bookmark canonicalization, and wired them into `publish-pages.ps1`.
 - Removed the legacy internal `quotes` store and its action wiring, bumped the IndexedDB schema to drop old quote records on upgrade, and aligned import/export plus Codex-facing docs around the current bookmark/like/memo model.

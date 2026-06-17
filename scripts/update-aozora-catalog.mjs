@@ -1,17 +1,20 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
 
 import {
   AOZORA_CATALOG_SOURCE_URL,
+  buildAozoraCatalogPayload,
   buildAozoraCatalogMeta,
-  buildAozoraCatalogRecords
+  buildAozoraCatalogRecords,
+  normalizeAozoraCatalogPayload
 } from '../src/aozora-catalog.js';
 import { extractAozoraCsvFromZip } from '../src/aozora-zip-importer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
-const defaultOutPath = path.join(repoRoot, 'data', 'aozora-catalog.json');
+const defaultOutPath = path.join(repoRoot, 'data', 'aozora-catalog.json.gz');
 
 function parseArgs(argv) {
   const options = {
@@ -71,7 +74,7 @@ function printHelp() {
     '',
     'Options:',
     '  --zip         Local path to list_person_all_extended_utf8.zip',
-    '  --out         Output path for aozora-catalog.json',
+    '  --out         Output path for aozora-catalog.json.gz',
     '  --write       Write the rebuilt catalog JSON to disk',
     '  --status-only Show current bundled catalog metadata only',
     '  --fetched-at  Override payload fetchedAt timestamp',
@@ -88,7 +91,10 @@ function resolveRepoPath(targetPath) {
 
 async function readJsonIfPresent(filePath) {
   try {
-    const content = await fs.readFile(filePath, 'utf8');
+    const bytes = await fs.readFile(filePath);
+    const content = filePath.endsWith('.gz')
+      ? zlib.gunzipSync(bytes).toString('utf8')
+      : bytes.toString('utf8');
     return JSON.parse(content);
   } catch (error) {
     if (error && typeof error === 'object' && error.code === 'ENOENT') {
@@ -103,7 +109,8 @@ function summarizeCurrentCatalog(payload, label) {
     return `${label}: まだ存在しません。`;
   }
 
-  const recordCount = payload.recordCount ?? (Array.isArray(payload.records) ? payload.records.length : 0);
+  const normalized = normalizeAozoraCatalogPayload(payload);
+  const recordCount = payload.recordCount ?? normalized.records.length;
   return [
     `${label}:`,
     `  fetchedAt   ${String(payload.fetchedAt ?? '')}`,
@@ -112,23 +119,13 @@ function summarizeCurrentCatalog(payload, label) {
   ].join('\n');
 }
 
-function buildPayload(records, fetchedAt, sourceUrl) {
-  return {
-    version: 1,
-    fetchedAt,
-    sourceUrl,
-    recordCount: records.length,
-    records
-  };
-}
-
 function buildRecordMap(records) {
   return new Map(records.map((record) => [String(record.id), record]));
 }
 
 function summarizeDiff(currentPayload, nextPayload) {
-  const currentRecords = Array.isArray(currentPayload?.records) ? currentPayload.records : [];
-  const nextRecords = Array.isArray(nextPayload?.records) ? nextPayload.records : [];
+  const currentRecords = currentPayload ? normalizeAozoraCatalogPayload(currentPayload).records : [];
+  const nextRecords = normalizeAozoraCatalogPayload(nextPayload).records;
   const currentMap = buildRecordMap(currentRecords);
   const nextMap = buildRecordMap(nextRecords);
 
@@ -199,17 +196,19 @@ async function main() {
   const records = buildAozoraCatalogRecords(csvText);
   const fetchedAt = resolveFetchedAt(options.fetchedAt, zipStat);
   const meta = buildAozoraCatalogMeta(records, options.sourceUrl, fetchedAt);
-  const nextPayload = buildPayload(records, meta.fetchedAt, meta.sourceUrl);
+  const nextPayload = buildAozoraCatalogPayload(records, meta.sourceUrl, meta.fetchedAt);
 
   console.log(summarizeCurrentCatalog(nextPayload, '再生成後のカタログ'));
   console.log(summarizeDiff(currentPayload, nextPayload));
 
   if (!options.write) {
-    console.log('書き込みは行っていません。--write を付けると data/aozora-catalog.json を更新します。');
+    console.log('書き込みは行っていません。--write を付けると data/aozora-catalog.json.gz を更新します。');
     return;
   }
 
-  await fs.writeFile(outPath, JSON.stringify(nextPayload));
+  const nextJson = JSON.stringify(nextPayload);
+  const nextBytes = outPath.endsWith('.gz') ? zlib.gzipSync(nextJson, { level: 9 }) : Buffer.from(nextJson);
+  await fs.writeFile(outPath, nextBytes);
   console.log(`更新しました: ${outPath}`);
 }
 

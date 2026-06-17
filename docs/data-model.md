@@ -55,14 +55,11 @@
   cardUrl,
   textZipUrl,
   kanaType,
-  workCopyrightFlag,
-  authorCopyrightFlags,
-  copyrightWarning,
-  searchText
+  copyrightWarning
 }
 ```
 
-`aozoraCatalog` は同梱スナップショット由来の検索用キャッシュであり、JSONバックアップ対象には含めない。
+`aozoraCatalog` は同梱スナップショット由来の検索用キャッシュであり、JSONバックアップ対象には含めない。配信ファイルは `data/aozora-catalog.json.gz` で、ブラウザ読み込み時に通常のレコード形へ展開してから IndexedDB へ保存する。
 
 ## Like
 
