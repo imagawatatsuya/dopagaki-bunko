@@ -15,6 +15,7 @@ import { buildWorkEndHash, buildWorkOutlineHash } from '../src/router.js';
 import { canonicalizeBookmarkRecords, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { returnLinkLabel } from '../src/renderer-shared.js';
+import { searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
 
@@ -149,6 +150,32 @@ test('preview derivation keeps outline fragment indices and readable metadata', 
   assert.equal(preview.textFragmentCount > 0, true);
   assert.equal(preview.outline.length, 1);
   assert.equal(preview.outline[0].fragmentIndex, 1);
+});
+
+test('search import preview renders only the first four fragments', () => {
+  const markup = searchPreviewMarkup({
+    title: '作品名',
+    author: '著者名',
+    textFragmentCount: 6,
+    encoding: 'Shift_JIS',
+    fragments: Array.from({ length: 6 }, (_, index) => ({
+      type: 'fragment',
+      index: index + 1,
+      displayHtml: `本文${index + 1}`
+    }))
+  }, '');
+
+  assert.match(markup, /断片 4/u);
+  assert.doesNotMatch(markup, /断片 5/u);
+});
+
+test('search import sheet uses one shared file entry point', () => {
+  const markup = searchImportSheetMarkup({ isOpen: true });
+
+  assert.match(markup, /ZIPファイルを選ぶ/u);
+  assert.match(markup, /クリックまたはタップ。ドラッグ&ドロップでも追加できます。/u);
+  assert.doesNotMatch(markup, /上のボタン/u);
+  assert.doesNotMatch(markup, /data-search-action="pick-aozora-zip"/u);
 });
 
 test('outline jump helper reuses work visible/focus routing', () => {

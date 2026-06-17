@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617190014';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260617190837';
 
 export function createBookmarkActions({
   state,
@@ -392,11 +392,6 @@ export function createSearchActions({
     if (action === 'close-import-sheet') {
       state.importSheetOpen = false;
       renderSearch();
-      return;
-    }
-
-    if (action === 'pick-aozora-zip') {
-      document.querySelector('[data-search-input="aozora-zip"]')?.click();
       return;
     }
 

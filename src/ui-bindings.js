@@ -153,6 +153,14 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
   }
 
   if (dropzone) {
+    dropzone.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+
+      event.preventDefault();
+      input?.click();
+    });
     dropzone.addEventListener('dragover', (event) => {
       event.preventDefault();
       dropzone.classList.add('is-dragover');

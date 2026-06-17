@@ -968,11 +968,16 @@ rt {
   display: grid;
   gap: 8px;
   margin-top: 16px;
-  padding: 24px 18px;
+  padding: 22px 18px;
   border: 2px dashed var(--border);
-  border-radius: 18px;
+  border-radius: 12px;
   background: rgba(255, 253, 248, 0.7);
   cursor: pointer;
+}
+
+.dropzone:focus-visible {
+  outline: 3px solid rgba(138, 59, 18, 0.24);
+  outline-offset: 3px;
 }
 
 .dropzone.is-dragover {

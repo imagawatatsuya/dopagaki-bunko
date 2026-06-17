@@ -1,3 +1,5 @@
+const IMPORT_PREVIEW_FRAGMENT_LIMIT = 4;
+
 export function navMarkup(current) {
   const items = [
     ['home', 'ホーム', '#/'],
@@ -133,7 +135,7 @@ export function searchBodyMarkup({
       ${previewMarkup}
     </section>
     <div class="search-import-fab-wrap">
-      <button type="button" class="detail-action-button search-import-fab" data-search-action="open-import-sheet">ZIPを追加</button>
+      <button type="button" class="detail-action-button search-import-fab" data-search-action="open-import-sheet">ZIP取り込み</button>
     </div>
     ${importSheetMarkup}
   `;
@@ -151,17 +153,14 @@ export function searchImportSheetMarkup({ isOpen = false, importStatusHtml = '' 
       <div class="bottom-sheet-body">
         <div class="bottom-sheet-header">
           <div>
-            <h2 class="section-title">ZIP取り込み</h2>
-            <p class="section-text">保存した青空文庫のZIPを選ぶと、本文を断片へ分けてプレビューできます。</p>
+            <h2 class="section-title">ZIPを追加</h2>
+            <p class="section-text">青空文庫で保存した作品ZIPを読み込み、保存前に本文を確認します。</p>
           </div>
           <button type="button" class="detail-action-button bottom-sheet-close" data-search-action="close-import-sheet">閉じる</button>
         </div>
-        <div class="settings-button-grid">
-          <button type="button" class="detail-action-button settings-button" data-search-action="pick-aozora-zip">ZIPを選ぶ</button>
-        </div>
-        <label class="dropzone" data-dropzone="aozora-zip">
-          <span class="dropzone-title">ZIP をここにドロップ</span>
-          <span class="dropzone-text">または上のボタンから選択</span>
+        <label class="dropzone" data-dropzone="aozora-zip" role="button" tabindex="0">
+          <span class="dropzone-title">ZIPファイルを選ぶ</span>
+          <span class="dropzone-text">クリックまたはタップ。ドラッグ&ドロップでも追加できます。</span>
           <input type="file" class="settings-file-input" accept=".zip,application/zip" data-search-input="aozora-zip">
         </label>
         ${importStatusHtml}
@@ -218,7 +217,7 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
       <p class="section-text">作品名: ${preview.title}<br>著者名: ${preview.author}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${preview.encoding}</p>
       ${preview.copyrightWarning ? '<p class="settings-status">この作品は著作権に注意が必要です。保存や利用前に図書カードを確認してください。</p>' : ''}
       <div class="preview-list">
-        ${preview.fragments.slice(0, 8).map((fragment) => {
+        ${preview.fragments.slice(0, IMPORT_PREVIEW_FRAGMENT_LIMIT).map((fragment) => {
           if (fragment.type === 'break') {
             return breakCardMarkup;
           }
