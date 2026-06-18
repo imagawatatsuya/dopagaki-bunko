@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Documented the current Aozora search-result ordering rules, including exact-author priority, same-work kana preference, and title-length tie-break behavior.
+- Added MB-only wording for the bundled Aozora catalog compression comparison, documenting the shift from about `12 MB` to about `0.69 MB`.
 - Reorganized `README.md` around the current Pages app flow, current reading-data model, and current screen structure, and standardized the visible formal name as `ドパガキ文庫`.
 - Expanded the library-card `…` deletion menu from `未読` only to all `読書中 / 未読 / 読了` tabs, keeping the same quiet card layout while tailoring the confirmation text to the current tab.
 - Added a load-time compatibility fix that reclassifies legacy heading-following break records, so already-saved works stop showing those separators as `原文空行` without requiring re-import.
