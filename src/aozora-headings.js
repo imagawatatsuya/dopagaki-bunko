@@ -1,4 +1,4 @@
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260619021924';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260619022810';
 
 const AOZORA_NUMBER_PATTERN = '[0-9０-９]+';
 const HEADING_INLINE_PATTERN = /^(.*?)[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;
@@ -262,6 +262,28 @@ function joinSegments(segments) {
   return html;
 }
 
+function markHeadingBoundaryBreaks(fragments) {
+  return fragments.map((fragment, index, items) => {
+    if (fragment.type !== 'break') {
+      return fragment;
+    }
+
+    const previous = items[index - 1];
+    if (
+      previous?.type === 'fragment' &&
+      typeof previous.displayHtml === 'string' &&
+      previous.displayHtml.includes('class="aozora-heading ')
+    ) {
+      return {
+        ...fragment,
+        breakKind: 'heading'
+      };
+    }
+
+    return fragment;
+  });
+}
+
 function renderAozoraLinesWithHeadings(lines, renderTextBlock, renderHeadingText) {
   const segments = [];
   const textBuffer = [];
@@ -391,7 +413,7 @@ export function renderAozoraBodyWithHeadings(bodyText, fragmentText) {
     (text) => convertAozoraRubyAndEmphasisToHtml(text)
   );
 
-  const fragments = fragmentText(rendered.html);
+  const fragments = markHeadingBoundaryBreaks(fragmentText(rendered.html));
   return {
     html: rendered.html,
     fragments,

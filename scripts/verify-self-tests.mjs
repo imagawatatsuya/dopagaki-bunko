@@ -151,8 +151,11 @@ test('heading and following body split into separate fragments without a blank l
     '魔が差して芸能界入りを目指してから、ずいぶんと長い時間が経っていた。'
   ].join('\n'), fragmentText);
   const textFragments = rendered.fragments.filter((fragment) => fragment.type === 'fragment');
+  const breaks = rendered.fragments.filter((fragment) => fragment.type === 'break');
 
   assert.equal(textFragments.length, 2);
+  assert.equal(breaks.length, 1);
+  assert.equal(breaks[0].breakKind, 'heading');
   assert.match(textFragments[0].displayHtml, /aozora-heading/u);
   assert.equal(
     textFragments[1].displayHtml,

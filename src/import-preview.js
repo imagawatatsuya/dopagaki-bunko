@@ -1,7 +1,7 @@
-import { cleanAozoraText } from './aozora-cleaner.js?v=20260619021924';
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260619021924';
-import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260619021924';
-import { fragmentText } from './fragmenter.js?v=20260619021924';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260619022810';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260619022810';
+import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260619022810';
+import { fragmentText } from './fragmenter.js?v=20260619022810';
 
 function stripInlineAozoraNotation(text) {
   return String(text)
@@ -108,7 +108,8 @@ export function derivePreviewFromText(rawText, encoding) {
       if (fragments.length > 0) {
         fragments.push({
           type: 'break',
-          breakCount: fragment.breakCount
+          breakCount: fragment.breakCount,
+          breakKind: fragment.breakKind ?? ''
         });
       }
       continue;

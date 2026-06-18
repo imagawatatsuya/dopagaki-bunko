@@ -1,7 +1,7 @@
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260619021924';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260619021924';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260619021924';
-import { layoutMarkup } from './views.js?v=20260619021924';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260619022810';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260619022810';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260619022810';
+import { layoutMarkup } from './views.js?v=20260619022810';
 
 const READER_FONT_SCALE_STORAGE_KEY = 'dopagaki-reader-font-scale';
 const READER_FONT_SCALES = [

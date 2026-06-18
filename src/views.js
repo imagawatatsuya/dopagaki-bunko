@@ -240,7 +240,7 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
       <div class="preview-list">
         ${preview.fragments.slice(0, IMPORT_PREVIEW_FRAGMENT_LIMIT).map((fragment) => {
           if (fragment.type === 'break') {
-            return breakCardMarkup;
+            return fragment.breakKind === 'heading' ? '' : breakCardMarkup;
           }
 
           return `
