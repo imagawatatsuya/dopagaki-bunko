@@ -1,6 +1,6 @@
 {
-  "name": "どぱ書き文庫",
-  "short_name": "どぱ書き文庫",
+  "name": "ドパガキ文庫",
+  "short_name": "ドパガキ文庫",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
