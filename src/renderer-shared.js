@@ -3,17 +3,17 @@ import {
   buildFragmentHash,
   buildWorkHash,
   parseHashRoute
-} from './router.js?v=20260619023327';
+} from './router.js?v=20260619031634';
 import {
   savedCollectionLabel,
   deriveWorkReadingStatus
-} from './state.js?v=20260619023327';
+} from './state.js?v=20260619031634';
 import {
   timelineCardMarkup,
   savedItemCardMarkup,
   workFragmentCardMarkup
-} from './views.js?v=20260619023327';
-import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260619023327';
+} from './views.js?v=20260619031634';
+import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260619031634';
 
 export const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
 const LIBRARY_TAB_LABELS = {
@@ -47,6 +47,10 @@ export function normalizeLibraryTab(value) {
 
 export function readingStatusLabel(status) {
   return LIBRARY_TAB_LABELS[normalizeLibraryTab(status)] ?? LIBRARY_TAB_LABELS.reading;
+}
+
+export function libraryDeleteScopeLabel(status) {
+  return `${readingStatusLabel(status)}一覧`;
 }
 
 export function returnLinkLabel(returnTo) {

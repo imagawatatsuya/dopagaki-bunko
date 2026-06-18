@@ -5,25 +5,26 @@ import {
   getBookmarkForWork,
   getLikeRecordsForWork,
   savedCollectionLabel
-} from './state.js?v=20260619023327';
+} from './state.js?v=20260619031634';
 import {
   buildCollectionHash,
   buildLibraryHash
-} from './router.js?v=20260619023327';
+} from './router.js?v=20260619031634';
 import {
   bindCollectionActions,
   bindLibraryWorkActions
-} from './ui-bindings.js?v=20260619023327';
+} from './ui-bindings.js?v=20260619031634';
 import {
   collectionBodyMarkup,
   libraryBodyMarkup,
   libraryTabButtonMarkup
-} from './views.js?v=20260619023327';
+} from './views.js?v=20260619031634';
 import {
   LIBRARY_TAB_ORDER,
+  libraryDeleteScopeLabel,
   normalizeLibraryTab,
   readingStatusLabel
-} from './renderer-shared.js?v=20260619023327';
+} from './renderer-shared.js?v=20260619031634';
 
 export function createLibraryRenderers({
   app,
@@ -59,18 +60,8 @@ export function createLibraryRenderers({
         ${likeCount > 0 ? `<p class="settings-status settings-status-subtle">ふせん: ${likeCount}枚</p>` : ''}
       `;
 
-      if (activeTab !== 'unread') {
-        return `
-          <article class="info-panel info-panel-library-work">
-            <a class="panel-link panel-link-library-work" href="#/work/${encodeURIComponent(work.id)}">
-              ${workSummaryHtml}
-            </a>
-          </article>
-        `;
-      }
-
       return `
-        <article class="info-panel info-panel-library-work info-panel-library-work-unread" data-library-menu>
+        <article class="info-panel info-panel-library-work info-panel-library-work-with-menu" data-library-menu>
           <button
             type="button"
             class="library-menu-button"
@@ -124,23 +115,21 @@ export function createLibraryRenderers({
       })
     });
 
-    if (activeTab === 'unread') {
-      state.libraryWorkActionsCleanup = bindLibraryWorkActions(app, async (workId) => {
-        const work = findWorkById(workId);
-        if (!work) {
-          return;
-        }
+    state.libraryWorkActionsCleanup = bindLibraryWorkActions(app, async (workId) => {
+      const work = findWorkById(workId);
+      if (!work) {
+        return;
+      }
 
-        const confirmed = window.confirm(`「${work.title}」を未読一覧から削除します。よろしいですか。`);
-        if (!confirmed) {
-          return;
-        }
+      const confirmed = window.confirm(`「${work.title}」を${libraryDeleteScopeLabel(activeTab)}から削除します。よろしいですか。`);
+      if (!confirmed) {
+        return;
+      }
 
-        await deleteWorkCascade(workId);
-        await loadStateFromDb();
-        renderLibrary({ tab: 'unread' });
-      });
-    }
+      await deleteWorkCascade(workId);
+      await loadStateFromDb();
+      renderLibrary({ tab: activeTab });
+    });
   }
 
   function renderCollectionPage(kind, options = {}) {

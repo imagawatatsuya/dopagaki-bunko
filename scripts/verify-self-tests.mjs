@@ -14,7 +14,7 @@ import { fragmentText } from '../src/fragmenter.js';
 import { buildWorkEndHash, buildWorkOutlineHash } from '../src/router.js';
 import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
-import { returnLinkLabel } from '../src/renderer-shared.js';
+import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
 import { aozoraSearchResultsMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
@@ -253,6 +253,13 @@ test('outline jump helper reuses work visible/focus routing', () => {
   assert.equal(earlyHref, '#/work/work-1?visible=5&focus=work-1-fragment-0002');
 
   assert.equal(buildWorkOutlineHash('work-1', { fragmentIndex: 3 }, 5), '');
+});
+
+test('library deletion prompt labels follow the visible reading-status tabs', () => {
+  assert.equal(libraryDeleteScopeLabel('reading'), '読書中一覧');
+  assert.equal(libraryDeleteScopeLabel('unread'), '未読一覧');
+  assert.equal(libraryDeleteScopeLabel('completed'), '読了一覧');
+  assert.equal(libraryDeleteScopeLabel('unknown'), '読書中一覧');
 });
 
 test('work end jump helper targets the page-bottom marker', () => {
