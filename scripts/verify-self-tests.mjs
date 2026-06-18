@@ -12,7 +12,7 @@ import { createExportPayload, buildDownloadName, parseImportJson } from '../src/
 import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
 import { buildWorkEndHash, buildWorkOutlineHash } from '../src/router.js';
-import { canonicalizeBookmarkRecords, sameBookmarkRecords } from '../src/state.js';
+import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { returnLinkLabel } from '../src/renderer-shared.js';
 import { aozoraSearchResultsMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
@@ -161,6 +161,32 @@ test('heading and following body split into separate fragments without a blank l
     textFragments[1].displayHtml,
     '魔が差して芸能界入りを目指してから、ずいぶんと長い時間が経っていた。'
   );
+});
+
+test('legacy heading break records are normalized on load', () => {
+  const normalized = normalizeHeadingBreakKinds([
+    {
+      id: 'work-1-fragment-0001',
+      workId: 'work-1',
+      type: 'fragment',
+      sequence: 1,
+      index: 1,
+      displayHtml: '<span class="aozora-heading aozora-heading-level-2" data-heading-id="heading-1">見出し</span>',
+      plainText: '見出し'
+    },
+    {
+      id: 'work-1-break-0002',
+      workId: 'work-1',
+      type: 'break',
+      sequence: 2,
+      index: 2,
+      breakCount: 2,
+      displayHtml: '',
+      plainText: ''
+    }
+  ]);
+
+  assert.equal(normalized[1].breakKind, 'heading');
 });
 
 test('layout repair wraps leading layout notes into lightweight spans', () => {

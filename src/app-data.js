@@ -1,11 +1,12 @@
 import {
   deriveWorkReadingStatus,
   getReadingStateForWork,
+  normalizeHeadingBreakKinds,
   sameBookmarkRecords,
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260619022810';
+} from './state.js?v=20260619023327';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
@@ -64,7 +65,7 @@ export function createAppData({
 
   async function loadStateFromDb() {
     state.works = await getAllRecords('works');
-    state.fragments = sortFragments(await getAllRecords('fragments'));
+    state.fragments = normalizeHeadingBreakKinds(await getAllRecords('fragments'));
     state.likeRecords = sortSavedRecords(await listLikes());
     const bookmarkRecords = await listBookmarks();
     const canonicalBookmarks = canonicalizeBookmarkRecords(bookmarkRecords, state.fragments);

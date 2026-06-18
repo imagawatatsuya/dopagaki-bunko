@@ -286,6 +286,30 @@ export function sortFragments(records) {
   });
 }
 
+export function normalizeHeadingBreakKinds(records) {
+  const sorted = sortFragments(records);
+
+  return sorted.map((record, index) => {
+    if (record?.type !== 'break' || record?.breakKind) {
+      return record;
+    }
+
+    const previous = sorted[index - 1];
+    if (
+      previous?.type === 'fragment' &&
+      typeof previous.displayHtml === 'string' &&
+      previous.displayHtml.includes('class="aozora-heading ')
+    ) {
+      return {
+        ...record,
+        breakKind: 'heading'
+      };
+    }
+
+    return record;
+  });
+}
+
 export function getReadableFragments(fragments) {
   return fragments.filter((fragment) => fragment.type !== 'break');
 }

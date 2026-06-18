@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260619022810';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260619023327';
 
 export function createBookmarkActions({
   state,
