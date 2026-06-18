@@ -1,8 +1,9 @@
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260617203051';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260619021344';
 
 const AOZORA_NUMBER_PATTERN = '[0-9０-９]+';
 const HEADING_INLINE_PATTERN = /^(.*?)[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;
 const HEADING_NOTE_ONLY_PATTERN = /^[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;
+const WRAPPED_HEADING_PATTERN = /^[［\[]＃((?:大|中|小)見出し)[］\]]\s*(.*?)\s*[［\[]＃\1終わり[］\]]\s*$/u;
 const START_INDENT_PATTERN = new RegExp(`^[［\\[]＃ここから(${AOZORA_NUMBER_PATTERN})字下げ[］\\]]\\s*$`, 'u');
 const END_INDENT_PATTERN = /^[［\[]＃ここで字下げ終わり[］\]]\s*$/u;
 const SINGLE_INDENT_NOTE_PATTERN = new RegExp(`^[［\\[]＃(${AOZORA_NUMBER_PATTERN})字下げ[］\\]]\\s*$`, 'u');
@@ -297,7 +298,8 @@ function renderAozoraLinesWithHeadings(lines, renderTextBlock, renderHeadingText
     const layoutNotes = parseLeadingLayoutNotes(originalLine);
     const lineForHeading = inlineIndentCount === null ? layoutNotes.text : lineWithoutLeadingIndent;
     const effectiveIndentCount = inlineIndentCount ?? layoutNotes.indentCount ?? activeIndentCount;
-    const inlineHeadingMatch = lineForHeading.trim().match(HEADING_INLINE_PATTERN);
+    const trimmedLineForHeading = lineForHeading.trim();
+    const inlineHeadingMatch = trimmedLineForHeading.match(HEADING_INLINE_PATTERN);
 
     if (inlineHeadingMatch) {
       flushTextBuffer(textBuffer, segments, renderTextBlock);
@@ -312,14 +314,28 @@ function renderAozoraLinesWithHeadings(lines, renderTextBlock, renderHeadingText
       continue;
     }
 
-    const nextTrimmed = String(lines[index + 1] ?? '').trim();
-    const headingNoteOnlyMatch = nextTrimmed.match(HEADING_NOTE_ONLY_PATTERN);
-    if (headingNoteOnlyMatch && lineForHeading.trim()) {
+    const wrappedHeadingMatch = trimmedLineForHeading.match(WRAPPED_HEADING_PATTERN);
+    if (wrappedHeadingMatch && wrappedHeadingMatch[2].trim()) {
       flushTextBuffer(textBuffer, segments, renderTextBlock);
       appendHeadingSegment(
         segments,
         outline,
-        lineForHeading.trim(),
+        wrappedHeadingMatch[2],
+        wrappedHeadingMatch[1],
+        effectiveIndentCount,
+        renderHeadingText
+      );
+      continue;
+    }
+
+    const nextTrimmed = String(lines[index + 1] ?? '').trim();
+    const headingNoteOnlyMatch = nextTrimmed.match(HEADING_NOTE_ONLY_PATTERN);
+    if (headingNoteOnlyMatch && trimmedLineForHeading) {
+      flushTextBuffer(textBuffer, segments, renderTextBlock);
+      appendHeadingSegment(
+        segments,
+        outline,
+        trimmedLineForHeading,
         headingNoteOnlyMatch[2],
         effectiveIndentCount,
         renderHeadingText

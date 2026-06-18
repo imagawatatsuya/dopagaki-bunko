@@ -128,6 +128,23 @@ test('headings render outline metadata and heading markup', () => {
   assert.match(rendered.html, /data-heading-id="heading-1"/u);
 });
 
+test('wrapped heading tags map large medium and small headings into outline levels', () => {
+  const rendered = renderAozoraBodyWithHeadings([
+    '［＃大見出し］上巻［＃大見出し終わり］',
+    '［＃中見出し］登場人物紹介［＃中見出し終わり］',
+    '［＃小見出し］その一［＃小見出し終わり］'
+  ].join('\n'), fragmentText);
+
+  assert.deepEqual(
+    rendered.outline.map((entry) => ({ title: entry.title, level: entry.level })),
+    [
+      { title: '上巻', level: 1 },
+      { title: '登場人物紹介', level: 2 },
+      { title: 'その一', level: 3 }
+    ]
+  );
+});
+
 test('layout repair wraps leading layout notes into lightweight spans', () => {
   const repaired = repairAozoraLayoutNotesInHtml('［＃地付き］終わり');
   assert.match(repaired, /aozora-layout-line/u);

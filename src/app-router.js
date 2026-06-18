@@ -1,4 +1,4 @@
-import { parseHashRoute } from './router.js?v=20260617203051';
+import { parseHashRoute } from './router.js?v=20260619021344';
 
 export function createAppRouter({
   getRenderers,
