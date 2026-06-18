@@ -1,6 +1,23 @@
-# どぱ書き文庫
+# ドパガキ文庫
 
-青空文庫の作品を短い断片に分割し、縦スクロール読書で x.com 依存を置き換えるための静的 Web アプリです。
+青空文庫の作品を短い断片に分け、スマホでも縦スクロールで静かに読めるようにした、ビルド不要の静的 Web アプリです。
+
+正式名称は `ドパガキ文庫` です。
+
+## できること
+
+- `ホーム` で追加済み作品や読書イベントを縦スクロールで読む
+- `本棚` で `読書中 / 未読 / 読了` ごとに作品を管理する
+- `追加` で青空文庫の同梱カタログ検索、または手元の ZIP 取り込みを使う
+- `設定` で `最新状態に更新`、JSON バックアップ、JSON 復元、読書の続き読み込み設定を行う
+
+## 読書データの考え方
+
+- `しおり`: 作品ごとに常に1件だけ残る再開位置
+- `ふせん`: 気になった断片を複数残すための印。短いメモも付けられる
+- `読書状態`: `未読 / 読書中 / 読了` の作品単位の状態
+
+JSON バックアップに含まれるのは `works`, `fragments`, `likes`, `bookmarks`, `readingStates`, `settings` です。検索用の `aozoraCatalog` キャッシュは含めません。
 
 ## ローカル起動
 
@@ -12,15 +29,48 @@ python -m http.server 8000
 
 ブラウザで `http://127.0.0.1:8000/` を開いてください。
 
-同一Wi-Fi上のスマホ確認では、PC側で次を使うと分かりやすいです。
+同一 Wi-Fi 上のスマホ確認では、PC 側で次を使うと分かりやすいです。
 
 ```powershell
 python -m http.server 8000 --bind 0.0.0.0
 ```
 
-## 開発→公開の自動化
+## 追加と取り込み
 
-公開前のローカル自動化は PowerShell スクリプトで行います。
+`#/search` では、同梱の青空文庫カタログとローカル本棚の両方を検索できます。
+
+- `青空文庫 / 本棚` の切り替えで検索対象を変えられる
+- 青空文庫検索では作品名または著者名で探せる
+- 検索結果から `図書カード` を開き、保存した ZIP を `ZIP取り込み` から読み込む
+- 手動 ZIP 取り込みでは `.zip` 内の単一 `.txt` を抽出し、Shift_JIS 優先で読んで断片化する
+
+現在の ZIP 対応範囲:
+
+- 対応: `store`, `deflate`, 単一 `.txt`
+- 非対応: `ZIP64`, パスワード付き ZIP, 分割 ZIP, 複数作品入り ZIP, 画像入り ZIP
+
+## バックアップと復元
+
+`#/settings` から JSON バックアップを扱えます。
+
+- `JSONを書き出す` で読書データ一式を保存する
+- `JSONを選ぶ` でバックアップを読み込む
+- 読み込み後に `上書きする` または `追加する` を選ぶ
+
+## GitHub Pages 公開
+
+このリポジトリは `main` ブランチのルート `/` をそのまま公開元にします。
+
+```text
+Branch: main
+Folder: / (root)
+```
+
+詳しい方針は [docs/github-pages.md](/C:/Users/xylitol/github_p/dopagaki-bunko/docs/github-pages.md) を参照してください。
+
+## 開発から公開まで
+
+公開前のローカル確認と公開は PowerShell スクリプトで行います。
 
 ```powershell
 pwsh ./scripts/update-release-stamp.ps1
@@ -29,7 +79,7 @@ pwsh ./verify-pages.ps1
 pwsh ./publish-pages.ps1
 ```
 
-Windows の `cmd.exe` やダブルクリック向けに、同名の `.bat` ラッパーも置いてあります。
+Windows の `cmd.exe` やダブルクリック向けに、同名の `.bat` ラッパーもあります。
 
 ```bat
 update-release-stamp.bat
@@ -38,102 +88,36 @@ verify-pages.bat
 publish-pages.bat
 ```
 
-- `update-release-stamp.ps1`
-  `index.html` の fallback release version、`src/*.js` のローカル参照、`release.json` を更新します。
-- `verify-pages.ps1`
-  GitHub Pages 公開に必要なファイル、相対参照、`manifest.webmanifest`、`main` ブランチ、`origin` 設定を検証します。
-- `verify-self-tests.ps1`
-  ルビ、圏点、外字、見出し、ZIP、JSON import/export、しおり正規化まわりの自己完結JSテストを実行します。
-- `publish-pages.ps1`
-  stamp、自己完結JSテスト、Pages verify、commit、`origin/main` への push をまとめて実行します。
+- `update-release-stamp.ps1`: `index.html`, `src/*.js`, `release.json` の版番号を更新する
+- `verify-self-tests.ps1`: ルビ、圏点、外字、見出し、ZIP、JSON、しおり正規化まわりの自己完結テストを行う
+- `verify-pages.ps1`: GitHub Pages 公開に必要な構成と参照を確認する
+- `publish-pages.ps1`: stamp、自己テスト、Pages 確認、commit、`origin/main` への push をまとめて行う
 
-`publish-pages.ps1` / `publish-pages.bat` の主なオプション:
-
-- `-SkipStamp`
-  すでに版番号更新済みなら stamp を飛ばします。
-- `-SkipVerify`
-  verify を飛ばします。
-- `-CommitMessage "..."`
-  commit message を明示します。
-
-`origin` が未設定の clone では publish は失敗します。先に GitHub リポジトリの remote を追加してください。
+`origin` が未設定の clone では publish は失敗します。先に remote を追加してください。
 
 ## 更新反映
 
-このアプリは起動時に `release.json` を取りに行き、最新 release version の CSS / JS を読み込みます。
-通常はブラウザ全体のキャッシュ削除は不要です。
+起動時に `index.html` が `release.json` を `no-store` で取得し、最新の CSS / JS を読み込みます。通常はブラウザ全体のキャッシュ削除は不要です。
 
-それでも更新が見えないときは、サイトURLの末尾へ一時的な query を付けて `index.html` だけ新規取得してください。
+それでも更新が見えないときは、URL 末尾に一時的な query を付けて `index.html` だけ再取得してください。
 
 ```text
 https://imagawatatsuya.github.io/dopagaki-bunko/?reload=20260616
 ```
 
-これはこのサイトの HTML 再取得を促すだけで、他サイトのキャッシュは消しません。
-
-## GitHub Pages 公開
-
-このリポジトリは `main` ブランチのルート `/` をそのまま公開元にします。
-
-1. GitHub の `Settings` を開く
-2. `Pages` を開く
-3. `Build and deployment` で `Deploy from a branch` を選ぶ
-4. Branch に `main`、Folder に `/ (root)` を選ぶ
-5. 保存する
-
-初回設定後の更新は、ローカルで次を実行すれば足ります。
-
-```powershell
-pwsh ./publish-pages.ps1
-```
-
-アプリはハッシュルーティングを使うため、個別ページ遷移は `#/fragment/...` で維持されます。`404.html` はルートへの復帰用です。
-
-## データバックアップ
-
-設定画面 `#/settings` から JSON バックアップを扱えます。
-
-- `JSONを書き出す` で全ストアを JSON としてダウンロードできます
-- `JSONを選ぶ` でバックアップを読み込めます
-- 読み込み後に `上書きする` か `追加する` かを選べます
-
-バックアップ対象は `works`, `fragments`, `likes`, `bookmarks`, `readingStates`, `settings` です。
-
-`bookmarks` は作品ごとに常に1件だけ保持される最新しおりです。気になった断片へふせんを複数残す用途は `likes` を使います。
-
-## 青空文庫 ZIP 取り込み
-
-追加画面 `#/search` で、同梱の青空文庫作品一覧から検索して取り込めます。
-
-- 起動時に同梱の圧縮作品一覧を読み込む
-- `一覧を再読込` で同梱の圧縮作品一覧を読み直す
-- 作品名または著者名で検索
-- 検索結果の項目を開いて `図書カード` へ進み、ZIP保存後に下の手動取り込みを使う
-
-手動ZIP取り込みも引き続き使えます。
-
-- ZIP をドラッグ＆ドロップ、またはファイル選択
-- ZIP 内 txt を抽出
-- Shift_JIS 優先でデコードし、必要なら UTF-8 に fallback
-- クリーニング、ルビ・圏点変換、断片化
-- プレビュー確認後に作品アカウントとして保存
-
-現状の ZIP 対応は最小実装です。
-
-- 対応: store, deflate, 単一 txt
-- 非対応: ZIP64, パスワード付き ZIP, 分割 ZIP, 複数作品入り ZIP, 画像入り ZIP
+この方法はこのサイトの HTML 再取得を促すだけで、他サイトのキャッシュには触れません。
 
 ## 同梱カタログ更新
 
-検索で使う同梱カタログ `data/aozora-catalog.json.gz` は、ブラウザ実行時に青空文庫へ直接取りにいかず、ローカル更新で差し替えます。転送量を抑えるため、短い配列形式のJSONをgzipして配信します。
+検索で使う同梱カタログ `data/aozora-catalog.json.gz` は、ブラウザから青空文庫へ直接取りに行かず、ローカル更新で差し替えます。
 
-まず現在の更新日と件数を確認します。
+まず現在の状態を確認します。
 
 ```powershell
 pwsh ./scripts/update-aozora-catalog.ps1 -StatusOnly
 ```
 
-次に、手元へ保存した `list_person_all_extended_utf8.zip` を使って差分だけ確認します。
+次に、手元へ保存した `list_person_all_extended_utf8.zip` を使って差分を確認します。
 
 ```powershell
 pwsh ./scripts/update-aozora-catalog.ps1 -ZipPath C:\path\to\list_person_all_extended_utf8.zip
@@ -145,6 +129,10 @@ pwsh ./scripts/update-aozora-catalog.ps1 -ZipPath C:\path\to\list_person_all_ext
 pwsh ./scripts/update-aozora-catalog.ps1 -ZipPath C:\path\to\list_person_all_extended_utf8.zip -Write
 ```
 
-Windows の `cmd.exe` やダブルクリックでは `update-aozora-catalog.bat` も使えます。
+詳細は [docs/aozora-catalog.md](/C:/Users/xylitol/github_p/dopagaki-bunko/docs/aozora-catalog.md) を参照してください。
 
-詳細手順は [docs/aozora-catalog.md](/C:/Users/xylitol/github_p/dopagaki-bunko/docs/aozora-catalog.md) を参照してください。
+## 関連ドキュメント
+
+- [docs/ui-pages.md](/C:/Users/xylitol/github_p/dopagaki-bunko/docs/ui-pages.md)
+- [docs/data-model.md](/C:/Users/xylitol/github_p/dopagaki-bunko/docs/data-model.md)
+- [docs/security.md](/C:/Users/xylitol/github_p/dopagaki-bunko/docs/security.md)

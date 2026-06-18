@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reorganized `README.md` around the current Pages app flow, current reading-data model, and current screen structure, and standardized the visible formal name as `ドパガキ文庫`.
 - Expanded the library-card `…` deletion menu from `未読` only to all `読書中 / 未読 / 読了` tabs, keeping the same quiet card layout while tailoring the confirmation text to the current tab.
 - Added a load-time compatibility fix that reclassifies legacy heading-following break records, so already-saved works stop showing those separators as `原文空行` without requiring re-import.
 - Stopped heading-only separators from rendering as `原文空行` cards in import previews and work pages while keeping heading and body text split into separate fragments.
