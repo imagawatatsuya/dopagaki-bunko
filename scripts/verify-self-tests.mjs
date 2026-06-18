@@ -145,6 +145,21 @@ test('wrapped heading tags map large medium and small headings into outline leve
   );
 });
 
+test('heading and following body split into separate fragments without a blank line', () => {
+  const rendered = renderAozoraBodyWithHeadings([
+    '［＃中見出し］わたしの黒歴史２［＃中見出し終わり］',
+    '魔が差して芸能界入りを目指してから、ずいぶんと長い時間が経っていた。'
+  ].join('\n'), fragmentText);
+  const textFragments = rendered.fragments.filter((fragment) => fragment.type === 'fragment');
+
+  assert.equal(textFragments.length, 2);
+  assert.match(textFragments[0].displayHtml, /aozora-heading/u);
+  assert.equal(
+    textFragments[1].displayHtml,
+    '魔が差して芸能界入りを目指してから、ずいぶんと長い時間が経っていた。'
+  );
+});
+
 test('layout repair wraps leading layout notes into lightweight spans', () => {
   const repaired = repairAozoraLayoutNotesInHtml('［＃地付き］終わり');
   assert.match(repaired, /aozora-layout-line/u);

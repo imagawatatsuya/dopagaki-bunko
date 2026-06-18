@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed Aozora heading rendering so a heading line and the following body line become separate fragments even without a blank line, preventing chapter titles from being merged into the same reader card as the first paragraph.
 - Added support for Aozora wrapped heading tags such as `［＃大見出し］...［＃大見出し終わり］`, `中見出し`, and `小見出し`, reusing the same reader rendering and saved `outline` structure as the existing `「...」は見出し` form.
 - Moved the settings-screen `更新反映` action to the top so developer refresh checks are immediately reachable.
 - Added readable kana-type labels to Aozora search results, highlighting `新字・新かな` with a low-contrast accessible chip and prioritizing it only among duplicate versions of the same work.
