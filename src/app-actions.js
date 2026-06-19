@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620040419';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620040419';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620041153';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620041153';
 
 export function createBookmarkActions({
   state,
@@ -95,6 +95,15 @@ export function createSearchActions({
     } catch {
       return null;
     }
+  }
+
+  function buildBridgeImportUrl(txtUrl) {
+    const parsedTxtUrl = new URL(txtUrl, globalThis.location?.href ?? 'http://localhost/');
+    const appUrl = new URL(globalThis.location?.href ?? 'https://imagawatatsuya.github.io/dopagaki-bunko/');
+    const bridgeUrl = new URL('/dopagaki-import-bridge.html', parsedTxtUrl);
+    bridgeUrl.searchParams.set('txt', parsedTxtUrl.toString());
+    bridgeUrl.searchParams.set('app', `${appUrl.origin}${appUrl.pathname}`);
+    return bridgeUrl.toString();
   }
 
   function isLoopbackHost(hostname) {
@@ -701,6 +710,58 @@ export function createSearchActions({
 
     if (action === 'load-converter-latest') {
       await loadLatestConverterText(payload.baseUrl ?? state.converterBaseUrl);
+      return;
+    }
+
+    if (action === 'pick-qr-image') {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = 'カメラを開いて QR を読み取ってください。';
+      renderSearch();
+      return;
+    }
+
+    if (action === 'qr-image-unsupported') {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = 'このブラウザではアプリ内QR読取に対応していません。Safari を更新するか、別の取り込み方法を使ってください。';
+      renderSearch();
+      return;
+    }
+
+    if (action === 'qr-image-no-result') {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = 'QRコードを読み取れませんでした。画面内に大きく表示して、もう一度お試しください。';
+      renderSearch();
+      return;
+    }
+
+    if (action === 'qr-image-error') {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = `QRコードの読み取りに失敗しました: ${payload.errorMessage ?? '不明なエラー'}`;
+      renderSearch();
+      return;
+    }
+
+    if (action === 'open-qr-import-link') {
+      try {
+        const qrText = String(payload.qrText ?? '').trim();
+        if (!qrText) {
+          throw new Error('QRコードの内容が空です。');
+        }
+
+        const scannedUrl = new URL(qrText, globalThis.location?.href ?? 'http://localhost/');
+        let targetUrl = scannedUrl.toString();
+        if (scannedUrl.pathname.endsWith('/latest.txt')) {
+          targetUrl = buildBridgeImportUrl(targetUrl);
+        }
+        state.importWorkNoticeTone = '';
+        state.importWorkStatus = 'QRコードから PC の中継ページを開いています。';
+        renderSearch();
+        globalThis.location.assign(targetUrl);
+      } catch (error) {
+        state.importWorkNoticeTone = '';
+        state.importWorkStatus = `QRコードのURLを開けませんでした: ${error?.message ?? '不明なエラー'}`;
+        renderSearch();
+      }
       return;
     }
 
