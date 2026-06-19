@@ -15,6 +15,7 @@
 - Added a default reader-oriented search sort mode that lowers symbol-prefixed titles and promotes longer same-score titles, while keeping reading-order sorting available as a separate mode.
 - Added GitHub Pages-first import paths on the add screen: `TXT 公開URL` fetch preview/save, `TXT を貼り付ける` preview/save, saved `remoteImportUrl`, and explicit mixed-content guidance while keeping manual ZIP/TXT import and LAN-based PC latest import side by side.
 - Added `#/search?remoteImportUrl=...` deep-link handling so QR-launched GitHub Pages sessions open the import sheet automatically and prefill the `TXT 公開URL` field before the user taps import.
+- Fixed the add-screen bottom sheet so narrow phones such as iPhone 8 can scroll the full import form and reach the `TXT 公開URL` section at the top instead of getting trapped mid-sheet.
 - Simplified the ZIP import sheet to one shared file entry point for click, tap, keyboard, and drag-and-drop use.
 - Reduced the ZIP import preview from the first 8 fragments to the first 4 fragments.
 - Fixed Aozora and library search so an exact author-name query such as `太宰治` ranks that author's works first while keeping title-only matches visible, and same-score results now use title/author readings for ordering when available.
