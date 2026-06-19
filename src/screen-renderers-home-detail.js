@@ -1,20 +1,20 @@
 import {
   buildHomeTimelineEvents,
   getReadableFragments
-} from './state.js?v=20260620051929';
+} from './state.js?v=20260620053345';
 import {
   buildFragmentHash,
   buildWorkHash
-} from './router.js?v=20260620051929';
+} from './router.js?v=20260620053345';
 import {
   bindDetailActions,
   focusFragmentCard
-} from './ui-bindings.js?v=20260620051929';
+} from './ui-bindings.js?v=20260620053345';
 import {
   fragmentDetailBodyMarkup,
   homeBodyMarkup
-} from './views.js?v=20260620051929';
-import { returnLinkLabel } from './renderer-shared.js?v=20260620051929';
+} from './views.js?v=20260620053345';
+import { returnLinkLabel } from './renderer-shared.js?v=20260620053345';
 
 export function createHomeDetailRenderers({
   app,
@@ -22,7 +22,7 @@ export function createHomeDetailRenderers({
   renderLayout,
   renderLoading,
   handleDetailAction,
-  ensureWorkMarkedReading,
+  ensureWorkMarkedReadingAtIndex,
   workPageBatchSize,
   helpers
 }) {
@@ -130,7 +130,7 @@ export function createHomeDetailRenderers({
       await handleDetailAction(action, targetFragmentId);
     });
 
-    ensureWorkMarkedReading(fragment.workId);
+    ensureWorkMarkedReadingAtIndex(fragment.workId, fragment.index);
   }
 
   return {

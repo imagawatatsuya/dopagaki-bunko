@@ -359,7 +359,7 @@ select {
 }
 
 .info-panel-library-work-with-menu {
-  padding-right: 64px;
+  padding-bottom: 64px;
 }
 
 .library-work-title {
@@ -380,7 +380,7 @@ select {
 
 .library-menu-button {
   position: absolute;
-  top: 12px;
+  bottom: 12px;
   right: 12px;
   z-index: 2;
   min-width: 36px;
@@ -396,8 +396,8 @@ select {
 
 .library-inline-menu {
   position: absolute;
-  top: 54px;
   right: 12px;
+  bottom: 54px;
   z-index: 3;
   display: none;
   min-width: 112px;
@@ -412,20 +412,33 @@ select {
   display: block;
 }
 
+.library-menu-action-button,
 .library-delete-button {
   width: 100%;
   min-height: 42px;
   border: 0;
   border-radius: 12px;
+  cursor: pointer;
+}
+
+.library-menu-action-button {
+  margin-bottom: 8px;
+  background: rgba(107, 93, 80, 0.1);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.library-delete-button {
   background: #b6472a;
   color: #fffdf8;
   font-weight: 700;
   letter-spacing: 0.06em;
-  cursor: pointer;
 }
 
 .library-menu-button:focus-visible,
 .library-menu-button:hover,
+.library-menu-action-button:focus-visible,
+.library-menu-action-button:hover,
 .library-delete-button:focus-visible,
 .library-delete-button:hover {
   outline: none;

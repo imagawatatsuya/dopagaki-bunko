@@ -5,31 +5,32 @@ import {
   getBookmarkForWork,
   getLikeRecordsForWork,
   savedCollectionLabel
-} from './state.js?v=20260620051929';
+} from './state.js?v=20260620053345';
 import {
   buildCollectionHash,
   buildLibraryHash
-} from './router.js?v=20260620051929';
+} from './router.js?v=20260620053345';
 import {
   bindCollectionActions,
   bindLibraryWorkActions
-} from './ui-bindings.js?v=20260620051929';
+} from './ui-bindings.js?v=20260620053345';
 import {
   collectionBodyMarkup,
   libraryBodyMarkup,
   libraryTabButtonMarkup
-} from './views.js?v=20260620051929';
+} from './views.js?v=20260620053345';
 import {
   LIBRARY_TAB_ORDER,
   libraryDeleteScopeLabel,
   normalizeLibraryTab,
   readingStatusLabel
-} from './renderer-shared.js?v=20260620051929';
+} from './renderer-shared.js?v=20260620053345';
 
 export function createLibraryRenderers({
   app,
   state,
   renderLayout,
+  clearWorkReadingState,
   deleteWorkCascade,
   handleCollectionAction,
   loadStateFromDb,
@@ -71,6 +72,9 @@ export function createLibraryRenderers({
             aria-label="${escapeHtml(work.title)} の操作を開く"
           >…</button>
           <div class="library-inline-menu" role="menu" aria-label="${escapeHtml(work.title)} の操作">
+            ${activeTab === 'completed'
+              ? `<button type="button" class="library-menu-action-button" data-library-action="mark-unread" data-work-id="${escapeHtml(work.id)}" role="menuitem">未読に戻す</button>`
+              : ''}
             <button type="button" class="library-delete-button" data-library-action="delete-work" data-work-id="${escapeHtml(work.id)}" role="menuitem">削除</button>
           </div>
           <a class="panel-link panel-link-library-work" href="#/work/${encodeURIComponent(work.id)}">
@@ -115,9 +119,21 @@ export function createLibraryRenderers({
       })
     });
 
-    state.libraryWorkActionsCleanup = bindLibraryWorkActions(app, async (workId) => {
+    state.libraryWorkActionsCleanup = bindLibraryWorkActions(app, async (action, workId) => {
       const work = findWorkById(workId);
       if (!work) {
+        return;
+      }
+
+      if (action === 'mark-unread') {
+        const confirmed = window.confirm(`「${work.title}」を未読に戻します。よろしいですか。`);
+        if (!confirmed) {
+          return;
+        }
+
+        await clearWorkReadingState(workId);
+        await loadStateFromDb();
+        renderLibrary({ tab: activeTab });
         return;
       }
 

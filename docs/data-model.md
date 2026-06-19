@@ -96,3 +96,5 @@
   updatedAt
 }
 ```
+
+未読は `readingStates` にレコードがない状態として扱う。

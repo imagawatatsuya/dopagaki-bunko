@@ -5,13 +5,13 @@ import {
   getReadableWorkFragments,
   getVisibleCountParam,
   sliceWorkFragmentsForVisibleCount
-} from './state.js?v=20260620051929';
+} from './state.js?v=20260620053345';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260620051929';
+} from './router.js?v=20260620053345';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -21,18 +21,18 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260620051929';
+} from './ui-bindings.js?v=20260620053345';
 import {
   breakCardMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260620051929';
+} from './views.js?v=20260620053345';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260620051929';
+} from './renderer-shared.js?v=20260620053345';
 
 export function createWorkRenderers({
   app,
@@ -41,7 +41,7 @@ export function createWorkRenderers({
   renderError,
   renderWorkLayout,
   renderReaderScaleControls,
-  ensureWorkMarkedReading,
+  ensureWorkMarkedReadingAtIndex,
   loadStateFromDb,
   removeBookmark,
   removeLike,
@@ -228,7 +228,14 @@ export function createWorkRenderers({
         focus: targetFragment.id
       });
     });
-    state.workHeaderProgressCleanup = bindWorkHeaderProgress(app, totalTextFragments, calculateRemainingPercent);
+    state.workHeaderProgressCleanup = bindWorkHeaderProgress(
+      app,
+      totalTextFragments,
+      calculateRemainingPercent,
+      (activeIndex) => {
+        ensureWorkMarkedReadingAtIndex(workId, activeIndex);
+      }
+    );
     state.workAutoLoadCleanup = bindWorkAutoLoad(app, {
       enabled: state.workLoadMode === 'auto',
       shownTextCount,
@@ -255,8 +262,6 @@ export function createWorkRenderers({
         updateWorkOverlayButton(item, overlayState, overlayButtonAriaLabel(fragmentIndex, overlayState));
       });
     });
-
-    ensureWorkMarkedReading(workId);
   }
 
   return { renderWorkPage };

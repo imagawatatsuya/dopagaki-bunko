@@ -13,6 +13,7 @@ import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
 import { buildWorkEndHash, buildWorkOutlineHash, parseSearchRouteIntent } from '../src/router.js';
 import { normalizeConverterBaseUrl } from '../src/remote-import.js';
+import { createAppData } from '../src/app-data.js';
 import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
@@ -449,6 +450,82 @@ test('initial app state starts with empty collections and search batch size', ()
   assert.equal(state.remoteImportUrl, '');
   assert.equal(state.importTextDraft, '');
   assert.equal(state.workLoadMode, 'auto');
+});
+
+test('work reading starts only after reaching fragment 3', async () => {
+  const state = createInitialAppState();
+  const savedRecords = [];
+  const appData = createAppData({
+    state,
+    allStoreNames: [],
+    searchResultsBatchSize: 25,
+    workLoadModeSettingId: 'setting:work-load-mode',
+    converterBaseUrlSettingId: 'setting:converter-base-url',
+    canonicalizeBookmarkRecords: (records) => records,
+    clearStore: async () => {},
+    deleteRecord: async () => {},
+    getAllRecords: async () => [],
+    getRecord: async () => null,
+    listBookmarks: async () => [],
+    listLikes: async () => [],
+    putRecord: async (storeName, record) => {
+      savedRecords.push({ storeName, record });
+    },
+    putRecords: async () => {}
+  });
+
+  appData.ensureWorkMarkedReadingAtIndex('work-1', 1);
+  appData.ensureWorkMarkedReadingAtIndex('work-1', 2);
+  await Promise.resolve();
+  assert.equal(savedRecords.length, 0);
+  assert.equal(state.readingStateRecords.length, 0);
+
+  appData.ensureWorkMarkedReadingAtIndex('work-1', 3);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(savedRecords.length, 1);
+  assert.equal(savedRecords[0].storeName, 'readingStates');
+  assert.equal(savedRecords[0].record.workId, 'work-1');
+  assert.equal(savedRecords[0].record.status, 'reading');
+  assert.equal(state.readingStateRecords[0].workId, 'work-1');
+
+  appData.ensureWorkMarkedReadingAtIndex('work-1', 5);
+  await Promise.resolve();
+  assert.equal(savedRecords.length, 1);
+});
+
+test('clearing a work reading state returns it to unread', async () => {
+  const state = createInitialAppState();
+  state.readingStateRecords = [{
+    id: 'work-1',
+    workId: 'work-1',
+    status: 'completed',
+    createdAt: '2026-06-20T00:00:00.000Z',
+    updatedAt: '2026-06-20T00:00:00.000Z'
+  }];
+  const deletedRecords = [];
+  const appData = createAppData({
+    state,
+    allStoreNames: [],
+    searchResultsBatchSize: 25,
+    workLoadModeSettingId: 'setting:work-load-mode',
+    converterBaseUrlSettingId: 'setting:converter-base-url',
+    canonicalizeBookmarkRecords: (records) => records,
+    clearStore: async () => {},
+    deleteRecord: async (storeName, id) => {
+      deletedRecords.push({ storeName, id });
+    },
+    getAllRecords: async () => [],
+    getRecord: async () => null,
+    listBookmarks: async () => [],
+    listLikes: async () => [],
+    putRecord: async () => {},
+    putRecords: async () => {}
+  });
+
+  await appData.clearWorkReadingState('work-1');
+  assert.deepEqual(deletedRecords, [{ storeName: 'readingStates', id: 'work-1' }]);
+  assert.equal(state.readingStateRecords.length, 0);
 });
 
 test('compact Aozora catalog payload expands to searchable records', () => {

@@ -6,7 +6,7 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260620051929';
+} from './state.js?v=20260620053345';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
@@ -32,6 +32,8 @@ export function createAppData({
   putRecord,
   putRecords
 }) {
+  const pendingReadingStartWorkIds = new Set();
+
   async function saveWorkReadingState(workId, status) {
     const normalizedStatus = status === 'completed' ? 'completed' : 'reading';
     const currentRecord = getReadingStateForWork(state.readingStateRecords, workId);
@@ -60,12 +62,16 @@ export function createAppData({
     });
   }
 
-  function ensureWorkMarkedReading(workId) {
-    if (!workId || getWorkReadingStatus(workId) !== 'unread') {
+  function ensureWorkMarkedReadingAtIndex(workId, fragmentIndex) {
+    const normalizedIndex = Number(fragmentIndex);
+    if (!workId || !Number.isFinite(normalizedIndex) || normalizedIndex < 3 || getWorkReadingStatus(workId) !== 'unread' || pendingReadingStartWorkIds.has(workId)) {
       return;
     }
 
-    void saveWorkReadingState(workId, 'reading');
+    pendingReadingStartWorkIds.add(workId);
+    void saveWorkReadingState(workId, 'reading').finally(() => {
+      pendingReadingStartWorkIds.delete(workId);
+    });
   }
 
   async function loadStateFromDb() {
@@ -109,6 +115,15 @@ export function createAppData({
     }
   }
 
+  async function clearWorkReadingState(workId) {
+    if (!workId) {
+      return;
+    }
+
+    await deleteRecord('readingStates', workId);
+    state.readingStateRecords = state.readingStateRecords.filter((item) => item.workId !== workId);
+  }
+
   async function clearAllStoresAndResetUi() {
     for (const storeName of allStoreNames) {
       await clearStore(storeName);
@@ -129,8 +144,9 @@ export function createAppData({
 
   return {
     clearAllStoresAndResetUi,
+    clearWorkReadingState,
     deleteWorkCascade,
-    ensureWorkMarkedReading,
+    ensureWorkMarkedReadingAtIndex,
     loadStateFromDb,
     normalizeWorkLoadMode,
     saveWorkReadingState

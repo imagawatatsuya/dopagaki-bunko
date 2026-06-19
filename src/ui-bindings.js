@@ -48,7 +48,7 @@ export function bindWorkStateActions(root, onAction) {
   });
 }
 
-export function bindLibraryWorkActions(root, onDeleteWork) {
+export function bindLibraryWorkActions(root, onAction) {
   const menus = [...root.querySelectorAll('[data-library-menu]')];
   let openMenu = null;
 
@@ -99,7 +99,16 @@ export function bindLibraryWorkActions(root, onDeleteWork) {
       event.preventDefault();
       event.stopPropagation();
       closeMenu(deleteButton.closest('[data-library-menu]'));
-      void onDeleteWork(deleteButton.dataset.workId);
+      void onAction('delete-work', deleteButton.dataset.workId);
+      return;
+    }
+
+    const unreadButton = event.target.closest('[data-library-action="mark-unread"]');
+    if (unreadButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(unreadButton.closest('[data-library-menu]'));
+      void onAction('mark-unread', unreadButton.dataset.workId);
       return;
     }
 
@@ -247,7 +256,7 @@ export function updateWorkOverlayButton(button, overlayState, ariaLabel) {
   button.setAttribute('aria-label', ariaLabel);
 }
 
-export function bindWorkHeaderProgress(root, totalTextFragments, getRemainingPercent) {
+export function bindWorkHeaderProgress(root, totalTextFragments, getRemainingPercent, onActiveIndexChange = null) {
   const currentNode = root.querySelector('[data-work-progress-current]');
   const totalNode = root.querySelector('[data-work-progress-total]');
   const remainingNode = root.querySelector('[data-work-progress-remaining]');
@@ -281,6 +290,7 @@ export function bindWorkHeaderProgress(root, totalTextFragments, getRemainingPer
 
     currentNode.textContent = String(activeIndex);
     remainingNode.textContent = String(getRemainingPercent(activeIndex, totalTextFragments));
+    onActiveIndexChange?.(activeIndex);
   };
 
   let frameRequested = false;

@@ -1,19 +1,20 @@
 import {
   errorBodyMarkup,
   loadingBodyMarkup
-} from './views.js?v=20260620051929';
-import { createRendererHelpers } from './renderer-shared.js?v=20260620051929';
-import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260620051929';
-import { createLibraryRenderers } from './screen-renderers-library.js?v=20260620051929';
-import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260620051929';
-import { createWorkRenderers } from './screen-renderers-work.js?v=20260620051929';
+} from './views.js?v=20260620053345';
+import { createRendererHelpers } from './renderer-shared.js?v=20260620053345';
+import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260620053345';
+import { createLibraryRenderers } from './screen-renderers-library.js?v=20260620053345';
+import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260620053345';
+import { createWorkRenderers } from './screen-renderers-work.js?v=20260620053345';
 
 export function createScreenRenderers({
   app,
   appShell,
   state,
   route,
-  ensureWorkMarkedReading,
+  ensureWorkMarkedReadingAtIndex,
+  clearWorkReadingState,
   deleteWorkCascade,
   handleAozoraImportFile,
   handleCollectionAction,
@@ -66,7 +67,7 @@ export function createScreenRenderers({
     renderLayout,
     renderLoading,
     handleDetailAction,
-    ensureWorkMarkedReading,
+    ensureWorkMarkedReadingAtIndex,
     workPageBatchSize,
     helpers
   });
@@ -74,6 +75,7 @@ export function createScreenRenderers({
     app,
     state,
     renderLayout,
+    clearWorkReadingState,
     deleteWorkCascade,
     handleCollectionAction,
     loadStateFromDb,
@@ -86,7 +88,7 @@ export function createScreenRenderers({
     renderError,
     renderWorkLayout,
     renderReaderScaleControls: appShell.renderReaderScaleControls,
-    ensureWorkMarkedReading,
+    ensureWorkMarkedReadingAtIndex,
     loadStateFromDb,
     removeBookmark,
     removeLike,
