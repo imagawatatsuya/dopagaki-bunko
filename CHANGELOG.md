@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed `#/search` Aozora results so eligible official ZIP URLs open directly from a dedicated button, while copyrighted or invalid ZIP cases fall back to a smaller `図書カードを見る` link and the shared `作品を取り込む` flow.
 - Documented the current Aozora search-result ordering rules, including exact-author priority, same-work kana preference, and title-length tie-break behavior.
 - Added MB-only wording for the bundled Aozora catalog compression comparison, documenting the shift from about `12 MB` to about `0.69 MB`.
 - Reorganized `README.md` around the current Pages app flow, current reading-data model, and current screen structure, and standardized the visible formal name as `ドパガキ文庫`.

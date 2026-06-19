@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260620004736';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260620033332';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,7 +6,7 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260620004736';
+} from './views.js?v=20260620033332';
 
 export function createSearchSettingsRenderers({
   app,
@@ -61,9 +61,11 @@ export function createSearchSettingsRenderers({
         workId: escapeHtml(result.workId),
         href: escapeHtml(result.href ?? result.cardUrl ?? ''),
         cardUrl: escapeHtml(result.cardUrl ?? ''),
+        textZipUrl: escapeHtml(result.textZipUrl ?? ''),
         resultType: escapeHtml(result.resultType ?? 'aozora'),
         isImported: Boolean(result.isImported),
-        openInNewTab: Boolean(result.openInNewTab)
+        openInNewTab: Boolean(result.openInNewTab),
+        copyrightWarning: Boolean(result.copyrightWarning)
       })),
       {
         emptyMessage: escapeHtml(emptyMessage),
@@ -116,6 +118,9 @@ export function createSearchSettingsRenderers({
         converterBaseUrl: escapeHtml(state.converterBaseUrl),
         catalogStatusHtml: state.aozoraCatalogStatus ? `<p class="settings-status">${escapeHtml(state.aozoraCatalogStatus)}</p>` : '',
         catalogMetaHtml,
+        catalogHelpHtml: !isLibraryScope
+          ? '<p class="settings-status settings-status-subtle">ZIPを保存したら、下の「作品を取り込む」から選んでください。</p>'
+          : '',
         catalogResultsMarkup,
         importSheetMarkup,
         previewMarkup

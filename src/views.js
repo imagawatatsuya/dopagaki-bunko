@@ -95,6 +95,7 @@ export function searchBodyMarkup({
   converterBaseUrl = '',
   catalogStatusHtml = '',
   catalogMetaHtml = '',
+  catalogHelpHtml = '',
   catalogResultsMarkup = '',
   importSheetMarkup = '',
   previewMarkup = ''
@@ -105,7 +106,7 @@ export function searchBodyMarkup({
       ${importNoticeHtml}
       <article class="info-panel">
         <h2 class="section-title">青空文庫から検索</h2>
-        <p class="section-text">同梱の作品一覧から作品名や著者名で探せます。項目を開いて図書カードへ進み、公開 TXT URL、貼り付け TXT、保存した ZIP/TXT、または同一Wi-Fi上のPCから追加できます。</p>
+        <p class="section-text">同梱の作品一覧から作品名や著者名で探せます。ZIPを開くか図書カードを確認し、保存した ZIP/TXT、公開 TXT URL、貼り付け TXT、または同一Wi-Fi上のPCから追加できます。</p>
         <div class="search-toolbar">
           <input
             type="search"
@@ -140,6 +141,7 @@ export function searchBodyMarkup({
         </div>
         ${catalogMetaHtml}
         ${catalogStatusHtml}
+        ${catalogHelpHtml}
         ${catalogResultsMarkup}
       </article>
       ${previewMarkup}
@@ -264,12 +266,29 @@ export function aozoraSearchResultsMarkup(results, options = {}) {
           result.isImported ? '本棚にあります' : '',
           result.copyrightWarning ? '著作権注意' : ''
         ].filter(Boolean);
+        const hasZipButton = result.resultType === 'aozora'
+          && !result.copyrightWarning
+          && Boolean(result.textZipUrl);
         return `
         <article class="fragment-card aozora-result-card">
-          <a class="aozora-result-link" href="${href}"${targetAttrs}>
-            <h3 class="fragment-work-title aozora-result-title">${result.title}</h3>
-            <p class="aozora-result-summary">${statusParts.join('　')}</p>
-          </a>
+          ${result.resultType === 'library' ? `
+            <a class="aozora-result-link" href="${href}"${targetAttrs}>
+              <h3 class="fragment-work-title aozora-result-title">${result.title}</h3>
+              <p class="aozora-result-summary">${statusParts.join('　')}</p>
+            </a>
+          ` : `
+            <div class="aozora-result-copy">
+              <h3 class="fragment-work-title aozora-result-title">${result.title}</h3>
+              <p class="aozora-result-summary">${statusParts.join('　')}</p>
+            </div>
+            <div class="aozora-result-actions">
+              ${hasZipButton ? `<a class="detail-action-button detail-action-link aozora-result-zip-link" href="${result.textZipUrl}" target="_blank" rel="noopener noreferrer">青空文庫ZIPを開く</a>` : ''}
+              <p class="aozora-result-secondary-link-wrap">
+                <a class="text-link aozora-result-secondary-link" href="${result.cardUrl}" target="_blank" rel="noopener noreferrer">図書カードを見る</a>
+                ${result.copyrightWarning ? '<span class="aozora-result-secondary-note">著作権と公開状況を確認してください。</span>' : ''}
+              </p>
+            </div>
+          `}
         </article>
       `;
       }).join('') : `

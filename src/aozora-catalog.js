@@ -1,9 +1,10 @@
-import { parseCsvObjects } from './aozora-csv.js?v=20260620004736';
-import { buildAozoraSearchText } from './aozora-search.js?v=20260620004736';
+import { parseCsvObjects } from './aozora-csv.js?v=20260620033332';
+import { buildAozoraSearchText } from './aozora-search.js?v=20260620033332';
 
 export const AOZORA_CATALOG_SOURCE_URL = 'https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip';
 export const AOZORA_CATALOG_ASSET_PATH = './data/aozora-catalog.json.gz';
 export const AOZORA_CATALOG_META_ID = 'catalog:meta';
+const AOZORA_TEXT_ZIP_URL_PATTERN = /^\/cards\/\d+\/files\/[^/?#]+\.zip$/u;
 export const AOZORA_CATALOG_COMPACT_FIELDS = [
   'id',
   'title',
@@ -40,6 +41,32 @@ function hasTextZipUrl(row) {
   return String(row['テキストファイルURL'] ?? '').trim().toLowerCase().endsWith('.zip');
 }
 
+export function normalizeAozoraTextZipUrl(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(raw);
+  } catch {
+    return '';
+  }
+
+  if (parsedUrl.protocol !== 'https:' || parsedUrl.origin !== 'https://www.aozora.gr.jp') {
+    return '';
+  }
+  if (!AOZORA_TEXT_ZIP_URL_PATTERN.test(parsedUrl.pathname)) {
+    return '';
+  }
+  if (parsedUrl.search || parsedUrl.hash) {
+    return '';
+  }
+
+  return parsedUrl.toString();
+}
+
 function choosePrimaryAuthor(rows) {
   return rows.find((row) => String(row['役割フラグ'] ?? '') === '著者') ?? rows[0] ?? null;
 }
@@ -72,7 +99,7 @@ function buildCatalogRecord(workId, rows) {
     authors: authorNames,
     authorsReading: authorReadings,
     cardUrl: String(primaryRow['図書カードURL'] ?? '').trim(),
-    textZipUrl: String(primaryRow['テキストファイルURL'] ?? '').trim(),
+    textZipUrl: normalizeAozoraTextZipUrl(primaryRow['テキストファイルURL']),
     htmlUrl: String(primaryRow['XHTML/HTMLファイルURL'] ?? '').trim(),
     kanaType: String(primaryRow['文字遣い種別'] ?? '').trim(),
     workCopyrightFlag,
@@ -139,6 +166,7 @@ export function expandAozoraCatalogRecords(records, fields = AOZORA_CATALOG_COMP
     fields.forEach((field, index) => {
       expanded[field] = record[index] ?? (field === 'copyrightWarning' ? false : '');
     });
+    expanded.textZipUrl = normalizeAozoraTextZipUrl(expanded.textZipUrl);
     expanded.workId = expanded.id;
     return expanded;
   });

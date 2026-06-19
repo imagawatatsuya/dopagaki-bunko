@@ -6,7 +6,7 @@ import { replaceAozoraGaijiNotation } from '../src/aozora-gaiji.js';
 import { renderAozoraBodyWithHeadings, repairAozoraLayoutNotesInHtml } from '../src/aozora-headings.js';
 import { derivePreviewFromText } from '../src/import-preview.js';
 import { extractAozoraTxtFromZip } from '../src/aozora-zip-importer.js';
-import { buildAozoraCatalogPayload, normalizeAozoraCatalogPayload } from '../src/aozora-catalog.js';
+import { buildAozoraCatalogPayload, normalizeAozoraCatalogPayload, normalizeAozoraTextZipUrl } from '../src/aozora-catalog.js';
 import { SEARCH_SORT_MODES, searchAozoraCatalog, searchWorkRecords } from '../src/aozora-search.js';
 import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
 import { STORE_NAMES } from '../src/db.js';
@@ -411,6 +411,17 @@ test('compact Aozora catalog payload expands to searchable records', () => {
   assert.equal(normalized.meta.recordCount, 1);
 });
 
+test('Aozora text ZIP URL validator accepts only official card ZIP paths', () => {
+  assert.equal(
+    normalizeAozoraTextZipUrl('https://www.aozora.gr.jp/cards/123/files/sample.zip'),
+    'https://www.aozora.gr.jp/cards/123/files/sample.zip'
+  );
+  assert.equal(normalizeAozoraTextZipUrl('https://www.aozora.gr.jp/cards/123/files/sample.zip?ts=1'), '');
+  assert.equal(normalizeAozoraTextZipUrl('https://www.aozora.gr.jp/files/sample.zip'), '');
+  assert.equal(normalizeAozoraTextZipUrl('http://www.aozora.gr.jp/cards/123/files/sample.zip'), '');
+  assert.equal(normalizeAozoraTextZipUrl('https://example.com/cards/123/files/sample.zip'), '');
+});
+
 test('Aozora catalog search ranks exact and prefix title matches first', () => {
   const records = [
     {
@@ -559,6 +570,34 @@ test('Aozora search results render readable kana labels for every kana type', ()
   assert.match(markup, /新字・旧かな/u);
   assert.match(markup, /旧字・新かな/u);
   assert.match(markup, /旧字・旧かな/u);
+});
+
+test('Aozora search results show direct ZIP action and card sublink separately', () => {
+  const markup = aozoraSearchResultsMarkup([
+    {
+      id: 'zip-ok',
+      title: '公開作品',
+      author: '著者',
+      cardUrl: 'https://www.aozora.gr.jp/cards/1/card1.html',
+      textZipUrl: 'https://www.aozora.gr.jp/cards/1/files/work.zip',
+      resultType: 'aozora'
+    },
+    {
+      id: 'copyright',
+      title: '著作権注意作品',
+      author: '著者',
+      cardUrl: 'https://www.aozora.gr.jp/cards/2/card2.html',
+      textZipUrl: 'https://www.aozora.gr.jp/cards/2/files/work.zip',
+      resultType: 'aozora',
+      copyrightWarning: true
+    }
+  ]);
+
+  assert.match(markup, /青空文庫ZIPを開く/u);
+  assert.match(markup, /target="_blank" rel="noopener noreferrer"/u);
+  assert.match(markup, /図書カードを見る/u);
+  assert.match(markup, /著作権と公開状況を確認してください。/u);
+  assert.doesNotMatch(markup, /<article class="fragment-card aozora-result-card">\s*<a class="aozora-result-link"/u);
 });
 
 test('local work search uses titles, authors, and source title lines', () => {

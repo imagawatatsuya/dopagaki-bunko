@@ -1,4 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620004736';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620033332';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620033332';
 
 export function createBookmarkActions({
   state,
@@ -80,9 +81,11 @@ export function createSearchActions({
 
   function toCatalogSearchResult(record, importedWorks) {
     const importedWork = importedWorks.get(String(record.workId ?? record.id ?? '')) ?? null;
+    const textZipUrl = normalizeAozoraTextZipUrl(record.textZipUrl);
     return {
       ...record,
       resultType: 'aozora',
+      textZipUrl,
       href: record.cardUrl,
       openInNewTab: true,
       isImported: Boolean(importedWork),
