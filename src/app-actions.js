@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620041514';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620041514';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620041928';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620041928';
 
 export function createBookmarkActions({
   state,
@@ -104,6 +104,27 @@ export function createSearchActions({
     bridgeUrl.searchParams.set('txt', parsedTxtUrl.toString());
     bridgeUrl.searchParams.set('app', `${appUrl.origin}${appUrl.pathname}`);
     return bridgeUrl.toString();
+  }
+
+  function normalizeConverterLatestTextUrl(baseUrl) {
+    const normalizedBaseUrl = normalizeConverterBaseUrl(baseUrl);
+    if (!normalizedBaseUrl) {
+      throw new Error('PCのURLを入力してください。');
+    }
+
+    const parsedUrl = new URL(normalizedBaseUrl, globalThis.location?.href ?? 'http://localhost/');
+    if (parsedUrl.pathname.endsWith('/latest.txt')) {
+      return parsedUrl.toString();
+    }
+    if (parsedUrl.pathname.endsWith('/latest.json')) {
+      parsedUrl.pathname = parsedUrl.pathname.replace(/latest\.json$/u, 'latest.txt');
+      parsedUrl.search = '';
+      return parsedUrl.toString();
+    }
+
+    parsedUrl.pathname = `${parsedUrl.pathname.replace(/\/$/u, '')}/latest.txt`;
+    parsedUrl.search = '';
+    return parsedUrl.toString();
   }
 
   function isLoopbackHost(hostname) {
@@ -716,11 +737,9 @@ export function createSearchActions({
     if (action === 'open-converter-bridge') {
       try {
         const normalizedBaseUrl = normalizeConverterBaseUrl(payload.baseUrl ?? state.converterBaseUrl);
-        if (!normalizedBaseUrl) {
-          throw new Error('PCのURLを入力してください。');
-        }
-        await saveConverterBaseUrl(normalizedBaseUrl);
-        const targetUrl = buildBridgeImportUrl(`${normalizedBaseUrl}/latest.txt`);
+        const latestTextUrl = normalizeConverterLatestTextUrl(normalizedBaseUrl);
+        void saveConverterBaseUrl(normalizedBaseUrl);
+        const targetUrl = buildBridgeImportUrl(latestTextUrl);
         state.importWorkNoticeTone = '';
         state.importWorkStatus = 'PC上の中継ページを開いています。';
         renderSearch();
