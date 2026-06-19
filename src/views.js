@@ -225,7 +225,7 @@ export function searchImportSheetMarkup({
           <div class="settings-button-grid">
             <button type="button" class="detail-action-button settings-button" data-search-action="load-converter-latest">PCの最新作を読む</button>
           </div>
-          <p class="settings-status settings-status-subtle import-help-text">GitHub Pages の <code>https://</code> 版からは通常 <code>http://</code> のPCへ直接取り込みできません。PC側で <code>http://&lt;PCのIP&gt;:8000/</code> を開く運用か、PC側を <code>https://</code> で配信してください。</p>
+          <p class="settings-status settings-status-subtle import-help-text">GitHub Pages の <code>https://</code> 版からでも <code>http://</code> の一時LAN配信URLをまず試します。失敗した場合は、同じWi-Fi、PC側配信継続、Windowsファイアウォール、ブラウザのローカルネットワークアクセス許可を確認してください。</p>
         </div>
         ${importStatusHtml}
       </div>

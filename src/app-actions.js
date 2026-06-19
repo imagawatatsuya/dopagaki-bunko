@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620033332';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620033332';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620034751';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620034751';
 
 export function createBookmarkActions({
   state,
@@ -77,6 +77,49 @@ export function createSearchActions({
     return new Map(state.works
       .filter((work) => work.aozoraWorkId)
       .map((work) => [String(work.aozoraWorkId), work]));
+  }
+
+  function isLoopbackHost(hostname) {
+    return hostname === '127.0.0.1' || hostname === 'localhost';
+  }
+
+  function isLocalNetworkUrl(url) {
+    try {
+      const parsed = new URL(url, globalThis.location?.href ?? 'http://localhost/');
+      const hostname = parsed.hostname.trim().toLowerCase();
+      return (
+        hostname.startsWith('192.168.')
+        || hostname.startsWith('10.')
+        || /^172\.(1[6-9]|2\d|3[0-1])\./u.test(hostname)
+        || hostname === 'localhost'
+        || hostname === '127.0.0.1'
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  function buildRemoteImportFailureMessage(prefix, url, error) {
+    const reason = error?.message ?? '不明なエラー';
+    if (!isLocalNetworkUrl(url)) {
+      return `${prefix}\n\nURL:\n${url}\n\n詳細:\n${reason}`;
+    }
+
+    return [
+      prefix,
+      '',
+      '確認してください:',
+      '- PCとスマホが同じWi-Fiにあるか',
+      '- PC側の配信画面が開いたままか',
+      '- Windowsファイアウォールで Python が許可されているか',
+      '- ブラウザの「ローカルネットワークアクセス」を許可したか',
+      '',
+      'URL:',
+      url,
+      '',
+      '詳細:',
+      reason
+    ].join('\n');
   }
 
   function toCatalogSearchResult(record, importedWorks) {
@@ -383,12 +426,6 @@ export function createSearchActions({
     }
 
     const manifestUrl = buildConverterLatestManifestUrl(normalizedBaseUrl);
-    if (isMixedContentBlocked(globalThis.location?.href ?? '', manifestUrl)) {
-      state.importWorkNoticeTone = '';
-      state.importWorkStatus = 'https 版のドパガキ文庫から http のPCへは直接取り込みできません。PC上で http 版を開くか、PC側を https で配信してください。';
-      renderSearch();
-      return;
-    }
 
     state.importSheetOpen = true;
     state.importWorkNoticeTone = '';
@@ -407,11 +444,10 @@ export function createSearchActions({
 
       const manifest = await manifestResponse.json();
       const textUrl = resolveConverterTextUrl(manifestUrl, manifest);
-      if (isMixedContentBlocked(globalThis.location?.href ?? '', textUrl)) {
-        throw new Error('https 版のドパガキ文庫から http のTXTへは直接取り込みできません。');
-      }
 
       const textResponse = await fetch(`${textUrl}${textUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
+        method: 'GET',
+        credentials: 'omit',
         cache: 'no-store'
       });
       if (!textResponse.ok) {
@@ -431,7 +467,7 @@ export function createSearchActions({
       console.error(error);
       state.importSheetOpen = true;
       state.importWorkNoticeTone = '';
-      state.importWorkStatus = `PC取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
+      state.importWorkStatus = buildRemoteImportFailureMessage('PC上の一時配信URLを読み込めませんでした。', manifestUrl, error);
       renderSearch();
     }
   }
@@ -457,16 +493,9 @@ export function createSearchActions({
       return;
     }
 
-    if (parsedRemoteUrl.hostname === '127.0.0.1' || parsedRemoteUrl.hostname === 'localhost') {
+    if (isLoopbackHost(parsedRemoteUrl.hostname)) {
       state.importWorkNoticeTone = '';
       state.importWorkStatus = '127.0.0.1 / localhost はこのiPhone自身を指します。PCの LAN IP か https の公開URLを使ってください。';
-      renderSearch();
-      return;
-    }
-
-    if (isMixedContentBlocked(globalThis.location?.href ?? '', remoteUrl)) {
-      state.importWorkNoticeTone = '';
-      state.importWorkStatus = 'https 版のドパガキ文庫から http のTXT URLは直接取り込めません。https の公開URLを使うか、PC上で http 版を開いてください。';
       renderSearch();
       return;
     }
@@ -480,6 +509,8 @@ export function createSearchActions({
     try {
       await saveRemoteImportUrl(remoteUrl);
       const response = await fetch(`${remoteUrl}${remoteUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
+        method: 'GET',
+        credentials: 'omit',
         cache: 'no-store'
       });
       if (!response.ok) {
@@ -497,7 +528,7 @@ export function createSearchActions({
       console.error(error);
       state.importSheetOpen = true;
       state.importWorkNoticeTone = '';
-      state.importWorkStatus = `TXT 公開URLの取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
+      state.importWorkStatus = buildRemoteImportFailureMessage('PC上の一時配信URLを読み込めませんでした。', remoteUrl, error);
       renderSearch();
     }
   }
