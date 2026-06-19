@@ -223,10 +223,9 @@ export function searchImportSheetMarkup({
             data-search-input="converter-base-url"
           >
           <div class="settings-button-grid">
-            <button type="button" class="detail-action-button settings-button" data-search-action="load-converter-latest">PCの最新作を読む</button>
             <button type="button" class="detail-action-button settings-button" data-search-action="open-converter-bridge">PCからプレビューを開く</button>
           </div>
-          <p class="settings-status settings-status-subtle import-help-text">iPhone ではまず <code>PCからプレビューを開く</code> を使ってください。PC上の中継ページを開き、そのままプレビューへ戻します。うまくいかない場合だけ <code>PCの最新作を読む</code> を試してください。</p>
+          <p class="settings-status settings-status-subtle import-help-text"><code>PCからプレビューを開く</code> を使うと、PC上の中継ページを開いてそのままプレビューへ戻します。</p>
         </div>
         ${importStatusHtml}
       </div>

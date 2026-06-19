@@ -12,7 +12,7 @@ import { createExportPayload, buildDownloadName, parseImportJson } from '../src/
 import { STORE_NAMES } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
 import { buildWorkEndHash, buildWorkOutlineHash, parseSearchRouteIntent } from '../src/router.js';
-import { buildConverterLatestManifestUrl, isMixedContentBlocked, normalizeConverterBaseUrl, resolveConverterTextUrl } from '../src/remote-import.js';
+import { normalizeConverterBaseUrl } from '../src/remote-import.js';
 import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
@@ -232,7 +232,7 @@ test('search import preview renders only the first four fragments', () => {
   assert.doesNotMatch(markup, /断片 5/u);
 });
 
-test('search import sheet exposes url, paste, file, and pc import paths together', () => {
+test('search import sheet exposes url, paste, file, and bridge import paths together', () => {
   const markup = searchImportSheetMarkup({
     isOpen: true,
     remoteImportUrl: '',
@@ -247,7 +247,6 @@ test('search import sheet exposes url, paste, file, and pc import paths together
   assert.match(markup, /貼り付け内容を読む/u);
   assert.match(markup, /作品名\n著者名/u);
   assert.match(markup, /ZIP または TXT を選ぶ/u);
-  assert.match(markup, /PCの最新作を読む/u);
   assert.match(markup, /PCからプレビューを開く/u);
   assert.match(markup, /http:\/\/192\.168\.0\.10:8765/u);
   assert.match(markup, /PCからプレビューを開く/u);
@@ -257,21 +256,8 @@ test('search import sheet exposes url, paste, file, and pc import paths together
   assert.doesNotMatch(markup, /data-search-action="pick-aozora-zip"/u);
 });
 
-test('converter import helpers normalize urls and block mixed-content fetches', () => {
+test('converter import helper normalizes base urls', () => {
   assert.equal(normalizeConverterBaseUrl(' http://192.168.0.10:8765/ '), 'http://192.168.0.10:8765');
-  assert.equal(buildConverterLatestManifestUrl('http://192.168.0.10:8765/share'), 'http://192.168.0.10:8765/share/latest.json');
-  assert.equal(
-    resolveConverterTextUrl('http://192.168.0.10:8765/latest.json', { latestTxtPath: 'latest.txt' }),
-    'http://192.168.0.10:8765/latest.txt'
-  );
-  assert.equal(
-    isMixedContentBlocked('https://imagawatatsuya.github.io/dopagaki-bunko/', 'http://192.168.0.10:8765/latest.json'),
-    true
-  );
-  assert.equal(
-    isMixedContentBlocked('http://192.168.0.10:8000/', 'http://192.168.0.10:8765/latest.json'),
-    false
-  );
 });
 
 test('search route intent opens the import sheet and carries remoteImportUrl', () => {

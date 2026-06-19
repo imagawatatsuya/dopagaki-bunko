@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620051325';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620051325';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620051929';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620051929';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -201,9 +201,6 @@ export function createSearchActions({
   searchWorkRecords,
   converterBaseUrlSettingId,
   normalizeConverterBaseUrl,
-  buildConverterLatestManifestUrl,
-  resolveConverterTextUrl,
-  isMixedContentBlocked,
   AOZORA_CATALOG_META_ID,
   AOZORA_CATALOG_ASSET_PATH,
   getAllRecords,
@@ -608,62 +605,6 @@ export function createSearchActions({
     }
   }
 
-  async function loadLatestConverterText(baseUrl) {
-    const normalizedBaseUrl = normalizeConverterBaseUrl(baseUrl);
-    if (!normalizedBaseUrl) {
-      state.importWorkNoticeTone = '';
-      state.importWorkStatus = 'PCのURLを入力してください。';
-      renderSearch();
-      return;
-    }
-
-    const manifestUrl = buildConverterLatestManifestUrl(normalizedBaseUrl);
-
-    state.importSheetOpen = true;
-    state.importWorkNoticeTone = '';
-    state.importWorkStatus = 'PCの最新作を読み込んでいます。';
-    resetImportPreview();
-    renderSearch();
-
-    try {
-      await saveConverterBaseUrl(normalizedBaseUrl);
-      const manifestResponse = await fetch(`${manifestUrl}?ts=${Date.now()}`, {
-        cache: 'no-store'
-      });
-      if (!manifestResponse.ok) {
-        throw new Error(`latest.json の取得に失敗しました: HTTP ${manifestResponse.status}`);
-      }
-
-      const manifest = await manifestResponse.json();
-      const textUrl = resolveConverterTextUrl(manifestUrl, manifest);
-
-      const textResponse = await fetch(`${textUrl}${textUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
-        method: 'GET',
-        credentials: 'omit',
-        cache: 'no-store'
-      });
-      if (!textResponse.ok) {
-        throw new Error(`TXT の取得に失敗しました: HTTP ${textResponse.status}`);
-      }
-
-      const bytes = await textResponse.arrayBuffer();
-      await handleAozoraTextArrayBuffer(bytes, {
-        sourceType: 'converter-latest',
-        sourceLabel: String(manifest.title ?? manifest.sourceFileName ?? 'PCの最新作'),
-        sourceFileName: String(manifest.sourceFileName ?? ''),
-        sourceUrl: String(manifest.sourceUrl ?? textUrl),
-        textZipUrl: String(manifest.latestZipPath ?? manifest.zipPath ?? ''),
-        cardUrl: String(manifest.sourceUrl ?? '')
-      });
-    } catch (error) {
-      console.error(error);
-      state.importSheetOpen = true;
-      state.importWorkNoticeTone = '';
-      state.importWorkStatus = buildRemoteImportFailureMessage('PC上の一時配信URLを読み込めませんでした。', manifestUrl, error);
-      renderSearch();
-    }
-  }
-
   async function loadRemoteImportUrl(url) {
     state.remoteImportUrl = String(url ?? '').trim();
     if (!state.remoteImportUrl) {
@@ -869,11 +810,6 @@ export function createSearchActions({
 
     if (action === 'preview-pasted-text') {
       await previewPastedText(payload.pastedText ?? state.importTextDraft);
-      return;
-    }
-
-    if (action === 'load-converter-latest') {
-      await loadLatestConverterText(payload.baseUrl ?? state.converterBaseUrl);
       return;
     }
 

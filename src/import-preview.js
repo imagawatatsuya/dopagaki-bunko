@@ -1,7 +1,7 @@
-import { cleanAozoraText } from './aozora-cleaner.js?v=20260620051325';
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260620051325';
-import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260620051325';
-import { fragmentText } from './fragmenter.js?v=20260620051325';
+import { cleanAozoraText } from './aozora-cleaner.js?v=20260620051929';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260620051929';
+import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260620051929';
+import { fragmentText } from './fragmenter.js?v=20260620051929';
 
 function stripInlineAozoraNotation(text) {
   return String(text)

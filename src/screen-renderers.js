@@ -1,12 +1,12 @@
 import {
   errorBodyMarkup,
   loadingBodyMarkup
-} from './views.js?v=20260620051325';
-import { createRendererHelpers } from './renderer-shared.js?v=20260620051325';
-import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260620051325';
-import { createLibraryRenderers } from './screen-renderers-library.js?v=20260620051325';
-import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260620051325';
-import { createWorkRenderers } from './screen-renderers-work.js?v=20260620051325';
+} from './views.js?v=20260620051929';
+import { createRendererHelpers } from './renderer-shared.js?v=20260620051929';
+import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260620051929';
+import { createLibraryRenderers } from './screen-renderers-library.js?v=20260620051929';
+import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260620051929';
+import { createWorkRenderers } from './screen-renderers-work.js?v=20260620051929';
 
 export function createScreenRenderers({
   app,
