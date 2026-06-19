@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620041928';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620041928';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620042258';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620042258';
 
 export function createBookmarkActions({
   state,
@@ -95,6 +95,30 @@ export function createSearchActions({
     } catch {
       return null;
     }
+  }
+
+  async function importBridgePayload(payload = {}) {
+    const text = String(payload.text ?? '');
+    if (!text.trim()) {
+      throw new Error('PC側から本文を受け取れませんでした。');
+    }
+
+    state.importSheetOpen = true;
+    state.importWorkNoticeTone = '';
+    state.importWorkStatus = 'PC上のTXTを受け取っています。';
+    state.remoteImportUrl = String(payload.sourceUrl ?? state.remoteImportUrl ?? '').trim();
+    state.importTextDraft = text;
+
+    await handleImportedPreview(
+      derivePreviewFromText(text, 'bridge-import'),
+      {
+        sourceType: 'bridge-import',
+        sourceLabel: String(payload.sourceLabel ?? '公開TXT'),
+        sourceUrl: String(payload.sourceUrl ?? ''),
+        sourceFileName: String(payload.sourceFileName ?? '')
+      },
+      String(payload.sourceLabel ?? '公開TXT')
+    );
   }
 
   function buildBridgeImportUrl(txtUrl) {
@@ -741,9 +765,12 @@ export function createSearchActions({
         void saveConverterBaseUrl(normalizedBaseUrl);
         const targetUrl = buildBridgeImportUrl(latestTextUrl);
         state.importWorkNoticeTone = '';
-        state.importWorkStatus = 'PC上の中継ページを開いています。';
+        state.importWorkStatus = 'PC上の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
         renderSearch();
-        globalThis.location.assign(targetUrl);
+        const openedWindow = globalThis.window.open(targetUrl, '_blank');
+        if (!openedWindow) {
+          globalThis.location.assign(targetUrl);
+        }
       } catch (error) {
         state.importWorkNoticeTone = '';
         state.importWorkStatus = `PCの中継ページを開けませんでした: ${error?.message ?? '不明なエラー'}`;
@@ -793,9 +820,12 @@ export function createSearchActions({
           targetUrl = buildBridgeImportUrl(targetUrl);
         }
         state.importWorkNoticeTone = '';
-        state.importWorkStatus = 'QRコードから PC の中継ページを開いています。';
+        state.importWorkStatus = 'QRコードから PC の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
         renderSearch();
-        globalThis.location.assign(targetUrl);
+        const openedWindow = globalThis.window.open(targetUrl, '_blank');
+        if (!openedWindow) {
+          globalThis.location.assign(targetUrl);
+        }
       } catch (error) {
         state.importWorkNoticeTone = '';
         state.importWorkStatus = `QRコードのURLを開けませんでした: ${error?.message ?? '不明なエラー'}`;
@@ -807,6 +837,17 @@ export function createSearchActions({
     if (action === 'search-aozora-catalog') {
       state.importWorkNoticeTone = '';
       runCatalogSearch(payload.query ?? state.aozoraCatalogQuery);
+      return;
+    }
+
+    if (action === 'import-bridge-message') {
+      try {
+        await importBridgePayload(payload.bridgePayload ?? {});
+      } catch (error) {
+        state.importWorkNoticeTone = '';
+        state.importWorkStatus = `PC側の受け渡しに失敗しました: ${error?.message ?? '不明なエラー'}`;
+        renderSearch();
+      }
       return;
     }
 

@@ -1,4 +1,4 @@
-import { AOZORA_GAIJI_MAP } from './aozora-gaiji-map.js?v=20260620041928';
+import { AOZORA_GAIJI_MAP } from './aozora-gaiji-map.js?v=20260620042258';
 
 const AOZORA_GAIJI_NOTE_PATTERN = /※[［\[]＃([^］\]]+)[］\]]/gu;
 const UNICODE_REFERENCE_PATTERN = /U\+([0-9A-Fa-f]{4,6})/u;
