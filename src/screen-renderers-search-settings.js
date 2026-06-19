@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260620004229';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260620004736';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,7 +6,7 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260620004229';
+} from './views.js?v=20260620004736';
 
 export function createSearchSettingsRenderers({
   app,
@@ -87,9 +87,12 @@ export function createSearchSettingsRenderers({
     const importSheetMarkup = searchImportSheetMarkup({
       isOpen: state.importSheetOpen,
       remoteImportUrl: escapeHtml(state.remoteImportUrl),
+      remoteImportStatusHtml: state.importWorkStatus
+        ? `<p class="settings-status">${escapeHtml(state.importWorkStatus)}</p>`
+        : '',
       importTextDraft: escapeHtml(state.importTextDraft),
       converterBaseUrl: escapeHtml(state.converterBaseUrl),
-      importStatusHtml: state.importWorkStatus ? `<p class="settings-status">${escapeHtml(state.importWorkStatus)}</p>` : ''
+      importStatusHtml: ''
     });
     const importNoticeHtml = state.importWorkNoticeTone === 'success' && state.importWorkStatus
       ? `

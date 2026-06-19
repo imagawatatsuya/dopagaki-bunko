@@ -155,6 +155,7 @@ export function searchImportSheetMarkup({
   isOpen = false,
   importStatusHtml = '',
   remoteImportUrl = '',
+  remoteImportStatusHtml = '',
   importTextDraft = '',
   converterBaseUrl = ''
 }) {
@@ -188,6 +189,7 @@ export function searchImportSheetMarkup({
           <div class="settings-button-grid">
             <button type="button" class="detail-action-button settings-button" data-search-action="load-remote-import-url">URLのTXTを読む</button>
           </div>
+          ${remoteImportStatusHtml}
         </div>
         <div class="panel-stack">
           <label class="settings-label" for="import-text">TXT を貼り付ける</label>

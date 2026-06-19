@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620004229';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620004736';
 
 export function createBookmarkActions({
   state,
@@ -443,11 +443,20 @@ export function createSearchActions({
     }
 
     let remoteUrl;
+    let parsedRemoteUrl;
     try {
       remoteUrl = new URL(state.remoteImportUrl, globalThis.location?.href ?? 'http://localhost/').toString();
+      parsedRemoteUrl = new URL(remoteUrl);
     } catch (error) {
       state.importWorkNoticeTone = '';
       state.importWorkStatus = `TXT 公開URLが不正です: ${error?.message ?? 'URL を解釈できません。'}`;
+      renderSearch();
+      return;
+    }
+
+    if (parsedRemoteUrl.hostname === '127.0.0.1' || parsedRemoteUrl.hostname === 'localhost') {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = '127.0.0.1 / localhost はこのiPhone自身を指します。PCの LAN IP か https の公開URLを使ってください。';
       renderSearch();
       return;
     }
