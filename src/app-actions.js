@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620045329';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620045329';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620050626';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620050626';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();

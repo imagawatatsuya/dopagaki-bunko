@@ -173,26 +173,15 @@ export function searchImportSheetMarkup({
         <div class="bottom-sheet-header">
           <div>
             <h2 class="section-title">作品を追加</h2>
-            <p class="section-text">公開 TXT URL、貼り付け TXT、手元の ZIP/TXT、または同一Wi-Fi上のPCが公開している最新 TXT を読み込み、保存前に本文を確認します。</p>
+            <p class="section-text">読み込み方法を選んで、本文を確認してから保存します。</p>
           </div>
           <button type="button" class="detail-action-button bottom-sheet-close" data-search-action="close-import-sheet">閉じる</button>
         </div>
-        <div class="panel-stack">
-          <label class="settings-label" for="remote-import-url">TXT 公開URL</label>
-          <input
-            id="remote-import-url"
-            type="url"
-            class="search-input"
-            value="${remoteImportUrl}"
-            placeholder="https://example.com/work.txt"
-            inputmode="url"
-            data-search-input="remote-import-url"
-          >
-          <div class="settings-button-grid">
-            <button type="button" class="detail-action-button settings-button" data-search-action="load-remote-import-url">URLのTXTを読む</button>
-          </div>
-          ${remoteImportStatusHtml}
-        </div>
+        <label class="dropzone" data-dropzone="aozora-zip" role="button" tabindex="0">
+          <span class="dropzone-title">ZIP または TXT を選ぶ</span>
+          <span class="dropzone-text">クリックまたはタップ。ドラッグ&ドロップでも追加できます。</span>
+          <input type="file" class="settings-file-input" accept=".zip,.txt,text/plain,application/zip" data-search-input="aozora-file">
+        </label>
         <div class="panel-stack">
           <label class="settings-label" for="import-text">TXT を貼り付ける</label>
           <textarea
@@ -206,11 +195,22 @@ export function searchImportSheetMarkup({
             <button type="button" class="detail-action-button settings-button" data-search-action="preview-pasted-text">貼り付け内容を読む</button>
           </div>
         </div>
-        <label class="dropzone" data-dropzone="aozora-zip" role="button" tabindex="0">
-          <span class="dropzone-title">ZIP または TXT を選ぶ</span>
-          <span class="dropzone-text">クリックまたはタップ。ドラッグ&ドロップでも追加できます。</span>
-          <input type="file" class="settings-file-input" accept=".zip,.txt,text/plain,application/zip" data-search-input="aozora-file">
-        </label>
+        <div class="panel-stack">
+          <label class="settings-label" for="remote-import-url">TXT 公開URL</label>
+          <input
+            id="remote-import-url"
+            type="url"
+            class="search-input"
+            value="${remoteImportUrl}"
+            placeholder="https:// ではじまる TXT URL を入力"
+            inputmode="url"
+            data-search-input="remote-import-url"
+          >
+          <div class="settings-button-grid">
+            <button type="button" class="detail-action-button settings-button" data-search-action="load-remote-import-url">URLのTXTを読む</button>
+          </div>
+          ${remoteImportStatusHtml}
+        </div>
         <div class="panel-stack">
           <label class="settings-label" for="converter-base-url">PCのURL</label>
           <input
