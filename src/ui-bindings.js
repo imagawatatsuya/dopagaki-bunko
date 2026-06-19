@@ -142,7 +142,6 @@ export function bindLibraryWorkActions(root, onDeleteWork) {
 
 export function bindSearchInteractions(root, { onSelectFile, onDropFile, onAction }) {
   const input = root.querySelector('[data-search-input="aozora-file"]');
-  const qrImageInput = root.querySelector('[data-search-input="qr-image"]');
   const catalogQueryInput = root.querySelector('[data-search-input="catalog-query"]');
   const remoteImportUrlInput = root.querySelector('[data-search-input="remote-import-url"]');
   const importTextInput = root.querySelector('[data-search-input="import-text"]');
@@ -152,38 +151,6 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
   if (input) {
     input.addEventListener('change', async (event) => {
       await onSelectFile(event.target.files?.[0] ?? null);
-      event.target.value = '';
-    });
-  }
-
-  if (qrImageInput) {
-    qrImageInput.addEventListener('change', async (event) => {
-      const file = event.target.files?.[0] ?? null;
-      if (file) {
-        if (typeof globalThis.BarcodeDetector !== 'function') {
-          await onAction('qr-image-unsupported');
-        } else {
-          try {
-            const detector = new globalThis.BarcodeDetector({ formats: ['qr_code'] });
-            const bitmap = await createImageBitmap(file);
-            try {
-              const results = await detector.detect(bitmap);
-              const qrText = String(results?.[0]?.rawValue ?? '').trim();
-              if (!qrText) {
-                await onAction('qr-image-no-result');
-              } else {
-                await onAction('open-qr-import-link', { qrText });
-              }
-            } finally {
-              bitmap.close();
-            }
-          } catch (error) {
-            await onAction('qr-image-error', {
-              errorMessage: error?.message ?? 'QRコードを読み取れませんでした。'
-            });
-          }
-        }
-      }
       event.target.value = '';
     });
   }
@@ -226,10 +193,6 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
 
   root.querySelectorAll('[data-search-action]').forEach((button) => {
     button.addEventListener('click', async () => {
-      if (button.dataset.searchAction === 'pick-qr-image') {
-        qrImageInput?.click();
-        return;
-      }
       await onAction(button.dataset.searchAction, {
         query: catalogQueryInput?.value ?? '',
         remoteImportUrl: remoteImportUrlInput ? remoteImportUrlInput.value : undefined,

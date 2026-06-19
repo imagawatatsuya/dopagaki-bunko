@@ -178,21 +178,6 @@ export function searchImportSheetMarkup({
           <button type="button" class="detail-action-button bottom-sheet-close" data-search-action="close-import-sheet">閉じる</button>
         </div>
         <div class="panel-stack">
-          <label class="settings-label" for="qr-import-image">QRコード</label>
-          <div class="settings-button-grid">
-            <button type="button" class="detail-action-button settings-button" data-search-action="pick-qr-image">QRをカメラで読む</button>
-          </div>
-          <p class="settings-status settings-status-subtle import-help-text">iPhoneのカメラから QR を読み、PC上の中継ページを同じタブで開いてプレビューへ進みます。</p>
-          <input
-            id="qr-import-image"
-            type="file"
-            class="settings-file-input"
-            accept="image/*"
-            capture="environment"
-            data-search-input="qr-image"
-          >
-        </div>
-        <div class="panel-stack">
           <label class="settings-label" for="remote-import-url">TXT 公開URL</label>
           <input
             id="remote-import-url"

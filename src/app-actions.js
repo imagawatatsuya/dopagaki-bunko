@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620042258';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620042258';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620042934';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620042934';
 
 export function createBookmarkActions({
   state,
@@ -774,61 +774,6 @@ export function createSearchActions({
       } catch (error) {
         state.importWorkNoticeTone = '';
         state.importWorkStatus = `PCの中継ページを開けませんでした: ${error?.message ?? '不明なエラー'}`;
-        renderSearch();
-      }
-      return;
-    }
-
-    if (action === 'pick-qr-image') {
-      state.importWorkNoticeTone = '';
-      state.importWorkStatus = 'カメラを開いて QR を読み取ってください。';
-      renderSearch();
-      return;
-    }
-
-    if (action === 'qr-image-unsupported') {
-      state.importWorkNoticeTone = '';
-      state.importWorkStatus = 'このブラウザではアプリ内QR読取に対応していません。Safari を更新するか、別の取り込み方法を使ってください。';
-      renderSearch();
-      return;
-    }
-
-    if (action === 'qr-image-no-result') {
-      state.importWorkNoticeTone = '';
-      state.importWorkStatus = 'QRコードを読み取れませんでした。画面内に大きく表示して、もう一度お試しください。';
-      renderSearch();
-      return;
-    }
-
-    if (action === 'qr-image-error') {
-      state.importWorkNoticeTone = '';
-      state.importWorkStatus = `QRコードの読み取りに失敗しました: ${payload.errorMessage ?? '不明なエラー'}`;
-      renderSearch();
-      return;
-    }
-
-    if (action === 'open-qr-import-link') {
-      try {
-        const qrText = String(payload.qrText ?? '').trim();
-        if (!qrText) {
-          throw new Error('QRコードの内容が空です。');
-        }
-
-        const scannedUrl = new URL(qrText, globalThis.location?.href ?? 'http://localhost/');
-        let targetUrl = scannedUrl.toString();
-        if (scannedUrl.pathname.endsWith('/latest.txt')) {
-          targetUrl = buildBridgeImportUrl(targetUrl);
-        }
-        state.importWorkNoticeTone = '';
-        state.importWorkStatus = 'QRコードから PC の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
-        renderSearch();
-        const openedWindow = globalThis.window.open(targetUrl, '_blank');
-        if (!openedWindow) {
-          globalThis.location.assign(targetUrl);
-        }
-      } catch (error) {
-        state.importWorkNoticeTone = '';
-        state.importWorkStatus = `QRコードのURLを開けませんでした: ${error?.message ?? '不明なエラー'}`;
         renderSearch();
       }
       return;

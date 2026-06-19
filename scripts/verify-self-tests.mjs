@@ -240,8 +240,6 @@ test('search import sheet exposes url, paste, file, and pc import paths together
   });
 
   assert.match(markup, /TXT 公開URL/u);
-  assert.match(markup, /QRをカメラで読む/u);
-  assert.match(markup, /PC上の中継ページ/u);
   assert.match(markup, /https:\/\/example\.com\/work\.txt/u);
   assert.match(markup, /URLのTXTを読む/u);
   assert.match(markup, /TXT を貼り付ける/u);

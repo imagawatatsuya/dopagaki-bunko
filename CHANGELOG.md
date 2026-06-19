@@ -4,7 +4,6 @@
 
 - Changed GitHub Pages import flows so `TXT 公開URL` and `PCの最新作を読む` no longer pre-block `http://192.168...` LAN fetches, now trying the request first and showing a practical Wi-Fi / firewall / local-network-permission checklist when the browser blocks or the PC server is unavailable.
 - Added a QR bridge import path that lets the local converter serve `latest.txt`, load it on the LAN helper page, and pass the full text into GitHub Pages `dopagaki-bunko` through `window.name`, reaching the import preview without manual paste.
-- Added an in-app `QRをカメラで読む` path on the import sheet so `dopagaki-bunko` can launch the phone camera, decode the local converter QR, and open the LAN helper page from the current app context instead of relying on the OS camera app to hand off correctly.
 - Changed `#/search` Aozora results so eligible official ZIP URLs open directly from a dedicated button, while copyrighted or invalid ZIP cases fall back to a smaller `図書カードを見る` link and the shared `作品を取り込む` flow.
 - Documented the current Aozora search-result ordering rules, including exact-author priority, same-work kana preference, and title-length tie-break behavior.
 - Added MB-only wording for the bundled Aozora catalog compression comparison, documenting the shift from about `12 MB` to about `0.69 MB`.
