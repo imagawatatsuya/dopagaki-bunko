@@ -141,8 +141,11 @@ export function bindLibraryWorkActions(root, onDeleteWork) {
 }
 
 export function bindSearchInteractions(root, { onSelectFile, onDropFile, onAction }) {
-  const input = root.querySelector('[data-search-input="aozora-zip"]');
+  const input = root.querySelector('[data-search-input="aozora-file"]');
   const catalogQueryInput = root.querySelector('[data-search-input="catalog-query"]');
+  const remoteImportUrlInput = root.querySelector('[data-search-input="remote-import-url"]');
+  const importTextInput = root.querySelector('[data-search-input="import-text"]');
+  const converterBaseUrlInput = root.querySelector('[data-search-input="converter-base-url"]');
   const dropzone = root.querySelector('[data-dropzone="aozora-zip"]');
 
   if (input) {
@@ -191,7 +194,10 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
   root.querySelectorAll('[data-search-action]').forEach((button) => {
     button.addEventListener('click', async () => {
       await onAction(button.dataset.searchAction, {
-        query: catalogQueryInput?.value ?? ''
+        query: catalogQueryInput?.value ?? '',
+        remoteImportUrl: remoteImportUrlInput ? remoteImportUrlInput.value : undefined,
+        pastedText: importTextInput ? importTextInput.value : undefined,
+        baseUrl: converterBaseUrlInput ? converterBaseUrlInput.value : undefined
       });
     });
   });

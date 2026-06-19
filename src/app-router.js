@@ -1,9 +1,10 @@
-import { parseHashRoute } from './router.js?v=20260619034024';
+import { parseHashRoute, parseSearchRouteIntent } from './router.js?v=20260620000737';
 
 export function createAppRouter({
   getRenderers,
   scrollToPageTop,
-  ensureAozoraCatalogReady
+  ensureAozoraCatalogReady,
+  applySearchRouteIntent
 }) {
   return function route() {
     const hash = location.hash || '#/';
@@ -41,6 +42,7 @@ export function createAppRouter({
         });
         break;
       case '#/search':
+        applySearchRouteIntent(parseSearchRouteIntent(hash));
         scrollToPageTop();
         renderers.renderSearch();
         void ensureAozoraCatalogReady();

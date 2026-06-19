@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260619034024';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260620000737';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,13 +6,13 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260619034024';
+} from './views.js?v=20260620000737';
 
 export function createSearchSettingsRenderers({
   app,
   state,
   renderLayout,
-  handleAozoraZipFile,
+  handleAozoraImportFile,
   handleSearchAction,
   handleSettingsAction,
   handleImportFileSelection,
@@ -86,6 +86,9 @@ export function createSearchSettingsRenderers({
     );
     const importSheetMarkup = searchImportSheetMarkup({
       isOpen: state.importSheetOpen,
+      remoteImportUrl: escapeHtml(state.remoteImportUrl),
+      importTextDraft: escapeHtml(state.importTextDraft),
+      converterBaseUrl: escapeHtml(state.converterBaseUrl),
       importStatusHtml: state.importWorkStatus ? `<p class="settings-status">${escapeHtml(state.importWorkStatus)}</p>` : ''
     });
     const importNoticeHtml = state.importWorkNoticeTone === 'success' && state.importWorkStatus
@@ -100,11 +103,14 @@ export function createSearchSettingsRenderers({
     renderLayout({
       current: 'search',
       title: '作品を追加',
-      subtitle: '青空文庫で作品を探し、保存したZIPをここへ追加できます。',
+      subtitle: '青空文庫で作品を探し、公開TXT URL、貼り付けTXT、ZIP/TXT、同一Wi-Fi上のPCから追加できます。',
       body: searchBodyMarkup({
         importNoticeHtml,
         catalogQuery: escapeHtml(state.aozoraCatalogQuery),
         searchScope: state.searchScope,
+        remoteImportUrl: escapeHtml(state.remoteImportUrl),
+        importTextDraft: escapeHtml(state.importTextDraft),
+        converterBaseUrl: escapeHtml(state.converterBaseUrl),
         catalogStatusHtml: state.aozoraCatalogStatus ? `<p class="settings-status">${escapeHtml(state.aozoraCatalogStatus)}</p>` : '',
         catalogMetaHtml,
         catalogResultsMarkup,
@@ -114,8 +120,8 @@ export function createSearchSettingsRenderers({
     });
 
     bindSearchInteractions(app, {
-      onSelectFile: handleAozoraZipFile,
-      onDropFile: handleAozoraZipFile,
+      onSelectFile: handleAozoraImportFile,
+      onDropFile: handleAozoraImportFile,
       onAction: async (action, payload) => {
         await handleSearchAction(action, payload);
       }

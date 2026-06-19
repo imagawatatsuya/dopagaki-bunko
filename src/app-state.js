@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260619034024';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620000737';
 
 export function createInitialAppState() {
   return {
@@ -25,6 +25,9 @@ export function createInitialAppState() {
     aozoraCatalogResults: [],
     aozoraCatalogVisibleCount: SEARCH_RESULTS_BATCH_SIZE,
     searchScope: 'aozora',
+    remoteImportUrl: '',
+    importTextDraft: '',
+    converterBaseUrl: '',
     workLoadMode: 'auto',
     readerFontScale: 1,
     libraryWorkActionsCleanup: null,

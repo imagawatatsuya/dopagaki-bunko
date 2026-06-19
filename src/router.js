@@ -7,6 +7,25 @@ export function parseHashRoute(hash) {
   };
 }
 
+export function parseSearchRouteIntent(hash) {
+  const routeState = parseHashRoute(hash);
+  if (routeState.path !== '#/search') {
+    return {
+      path: routeState.path,
+      params: routeState.params,
+      shouldOpenImportSheet: false,
+      remoteImportUrl: ''
+    };
+  }
+
+  return {
+    path: routeState.path,
+    params: routeState.params,
+    shouldOpenImportSheet: routeState.params.has('remoteImportUrl'),
+    remoteImportUrl: routeState.params.get('remoteImportUrl') || ''
+  };
+}
+
 export function buildWorkHash(workId, options = {}) {
   const params = new URLSearchParams();
   if (options.visible && Number.isFinite(options.visible)) {

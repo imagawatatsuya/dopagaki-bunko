@@ -90,6 +90,9 @@ export function searchBodyMarkup({
   importNoticeHtml = '',
   catalogQuery = '',
   searchScope = 'aozora',
+  remoteImportUrl = '',
+  importTextDraft = '',
+  converterBaseUrl = '',
   catalogStatusHtml = '',
   catalogMetaHtml = '',
   catalogResultsMarkup = '',
@@ -102,7 +105,7 @@ export function searchBodyMarkup({
       ${importNoticeHtml}
       <article class="info-panel">
         <h2 class="section-title">青空文庫から検索</h2>
-        <p class="section-text">同梱の作品一覧から作品名や著者名で探せます。項目を開いて図書カードへ進み、ZIPを保存してZIP取り込みから追加してください。</p>
+        <p class="section-text">同梱の作品一覧から作品名や著者名で探せます。項目を開いて図書カードへ進み、公開 TXT URL、貼り付け TXT、保存した ZIP/TXT、または同一Wi-Fi上のPCから追加できます。</p>
         <div class="search-toolbar">
           <input
             type="search"
@@ -142,34 +145,84 @@ export function searchBodyMarkup({
       ${previewMarkup}
     </section>
     <div class="search-import-fab-wrap">
-      <button type="button" class="detail-action-button search-import-fab" data-search-action="open-import-sheet">ZIP取り込み</button>
+      <button type="button" class="detail-action-button search-import-fab" data-search-action="open-import-sheet">作品を取り込む</button>
     </div>
     ${importSheetMarkup}
   `;
 }
 
-export function searchImportSheetMarkup({ isOpen = false, importStatusHtml = '' }) {
+export function searchImportSheetMarkup({
+  isOpen = false,
+  importStatusHtml = '',
+  remoteImportUrl = '',
+  importTextDraft = '',
+  converterBaseUrl = ''
+}) {
   if (!isOpen) {
     return '';
   }
 
   return `
     <div class="sheet-backdrop" data-search-action="close-import-sheet" aria-hidden="true"></div>
-    <section class="bottom-sheet" aria-label="ZIP取り込み">
+    <section class="bottom-sheet" aria-label="作品取り込み">
       <div class="bottom-sheet-handle" aria-hidden="true"></div>
       <div class="bottom-sheet-body">
         <div class="bottom-sheet-header">
           <div>
-            <h2 class="section-title">ZIPを追加</h2>
-            <p class="section-text">青空文庫で保存した作品ZIPを読み込み、保存前に本文を確認します。</p>
+            <h2 class="section-title">作品を追加</h2>
+            <p class="section-text">公開 TXT URL、貼り付け TXT、手元の ZIP/TXT、または同一Wi-Fi上のPCが公開している最新 TXT を読み込み、保存前に本文を確認します。</p>
           </div>
           <button type="button" class="detail-action-button bottom-sheet-close" data-search-action="close-import-sheet">閉じる</button>
         </div>
+        <div class="panel-stack">
+          <label class="settings-label" for="remote-import-url">TXT 公開URL</label>
+          <input
+            id="remote-import-url"
+            type="url"
+            class="search-input"
+            value="${remoteImportUrl}"
+            placeholder="https://example.com/work.txt"
+            inputmode="url"
+            data-search-input="remote-import-url"
+          >
+          <div class="settings-button-grid">
+            <button type="button" class="detail-action-button settings-button" data-search-action="load-remote-import-url">URLのTXTを読む</button>
+          </div>
+        </div>
+        <div class="panel-stack">
+          <label class="settings-label" for="import-text">TXT を貼り付ける</label>
+          <textarea
+            id="import-text"
+            class="search-input import-textarea"
+            rows="8"
+            placeholder="ここに青空文庫の TXT 本文を貼り付けます。"
+            data-search-input="import-text"
+          >${importTextDraft}</textarea>
+          <div class="settings-button-grid">
+            <button type="button" class="detail-action-button settings-button" data-search-action="preview-pasted-text">貼り付け内容を読む</button>
+          </div>
+        </div>
         <label class="dropzone" data-dropzone="aozora-zip" role="button" tabindex="0">
-          <span class="dropzone-title">ZIPファイルを選ぶ</span>
+          <span class="dropzone-title">ZIP または TXT を選ぶ</span>
           <span class="dropzone-text">クリックまたはタップ。ドラッグ&ドロップでも追加できます。</span>
-          <input type="file" class="settings-file-input" accept=".zip,application/zip" data-search-input="aozora-zip">
+          <input type="file" class="settings-file-input" accept=".zip,.txt,text/plain,application/zip" data-search-input="aozora-file">
         </label>
+        <div class="panel-stack">
+          <label class="settings-label" for="converter-base-url">PCのURL</label>
+          <input
+            id="converter-base-url"
+            type="url"
+            class="search-input"
+            value="${converterBaseUrl}"
+            placeholder="http://192.168.0.10:8765"
+            inputmode="url"
+            data-search-input="converter-base-url"
+          >
+          <div class="settings-button-grid">
+            <button type="button" class="detail-action-button settings-button" data-search-action="load-converter-latest">PCの最新作を読む</button>
+          </div>
+          <p class="settings-status settings-status-subtle import-help-text">GitHub Pages の <code>https://</code> 版からは通常 <code>http://</code> のPCへ直接取り込みできません。PC側で <code>http://&lt;PCのIP&gt;:8000/</code> を開く運用か、PC側を <code>https://</code> で配信してください。</p>
+        </div>
         ${importStatusHtml}
       </div>
     </section>

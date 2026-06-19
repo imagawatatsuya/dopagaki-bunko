@@ -1,12 +1,12 @@
 import {
   errorBodyMarkup,
   loadingBodyMarkup
-} from './views.js?v=20260619034024';
-import { createRendererHelpers } from './renderer-shared.js?v=20260619034024';
-import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260619034024';
-import { createLibraryRenderers } from './screen-renderers-library.js?v=20260619034024';
-import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260619034024';
-import { createWorkRenderers } from './screen-renderers-work.js?v=20260619034024';
+} from './views.js?v=20260620000737';
+import { createRendererHelpers } from './renderer-shared.js?v=20260620000737';
+import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260620000737';
+import { createLibraryRenderers } from './screen-renderers-library.js?v=20260620000737';
+import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260620000737';
+import { createWorkRenderers } from './screen-renderers-work.js?v=20260620000737';
 
 export function createScreenRenderers({
   app,
@@ -15,7 +15,7 @@ export function createScreenRenderers({
   route,
   ensureWorkMarkedReading,
   deleteWorkCascade,
-  handleAozoraZipFile,
+  handleAozoraImportFile,
   handleCollectionAction,
   handleDetailAction,
   handleImportFileSelection,
@@ -101,7 +101,7 @@ export function createScreenRenderers({
     app,
     state,
     renderLayout,
-    handleAozoraZipFile,
+    handleAozoraImportFile,
     handleSearchAction,
     handleSettingsAction,
     handleImportFileSelection,

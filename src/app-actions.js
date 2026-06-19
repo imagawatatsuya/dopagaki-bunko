@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260619034024';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620000737';
 
 export function createBookmarkActions({
   state,
@@ -47,6 +47,12 @@ export function createSearchActions({
   derivePreviewFromText,
   searchAozoraCatalog,
   searchWorkRecords,
+  remoteImportUrlSettingId,
+  converterBaseUrlSettingId,
+  normalizeConverterBaseUrl,
+  buildConverterLatestManifestUrl,
+  resolveConverterTextUrl,
+  isMixedContentBlocked,
   AOZORA_CATALOG_META_ID,
   AOZORA_CATALOG_ASSET_PATH,
   getAllRecords,
@@ -115,6 +121,24 @@ export function createSearchActions({
     state.importPreview = null;
   }
 
+  async function saveConverterBaseUrl(baseUrl) {
+    state.converterBaseUrl = normalizeConverterBaseUrl(baseUrl);
+    await putRecord('settings', {
+      id: converterBaseUrlSettingId,
+      value: state.converterBaseUrl,
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  async function saveRemoteImportUrl(url) {
+    state.remoteImportUrl = String(url ?? '').trim();
+    await putRecord('settings', {
+      id: remoteImportUrlSettingId,
+      value: state.remoteImportUrl,
+      updatedAt: new Date().toISOString()
+    });
+  }
+
   function scrollSearchPreviewIntoView() {
     scrollElementIntoView('[data-search-preview]');
   }
@@ -151,6 +175,62 @@ export function createSearchActions({
     return new Response(stream).json();
   }
 
+  function buildPreviewFromDecodedText(decoded, sourceMeta = {}) {
+    const preview = derivePreviewFromText(decoded.text, decoded.encoding);
+    return buildPreviewFromText(preview, sourceMeta);
+  }
+
+  function buildPreviewFromText(preview, sourceMeta = {}) {
+    if (!preview.fragments?.some((fragment) => fragment.type === 'fragment')) {
+      throw new Error('断片を作れませんでした。');
+    }
+
+    return {
+      ...preview,
+      sourceType: String(sourceMeta.sourceType ?? 'text-upload'),
+      sourceUrl: String(sourceMeta.sourceUrl ?? sourceMeta.cardUrl ?? ''),
+      sourceFileName: String(sourceMeta.sourceFileName ?? ''),
+      aozoraWorkId: String(sourceMeta.aozoraWorkId ?? ''),
+      textZipUrl: String(sourceMeta.textZipUrl ?? ''),
+      cardUrl: String(sourceMeta.cardUrl ?? ''),
+      copyrightWarning: Boolean(sourceMeta.copyrightWarning)
+    };
+  }
+
+  async function handleImportedPreview(preview, sourceMeta, sourceLabel) {
+    state.importSheetOpen = true;
+    state.importWorkNoticeTone = '';
+    state.importWorkStatus = `${sourceLabel} を読み込んでいます。`;
+    resetImportPreview();
+    renderSearch();
+
+    try {
+      state.importPreview = buildPreviewFromText(preview, sourceMeta);
+      state.importSheetOpen = false;
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = `${sourceLabel} を読み込みました。保存前に内容を確認してください。`;
+    } catch (error) {
+      console.error(error);
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = `${sourceLabel} の取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
+    }
+
+    renderSearch();
+    if (state.importPreview) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollSearchPreviewIntoView();
+        });
+      });
+    }
+  }
+
+  async function handleAozoraTextArrayBuffer(arrayBuffer, sourceMeta = {}) {
+    const sourceLabel = String(sourceMeta.sourceLabel ?? sourceMeta.sourceFileName ?? 'TXT');
+    const decoded = decodeAozoraText(arrayBuffer);
+    await handleImportedPreview(derivePreviewFromText(decoded.text, decoded.encoding), sourceMeta, sourceLabel);
+  }
+
   async function handleAozoraZipArrayBuffer(arrayBuffer, sourceMeta = {}) {
     const sourceLabel = String(sourceMeta.sourceLabel ?? 'ZIP');
     state.importSheetOpen = true;
@@ -162,20 +242,11 @@ export function createSearchActions({
     try {
       const extracted = await extractAozoraTxtFromZip(arrayBuffer);
       const decoded = decodeAozoraText(extracted.bytes);
-      const preview = derivePreviewFromText(decoded.text, decoded.encoding);
-      if (!preview.fragments?.some((fragment) => fragment.type === 'fragment')) {
-        throw new Error('断片を作れませんでした。');
-      }
-      state.importPreview = {
-        ...preview,
+      state.importPreview = buildPreviewFromDecodedText(decoded, {
+        ...sourceMeta,
         sourceType: String(sourceMeta.sourceType ?? 'zip-upload'),
-        sourceUrl: String(sourceMeta.sourceUrl ?? sourceMeta.cardUrl ?? ''),
-        sourceFileName: String(sourceMeta.sourceFileName ?? extracted.fileName),
-        aozoraWorkId: String(sourceMeta.aozoraWorkId ?? ''),
-        textZipUrl: String(sourceMeta.textZipUrl ?? ''),
-        cardUrl: String(sourceMeta.cardUrl ?? ''),
-        copyrightWarning: Boolean(sourceMeta.copyrightWarning)
-      };
+        sourceFileName: String(sourceMeta.sourceFileName ?? extracted.fileName)
+      });
       state.importSheetOpen = false;
       state.importWorkNoticeTone = '';
       state.importWorkStatus = `${extracted.fileName} を読み込みました。保存前に内容を確認してください。`;
@@ -264,29 +335,178 @@ export function createSearchActions({
     await loadStateFromDb();
     resetCatalogSearchSession();
     state.importWorkNoticeTone = 'success';
-    state.importWorkStatus = `${state.importPreview.title} を保存しました。別の作品を探すか、ZIPを追加してください。`;
+    state.importWorkStatus = `${state.importPreview.title} を保存しました。別の作品を探すか、別のファイルを追加してください。`;
     state.importPreview = null;
     state.importSheetOpen = false;
   }
 
-  async function handleAozoraZipFile(file) {
+  async function handleAozoraImportFile(file) {
     if (!file) {
       return;
     }
 
     try {
       const arrayBuffer = await readFileAsArrayBuffer(file);
-      await handleAozoraZipArrayBuffer(arrayBuffer, {
-        sourceType: 'zip-upload',
-        sourceLabel: file.name || 'ZIP',
+      const lowerName = String(file.name ?? '').toLowerCase();
+      if (lowerName.endsWith('.zip') || file.type === 'application/zip') {
+        await handleAozoraZipArrayBuffer(arrayBuffer, {
+          sourceType: 'zip-upload',
+          sourceLabel: file.name || 'ZIP',
+          sourceFileName: file.name || ''
+        });
+        return;
+      }
+
+      await handleAozoraTextArrayBuffer(arrayBuffer, {
+        sourceType: 'text-upload',
+        sourceLabel: file.name || 'TXT',
         sourceFileName: file.name || ''
       });
     } catch (error) {
       console.error(error);
       state.importWorkNoticeTone = '';
-      state.importWorkStatus = `ZIP 取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
+      state.importWorkStatus = `ファイル取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
       renderSearch();
     }
+  }
+
+  async function loadLatestConverterText(baseUrl) {
+    const normalizedBaseUrl = normalizeConverterBaseUrl(baseUrl);
+    if (!normalizedBaseUrl) {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = 'PCのURLを入力してください。';
+      renderSearch();
+      return;
+    }
+
+    const manifestUrl = buildConverterLatestManifestUrl(normalizedBaseUrl);
+    if (isMixedContentBlocked(globalThis.location?.href ?? '', manifestUrl)) {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = 'https 版のドパガキ文庫から http のPCへは直接取り込みできません。PC上で http 版を開くか、PC側を https で配信してください。';
+      renderSearch();
+      return;
+    }
+
+    state.importSheetOpen = true;
+    state.importWorkNoticeTone = '';
+    state.importWorkStatus = 'PCの最新作を読み込んでいます。';
+    resetImportPreview();
+    renderSearch();
+
+    try {
+      await saveConverterBaseUrl(normalizedBaseUrl);
+      const manifestResponse = await fetch(`${manifestUrl}?ts=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      if (!manifestResponse.ok) {
+        throw new Error(`latest.json の取得に失敗しました: HTTP ${manifestResponse.status}`);
+      }
+
+      const manifest = await manifestResponse.json();
+      const textUrl = resolveConverterTextUrl(manifestUrl, manifest);
+      if (isMixedContentBlocked(globalThis.location?.href ?? '', textUrl)) {
+        throw new Error('https 版のドパガキ文庫から http のTXTへは直接取り込みできません。');
+      }
+
+      const textResponse = await fetch(`${textUrl}${textUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      if (!textResponse.ok) {
+        throw new Error(`TXT の取得に失敗しました: HTTP ${textResponse.status}`);
+      }
+
+      const bytes = await textResponse.arrayBuffer();
+      await handleAozoraTextArrayBuffer(bytes, {
+        sourceType: 'converter-latest',
+        sourceLabel: String(manifest.title ?? manifest.sourceFileName ?? 'PCの最新作'),
+        sourceFileName: String(manifest.sourceFileName ?? ''),
+        sourceUrl: String(manifest.sourceUrl ?? textUrl),
+        textZipUrl: String(manifest.latestZipPath ?? manifest.zipPath ?? ''),
+        cardUrl: String(manifest.sourceUrl ?? '')
+      });
+    } catch (error) {
+      console.error(error);
+      state.importSheetOpen = true;
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = `PC取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
+      renderSearch();
+    }
+  }
+
+  async function loadRemoteImportUrl(url) {
+    state.remoteImportUrl = String(url ?? '').trim();
+    if (!state.remoteImportUrl) {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = 'TXT 公開URLを入力してください。';
+      renderSearch();
+      return;
+    }
+
+    let remoteUrl;
+    try {
+      remoteUrl = new URL(state.remoteImportUrl, globalThis.location?.href ?? 'http://localhost/').toString();
+    } catch (error) {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = `TXT 公開URLが不正です: ${error?.message ?? 'URL を解釈できません。'}`;
+      renderSearch();
+      return;
+    }
+
+    if (isMixedContentBlocked(globalThis.location?.href ?? '', remoteUrl)) {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = 'https 版のドパガキ文庫から http のTXT URLは直接取り込めません。https の公開URLを使うか、PC上で http 版を開いてください。';
+      renderSearch();
+      return;
+    }
+
+    state.importSheetOpen = true;
+    state.importWorkNoticeTone = '';
+    state.importWorkStatus = 'TXT 公開URLから読み込んでいます。';
+    resetImportPreview();
+    renderSearch();
+
+    try {
+      await saveRemoteImportUrl(remoteUrl);
+      const response = await fetch(`${remoteUrl}${remoteUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const bytes = await response.arrayBuffer();
+      await handleAozoraTextArrayBuffer(bytes, {
+        sourceType: 'remote-url',
+        sourceLabel: '公開TXT',
+        sourceUrl: remoteUrl,
+        sourceFileName: remoteUrl.split('/').pop() ?? ''
+      });
+    } catch (error) {
+      console.error(error);
+      state.importSheetOpen = true;
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = `TXT 公開URLの取り込みに失敗しました: ${error?.message ?? '不明なエラー'}`;
+      renderSearch();
+    }
+  }
+
+  async function previewPastedText(text) {
+    state.importTextDraft = String(text ?? '');
+    if (!state.importTextDraft.trim()) {
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = '貼り付ける TXT を入力してください。';
+      renderSearch();
+      return;
+    }
+
+    await handleImportedPreview(
+      derivePreviewFromText(state.importTextDraft, 'pasted-text'),
+      {
+        sourceType: 'pasted-text',
+        sourceLabel: '貼り付けTXT'
+      },
+      '貼り付けTXT'
+    );
   }
 
   async function refreshAozoraCatalog(options = {}) {
@@ -383,6 +603,13 @@ export function createSearchActions({
   }
 
   async function handleSearchAction(action, payload = {}) {
+    if (payload.remoteImportUrl !== undefined) {
+      state.remoteImportUrl = String(payload.remoteImportUrl ?? '').trim();
+    }
+    if (payload.pastedText !== undefined) {
+      state.importTextDraft = String(payload.pastedText ?? '');
+    }
+
     if (action === 'open-import-sheet') {
       state.importWorkNoticeTone = '';
       state.importSheetOpen = true;
@@ -398,6 +625,21 @@ export function createSearchActions({
 
     if (action === 'refresh-aozora-catalog') {
       await refreshAozoraCatalog();
+      return;
+    }
+
+    if (action === 'load-remote-import-url') {
+      await loadRemoteImportUrl(payload.remoteImportUrl ?? state.remoteImportUrl);
+      return;
+    }
+
+    if (action === 'preview-pasted-text') {
+      await previewPastedText(payload.pastedText ?? state.importTextDraft);
+      return;
+    }
+
+    if (action === 'load-converter-latest') {
+      await loadLatestConverterText(payload.baseUrl ?? state.converterBaseUrl);
       return;
     }
 
@@ -455,10 +697,24 @@ export function createSearchActions({
     }
   }
 
+  function applySearchRouteIntent(payload = {}) {
+    const remoteImportUrl = String(payload.remoteImportUrl ?? '').trim();
+    if (!payload.shouldOpenImportSheet && !remoteImportUrl) {
+      return false;
+    }
+
+    state.importSheetOpen = Boolean(payload.shouldOpenImportSheet);
+    if (remoteImportUrl) {
+      state.remoteImportUrl = remoteImportUrl;
+    }
+    return true;
+  }
+
   return {
+    applySearchRouteIntent,
     ensureAozoraCatalogReady,
+    handleAozoraImportFile,
     handleAozoraZipArrayBuffer,
-    handleAozoraZipFile,
     handleSearchAction,
     initializeAozoraCatalogState
   };

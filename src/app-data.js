@@ -6,10 +6,18 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260619034024';
+} from './state.js?v=20260620000737';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
+}
+
+function normalizeConverterBaseUrl(value) {
+  return String(value ?? '').trim();
+}
+
+function normalizeRemoteImportUrl(value) {
+  return String(value ?? '').trim();
 }
 
 export function createAppData({
@@ -17,6 +25,8 @@ export function createAppData({
   allStoreNames,
   searchResultsBatchSize,
   workLoadModeSettingId,
+  converterBaseUrlSettingId,
+  remoteImportUrlSettingId,
   canonicalizeBookmarkRecords,
   clearStore,
   deleteRecord,
@@ -82,6 +92,10 @@ export function createAppData({
     state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
     const workLoadModeSetting = await getRecord('settings', workLoadModeSettingId);
     state.workLoadMode = normalizeWorkLoadMode(workLoadModeSetting?.value);
+    const remoteImportUrlSetting = await getRecord('settings', remoteImportUrlSettingId);
+    state.remoteImportUrl = normalizeRemoteImportUrl(remoteImportUrlSetting?.value);
+    const converterBaseUrlSetting = await getRecord('settings', converterBaseUrlSettingId);
+    state.converterBaseUrl = normalizeConverterBaseUrl(converterBaseUrlSetting?.value);
   }
 
   async function deleteWorkCascade(workId) {
@@ -114,6 +128,9 @@ export function createAppData({
     state.aozoraCatalogResults = [];
     state.aozoraCatalogVisibleCount = searchResultsBatchSize;
     state.searchScope = 'aozora';
+    state.remoteImportUrl = '';
+    state.importTextDraft = '';
+    state.converterBaseUrl = '';
     state.importSheetOpen = false;
   }
 
