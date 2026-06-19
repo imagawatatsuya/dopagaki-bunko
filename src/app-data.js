@@ -6,7 +6,7 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260620050626';
+} from './state.js?v=20260620051325';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
@@ -16,17 +16,12 @@ function normalizeConverterBaseUrl(value) {
   return String(value ?? '').trim();
 }
 
-function normalizeRemoteImportUrl(value) {
-  return String(value ?? '').trim();
-}
-
 export function createAppData({
   state,
   allStoreNames,
   searchResultsBatchSize,
   workLoadModeSettingId,
   converterBaseUrlSettingId,
-  remoteImportUrlSettingId,
   canonicalizeBookmarkRecords,
   clearStore,
   deleteRecord,
@@ -92,8 +87,6 @@ export function createAppData({
     state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
     const workLoadModeSetting = await getRecord('settings', workLoadModeSettingId);
     state.workLoadMode = normalizeWorkLoadMode(workLoadModeSetting?.value);
-    const remoteImportUrlSetting = await getRecord('settings', remoteImportUrlSettingId);
-    state.remoteImportUrl = normalizeRemoteImportUrl(remoteImportUrlSetting?.value);
     const converterBaseUrlSetting = await getRecord('settings', converterBaseUrlSettingId);
     state.converterBaseUrl = normalizeConverterBaseUrl(converterBaseUrlSetting?.value);
   }

@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620050626';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620050626';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620051325';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620051325';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -199,7 +199,6 @@ export function createSearchActions({
   derivePreviewFromText,
   searchAozoraCatalog,
   searchWorkRecords,
-  remoteImportUrlSettingId,
   converterBaseUrlSettingId,
   normalizeConverterBaseUrl,
   buildConverterLatestManifestUrl,
@@ -258,7 +257,6 @@ export function createSearchActions({
     state.importSheetOpen = true;
     state.importWorkNoticeTone = '';
     state.importWorkStatus = 'PC上のTXTを受け取っています。';
-    state.remoteImportUrl = String(payload.sourceUrl ?? state.remoteImportUrl ?? '').trim();
     state.importTextDraft = text;
 
     await handleImportedPreview(
@@ -396,15 +394,6 @@ export function createSearchActions({
     await putRecord('settings', {
       id: converterBaseUrlSettingId,
       value: state.converterBaseUrl,
-      updatedAt: new Date().toISOString()
-    });
-  }
-
-  async function saveRemoteImportUrl(url) {
-    state.remoteImportUrl = String(url ?? '').trim();
-    await putRecord('settings', {
-      id: remoteImportUrlSettingId,
-      value: state.remoteImportUrl,
       updatedAt: new Date().toISOString()
     });
   }
@@ -710,7 +699,6 @@ export function createSearchActions({
     renderSearch();
 
     try {
-      await saveRemoteImportUrl(remoteUrl);
       const response = await fetch(`${remoteUrl}${remoteUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
         method: 'GET',
         credentials: 'omit',
@@ -991,7 +979,6 @@ export function createSearchActions({
         state.importSheetOpen = true;
         state.importWorkNoticeTone = '';
         state.importWorkStatus = 'PC上のTXTを受け取っています。';
-        state.remoteImportUrl = String(windowNamePayload.sourceUrl ?? state.remoteImportUrl ?? '').trim();
         state.importTextDraft = String(windowNamePayload.text ?? '');
         void handleImportedPreview(
           derivePreviewFromText(state.importTextDraft, 'window-name-import'),

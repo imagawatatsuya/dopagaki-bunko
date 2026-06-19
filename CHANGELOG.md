@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Reordered the add-work dialog to `ZIP または TXT を選ぶ` -> `TXT を貼り付ける` -> `TXT 公開URL` -> `PCのURL`, shortened the header guidance to a plain preview-before-save sentence, and replaced the `TXT 公開URL` example placeholder with blank-state `https://` guidance.
+- Reordered the add-work dialog to `ZIP または TXT を選ぶ` -> `TXT を貼り付ける` -> `TXT 公開URL` -> `PCのURL`, shortened the header guidance to a plain preview-before-save sentence, replaced the `TXT 公開URL` example placeholder with blank-state `https://` guidance, and stopped restoring stale remote URLs into that field from saved settings or PC-bridge payloads.
 - Changed GitHub Pages import flows so `TXT 公開URL` and `PCの最新作を読む` no longer pre-block `http://192.168...` LAN fetches, now trying the request first and showing a practical Wi-Fi / firewall / local-network-permission checklist when the browser blocks or the PC server is unavailable.
 - Added a QR bridge import path that lets the local converter serve `latest.txt`, load it on the LAN helper page, and pass the full text into GitHub Pages `dopagaki-bunko` through `window.name`, reaching the import preview without manual paste.
 - Changed `#/search` Aozora results so eligible official ZIP URLs open directly from a dedicated button, while copyrighted or invalid ZIP cases fall back to a smaller `図書カードを見る` link and the shared `作品を取り込む` flow.

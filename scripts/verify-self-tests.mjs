@@ -235,13 +235,13 @@ test('search import preview renders only the first four fragments', () => {
 test('search import sheet exposes url, paste, file, and pc import paths together', () => {
   const markup = searchImportSheetMarkup({
     isOpen: true,
-    remoteImportUrl: 'https://example.com/work.txt',
+    remoteImportUrl: '',
     importTextDraft: '作品名\n著者名\n\n本文です。',
     converterBaseUrl: 'http://192.168.0.10:8765'
   });
 
   assert.match(markup, /TXT 公開URL/u);
-  assert.match(markup, /https:\/\/example\.com\/work\.txt/u);
+  assert.match(markup, /https:\/\/ ではじまる TXT URL を入力/u);
   assert.match(markup, /URLのTXTを読む/u);
   assert.match(markup, /TXT を貼り付ける/u);
   assert.match(markup, /貼り付け内容を読む/u);
