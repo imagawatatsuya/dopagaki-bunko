@@ -1,5 +1,156 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620042934';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620042934';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620045329';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620045329';
+
+function normalizeImportedWorkIdentityUrl(value) {
+  const source = String(value ?? '').trim();
+  if (!source) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(source, globalThis.location?.href ?? 'http://localhost/');
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString().replace(/\/$/u, '');
+  } catch {
+    return source.replace(/\/$/u, '');
+  }
+}
+
+export function findMatchingImportedWork(works, preview) {
+  const aozoraWorkId = String(preview?.aozoraWorkId ?? '').trim();
+  if (aozoraWorkId) {
+    return works.find((work) => String(work?.aozoraWorkId ?? '').trim() === aozoraWorkId) ?? null;
+  }
+
+  const sourceUrl = normalizeImportedWorkIdentityUrl(preview?.sourceUrl ?? '');
+  if (!sourceUrl) {
+    return null;
+  }
+
+  return works.find((work) => normalizeImportedWorkIdentityUrl(work?.sourceUrl ?? '') === sourceUrl) ?? null;
+}
+
+export function buildImportedWorkSavePlan({
+  preview,
+  existingWork = null,
+  importedAt,
+  currentFragments = [],
+  currentBookmarkRecords = [],
+  currentLikeRecords = []
+}) {
+  const workId = existingWork?.id ?? `work-${Date.now()}`;
+  const workRecord = {
+    id: workId,
+    sourceType: preview.sourceType || 'zip-upload',
+    aozoraWorkId: preview.aozoraWorkId || '',
+    title: preview.title,
+    author: preview.author,
+    sourceTitleLines: Array.isArray(preview.sourceTitleLines)
+      ? preview.sourceTitleLines.slice(0, 2)
+      : [],
+    sourceUrl: preview.sourceUrl || '',
+    sourceFileName: preview.sourceFileName || '',
+    importedAt,
+    fragmentCount: preview.textFragmentCount,
+    createdAt: existingWork?.createdAt ?? importedAt
+  };
+
+  let sequence = 0;
+  let textIndex = 0;
+  const fragmentRecords = preview.fragments.map((fragment) => {
+    sequence += 1;
+
+    if (fragment.type === 'break') {
+      return {
+        id: `${workId}-break-${String(sequence).padStart(4, '0')}`,
+        workId,
+        type: 'break',
+        sequence,
+        breakCount: fragment.breakCount,
+        breakKind: fragment.breakKind ?? '',
+        index: sequence,
+        plainText: '',
+        displayHtml: ''
+      };
+    }
+
+    textIndex += 1;
+    return {
+      id: `${workId}-fragment-${String(sequence).padStart(4, '0')}`,
+      workId,
+      type: 'fragment',
+      sequence,
+      index: textIndex,
+      plainText: fragment.plainText,
+      displayHtml: fragment.displayHtml
+    };
+  });
+
+  const fragmentIdByIndex = new Map(
+    fragmentRecords
+      .filter((fragment) => fragment.type === 'fragment')
+      .map((fragment) => [fragment.index, fragment.id])
+  );
+  workRecord.outline = (preview.outline ?? []).map((entry) => ({
+    ...entry,
+    fragmentId: entry.fragmentIndex ? fragmentIdByIndex.get(entry.fragmentIndex) ?? null : null
+  }));
+
+  if (!existingWork) {
+    return {
+      isUpdate: false,
+      workRecord,
+      fragmentRecords,
+      migratedBookmarkRecord: null,
+      migratedLikeRecords: [],
+      oldFragmentIds: []
+    };
+  }
+
+  const oldWorkFragments = currentFragments.filter((fragment) => fragment.workId === existingWork.id);
+  const oldFragmentById = new Map(oldWorkFragments.map((fragment) => [fragment.id, fragment]));
+  const currentBookmark = currentBookmarkRecords.find((record) => record.workId === existingWork.id) ?? null;
+  const currentLikeRecordsForWork = currentLikeRecords.filter((record) => {
+    return oldFragmentById.get(record.fragmentId)?.workId === existingWork.id;
+  });
+
+  const migratedBookmarkRecord = currentBookmark?.fragmentIndex && fragmentIdByIndex.has(currentBookmark.fragmentIndex)
+    ? {
+        id: workId,
+        workId,
+        fragmentId: fragmentIdByIndex.get(currentBookmark.fragmentIndex),
+        fragmentIndex: currentBookmark.fragmentIndex,
+        savedAt: currentBookmark.savedAt
+      }
+    : null;
+
+  const migratedLikeRecords = currentLikeRecordsForWork
+    .map((record) => {
+      const oldFragment = oldFragmentById.get(record.fragmentId);
+      if (!oldFragment?.index || !fragmentIdByIndex.has(oldFragment.index)) {
+        return null;
+      }
+
+      const fragmentId = fragmentIdByIndex.get(oldFragment.index);
+      return {
+        id: fragmentId,
+        fragmentId,
+        savedAt: record.savedAt,
+        note: typeof record.note === 'string' ? record.note : ''
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    isUpdate: true,
+    workRecord,
+    fragmentRecords,
+    migratedBookmarkRecord,
+    migratedLikeRecords,
+    oldFragmentIds: oldWorkFragments.map((fragment) => fragment.id)
+  };
+}
 
 export function createBookmarkActions({
   state,
@@ -58,6 +209,7 @@ export function createSearchActions({
   AOZORA_CATALOG_ASSET_PATH,
   getAllRecords,
   clearStore,
+  deleteRecord,
   putRecord,
   putRecords,
   loadStateFromDb
@@ -323,10 +475,19 @@ export function createSearchActions({
     renderSearch();
 
     try {
-      state.importPreview = buildPreviewFromText(preview, sourceMeta);
+      const builtPreview = buildPreviewFromText(preview, sourceMeta);
+      const matchingWork = findMatchingImportedWork(state.works, builtPreview);
+      state.importPreview = {
+        ...builtPreview,
+        existingWorkId: matchingWork?.id ?? '',
+        existingWorkTitle: matchingWork?.title ?? '',
+        isExistingWorkUpdate: Boolean(matchingWork)
+      };
       state.importSheetOpen = false;
       state.importWorkNoticeTone = '';
-      state.importWorkStatus = `${sourceLabel} を読み込みました。保存前に内容を確認してください。`;
+      state.importWorkStatus = matchingWork
+        ? `${sourceLabel} を読み込みました。保存すると既存の「${matchingWork.title}」を更新します。`
+        : `${sourceLabel} を読み込みました。保存前に内容を確認してください。`;
     } catch (error) {
       console.error(error);
       state.importWorkNoticeTone = '';
@@ -390,70 +551,40 @@ export function createSearchActions({
     }
 
     const importedAt = new Date().toISOString();
-    const workId = `work-${Date.now()}`;
-    const workRecord = {
-      id: workId,
-      sourceType: state.importPreview.sourceType || 'zip-upload',
-      aozoraWorkId: state.importPreview.aozoraWorkId || '',
-      title: state.importPreview.title,
-      author: state.importPreview.author,
-      sourceTitleLines: Array.isArray(state.importPreview.sourceTitleLines)
-        ? state.importPreview.sourceTitleLines.slice(0, 2)
-        : [],
-      sourceUrl: state.importPreview.sourceUrl || '',
-      sourceFileName: state.importPreview.sourceFileName || '',
+    const existingWork = findMatchingImportedWork(state.works, state.importPreview);
+    const savePlan = buildImportedWorkSavePlan({
+      preview: state.importPreview,
+      existingWork,
       importedAt,
-      fragmentCount: state.importPreview.textFragmentCount,
-      createdAt: importedAt
-    };
-
-    let sequence = 0;
-    let textIndex = 0;
-    const fragmentRecords = state.importPreview.fragments.map((fragment) => {
-      sequence += 1;
-
-      if (fragment.type === 'break') {
-        return {
-          id: `${workId}-break-${String(sequence).padStart(4, '0')}`,
-          workId,
-          type: 'break',
-          sequence,
-          breakCount: fragment.breakCount,
-          breakKind: fragment.breakKind ?? '',
-          index: sequence,
-          plainText: '',
-          displayHtml: ''
-        };
-      }
-
-      textIndex += 1;
-      return {
-        id: `${workId}-fragment-${String(sequence).padStart(4, '0')}`,
-        workId,
-        type: 'fragment',
-        sequence,
-        index: textIndex,
-        plainText: fragment.plainText,
-        displayHtml: fragment.displayHtml
-      };
+      currentFragments: state.fragments,
+      currentBookmarkRecords: state.bookmarkRecords,
+      currentLikeRecords: state.likeRecords
     });
 
-    const fragmentIdByIndex = new Map(
-      fragmentRecords
-        .filter((fragment) => fragment.type === 'fragment')
-        .map((fragment) => [fragment.index, fragment.id])
-    );
-    workRecord.outline = (state.importPreview.outline ?? []).map((entry) => ({
-      ...entry,
-      fragmentId: entry.fragmentIndex ? fragmentIdByIndex.get(entry.fragmentIndex) ?? null : null
-    }));
+    if (savePlan.isUpdate) {
+      await deleteRecord('bookmarks', savePlan.workRecord.id);
+      for (const fragmentId of savePlan.oldFragmentIds) {
+        await deleteRecord('likes', fragmentId);
+        await deleteRecord('fragments', fragmentId);
+      }
+    }
 
-    await putRecord('works', workRecord);
-    await putRecords('fragments', fragmentRecords);
+    await putRecord('works', savePlan.workRecord);
+    await putRecords('fragments', savePlan.fragmentRecords);
+    if (savePlan.isUpdate) {
+      if (savePlan.migratedBookmarkRecord) {
+        await putRecord('bookmarks', savePlan.migratedBookmarkRecord);
+      }
+      if (savePlan.migratedLikeRecords.length > 0) {
+        await putRecords('likes', savePlan.migratedLikeRecords);
+      }
+    }
     await loadStateFromDb();
     resetCatalogSearchSession();
     state.importWorkNoticeTone = 'success';
-    state.importWorkStatus = `${state.importPreview.title} を保存しました。別の作品を探すか、別のファイルを追加してください。`;
+    state.importWorkStatus = savePlan.isUpdate
+      ? `${state.importPreview.title} を更新しました。別の作品を探すか、続きの取り込みを進めてください。`
+      : `${state.importPreview.title} を保存しました。別の作品を探すか、別のファイルを追加してください。`;
     state.importPreview = null;
     state.importSheetOpen = false;
   }

@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260620042934';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260620045329';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,7 +6,7 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260620042934';
+} from './views.js?v=20260620045329';
 
 export function createSearchSettingsRenderers({
   app,
@@ -30,7 +30,8 @@ export function createSearchSettingsRenderers({
       ...preview,
       title: escapeHtml(preview.title),
       author: escapeHtml(preview.author),
-      encoding: escapeHtml(preview.encoding)
+      encoding: escapeHtml(preview.encoding),
+      existingWorkTitle: escapeHtml(preview.existingWorkTitle ?? '')
     } : null, `
       <article class="fragment-card fragment-card-break preview-card">
         <p class="break-label">原文空行</p>

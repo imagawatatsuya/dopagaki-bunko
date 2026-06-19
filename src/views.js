@@ -307,10 +307,16 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
     return '';
   }
 
+  const saveButtonLabel = preview.isExistingWorkUpdate ? '既存作品を更新する' : '作品として保存する';
+  const updateNoticeHtml = preview.isExistingWorkUpdate
+    ? `<p class="settings-status settings-status-subtle">この取り込みは既存の「${preview.existingWorkTitle || preview.title}」を更新します。</p>`
+    : '';
+
   return `
     <article class="info-panel" data-search-preview>
       <h2 class="section-title">取り込みプレビュー</h2>
       <p class="section-text">作品名: ${preview.title}<br>著者名: ${preview.author}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${preview.encoding}</p>
+      ${updateNoticeHtml}
       ${preview.copyrightWarning ? '<p class="settings-status">この作品は著作権に注意が必要です。保存や利用前に図書カードを確認してください。</p>' : ''}
       <div class="preview-list">
         ${preview.fragments.slice(0, IMPORT_PREVIEW_FRAGMENT_LIMIT).map((fragment) => {
@@ -327,7 +333,7 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
         }).join('')}
       </div>
       <div class="settings-button-grid">
-        <button type="button" class="detail-action-button settings-button" data-search-action="save-imported-work">作品として保存する</button>
+        <button type="button" class="detail-action-button settings-button" data-search-action="save-imported-work">${saveButtonLabel}</button>
         <button type="button" class="detail-action-button settings-button" data-search-action="clear-preview">プレビューを閉じる</button>
       </div>
     </article>

@@ -16,6 +16,7 @@ import { buildConverterLatestManifestUrl, isMixedContentBlocked, normalizeConver
 import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
+import { buildImportedWorkSavePlan, findMatchingImportedWork } from '../src/app-actions.js';
 import { aozoraSearchResultsMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
@@ -381,6 +382,76 @@ test('bookmark canonicalization keeps the latest entry per work', () => {
   assert.equal(canonical[0].fragmentId, 'work-a-fragment-0002');
   assert.equal(canonical[1].workId, 'work-b');
   assert.equal(sameBookmarkRecords(canonical, canonical.map((item) => ({ ...item }))), true);
+});
+
+test('imported work matching prefers aozoraWorkId then normalized sourceUrl', () => {
+  const works = [
+    { id: 'work-aozora', aozoraWorkId: '123', sourceUrl: 'https://example.test/ignored' },
+    { id: 'work-remote', aozoraWorkId: '', sourceUrl: 'https://example.test/novel/1/2/' }
+  ];
+
+  assert.equal(findMatchingImportedWork(works, { aozoraWorkId: '123', sourceUrl: '' })?.id, 'work-aozora');
+  assert.equal(findMatchingImportedWork(works, { aozoraWorkId: '', sourceUrl: 'https://example.test/novel/1/2?ts=1#preview' })?.id, 'work-remote');
+  assert.equal(findMatchingImportedWork(works, { aozoraWorkId: '', sourceUrl: '' }), null);
+});
+
+test('imported work save plan updates an existing work and migrates bookmark and likes by fragment index', () => {
+  const preview = {
+    sourceType: 'remote-url',
+    aozoraWorkId: '',
+    title: '連載作品',
+    author: '作者',
+    sourceTitleLines: ['連載作品', '作者'],
+    sourceUrl: 'https://example.test/novel/1/2',
+    sourceFileName: 'latest.txt',
+    textFragmentCount: 3,
+    outline: [{ id: 'heading-1', title: '第一章', level: 1, indentStep: 0, fragmentIndex: 1 }],
+    fragments: [
+      { type: 'fragment', index: 1, plainText: '本文1', displayHtml: '<p data-heading-id="heading-1">本文1</p>' },
+      { type: 'fragment', index: 2, plainText: '本文2', displayHtml: '<p>本文2</p>' },
+      { type: 'fragment', index: 3, plainText: '本文3', displayHtml: '<p>本文3</p>' }
+    ]
+  };
+  const existingWork = {
+    id: 'work-existing',
+    createdAt: '2026-06-20T00:00:00.000Z'
+  };
+  const currentFragments = [
+    { id: 'work-existing-fragment-0001', workId: 'work-existing', type: 'fragment', index: 1 },
+    { id: 'work-existing-fragment-0002', workId: 'work-existing', type: 'fragment', index: 2 }
+  ];
+  const currentBookmarkRecords = [{
+    id: 'work-existing',
+    workId: 'work-existing',
+    fragmentId: 'work-existing-fragment-0002',
+    fragmentIndex: 2,
+    savedAt: '2026-06-20T01:00:00.000Z'
+  }];
+  const currentLikeRecords = [{
+    id: 'work-existing-fragment-0002',
+    fragmentId: 'work-existing-fragment-0002',
+    savedAt: '2026-06-20T01:05:00.000Z',
+    note: 'メモ'
+  }];
+
+  const plan = buildImportedWorkSavePlan({
+    preview,
+    existingWork,
+    importedAt: '2026-06-20T02:00:00.000Z',
+    currentFragments,
+    currentBookmarkRecords,
+    currentLikeRecords
+  });
+
+  assert.equal(plan.isUpdate, true);
+  assert.equal(plan.workRecord.id, 'work-existing');
+  assert.equal(plan.workRecord.createdAt, '2026-06-20T00:00:00.000Z');
+  assert.equal(plan.fragmentRecords.length, 3);
+  assert.equal(plan.workRecord.outline[0].fragmentId, 'work-existing-fragment-0001');
+  assert.deepEqual(plan.oldFragmentIds, ['work-existing-fragment-0001', 'work-existing-fragment-0002']);
+  assert.equal(plan.migratedBookmarkRecord.fragmentId, 'work-existing-fragment-0002');
+  assert.equal(plan.migratedLikeRecords[0].fragmentId, 'work-existing-fragment-0002');
+  assert.equal(plan.migratedLikeRecords[0].note, 'メモ');
 });
 
 test('initial app state starts with empty collections and search batch size', () => {
