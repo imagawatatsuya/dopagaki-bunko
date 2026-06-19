@@ -14,7 +14,8 @@ export function parseSearchRouteIntent(hash) {
       path: routeState.path,
       params: routeState.params,
       shouldOpenImportSheet: false,
-      remoteImportUrl: ''
+      remoteImportUrl: '',
+      shouldConsumeWindowNameImport: false
     };
   }
 
@@ -22,7 +23,8 @@ export function parseSearchRouteIntent(hash) {
     path: routeState.path,
     params: routeState.params,
     shouldOpenImportSheet: routeState.params.has('remoteImportUrl'),
-    remoteImportUrl: routeState.params.get('remoteImportUrl') || ''
+    remoteImportUrl: routeState.params.get('remoteImportUrl') || '',
+    shouldConsumeWindowNameImport: routeState.params.get('windowNameImport') === '1'
   };
 }
 

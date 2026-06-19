@@ -277,10 +277,16 @@ test('search route intent opens the import sheet and carries remoteImportUrl', (
   assert.equal(intent.path, '#/search');
   assert.equal(intent.shouldOpenImportSheet, true);
   assert.equal(intent.remoteImportUrl, 'http://192.168.0.10:8765/latest.txt');
+  assert.equal(intent.shouldConsumeWindowNameImport, false);
+
+  const bridgeIntent = parseSearchRouteIntent('#/search?windowNameImport=1');
+  assert.equal(bridgeIntent.shouldOpenImportSheet, false);
+  assert.equal(bridgeIntent.shouldConsumeWindowNameImport, true);
 
   const plainSearchIntent = parseSearchRouteIntent('#/search');
   assert.equal(plainSearchIntent.shouldOpenImportSheet, false);
   assert.equal(plainSearchIntent.remoteImportUrl, '');
+  assert.equal(plainSearchIntent.shouldConsumeWindowNameImport, false);
 });
 
 test('outline jump helper reuses work visible/focus routing', () => {

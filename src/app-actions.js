@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620034751';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620034751';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620040419';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620040419';
 
 export function createBookmarkActions({
   state,
@@ -77,6 +77,24 @@ export function createSearchActions({
     return new Map(state.works
       .filter((work) => work.aozoraWorkId)
       .map((work) => [String(work.aozoraWorkId), work]));
+  }
+
+  function consumeWindowNameImportPayload() {
+    const raw = String(globalThis.window?.name ?? '').trim();
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const payload = JSON.parse(raw);
+      if (payload?.type !== 'dopagaki-window-name-import-v1') {
+        return null;
+      }
+      globalThis.window.name = '';
+      return payload;
+    } catch {
+      return null;
+    }
   }
 
   function isLoopbackHost(hostname) {
@@ -742,13 +760,33 @@ export function createSearchActions({
 
   function applySearchRouteIntent(payload = {}) {
     const remoteImportUrl = String(payload.remoteImportUrl ?? '').trim();
-    if (!payload.shouldOpenImportSheet && !remoteImportUrl) {
+    if (!payload.shouldOpenImportSheet && !remoteImportUrl && !payload.shouldConsumeWindowNameImport) {
       return false;
     }
 
     state.importSheetOpen = Boolean(payload.shouldOpenImportSheet);
     if (remoteImportUrl) {
       state.remoteImportUrl = remoteImportUrl;
+    }
+    if (payload.shouldConsumeWindowNameImport) {
+      const windowNamePayload = consumeWindowNameImportPayload();
+      if (windowNamePayload?.text) {
+        state.importSheetOpen = true;
+        state.importWorkNoticeTone = '';
+        state.importWorkStatus = 'PC上のTXTを受け取っています。';
+        state.remoteImportUrl = String(windowNamePayload.sourceUrl ?? state.remoteImportUrl ?? '').trim();
+        state.importTextDraft = String(windowNamePayload.text ?? '');
+        void handleImportedPreview(
+          derivePreviewFromText(state.importTextDraft, 'window-name-import'),
+          {
+            sourceType: 'window-name-import',
+            sourceLabel: String(windowNamePayload.sourceLabel ?? '公開TXT'),
+            sourceUrl: String(windowNamePayload.sourceUrl ?? ''),
+            sourceFileName: String(windowNamePayload.sourceFileName ?? '')
+          },
+          String(windowNamePayload.sourceLabel ?? '公開TXT')
+        );
+      }
     }
     return true;
   }
