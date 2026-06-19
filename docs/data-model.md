@@ -97,4 +97,4 @@
 }
 ```
 
-未読は `readingStates` にレコードがない状態として扱う。
+未読は `readingStates` も `bookmarks` もない状態として扱う。

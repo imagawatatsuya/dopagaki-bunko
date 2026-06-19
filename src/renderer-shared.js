@@ -3,17 +3,17 @@ import {
   buildFragmentHash,
   buildWorkHash,
   parseHashRoute
-} from './router.js?v=20260620053345';
+} from './router.js?v=20260620053941';
 import {
   savedCollectionLabel,
   deriveWorkReadingStatus
-} from './state.js?v=20260620053345';
+} from './state.js?v=20260620053941';
 import {
   timelineCardMarkup,
   savedItemCardMarkup,
   workFragmentCardMarkup
-} from './views.js?v=20260620053345';
-import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260620053345';
+} from './views.js?v=20260620053941';
+import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260620053941';
 
 export const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
 const LIBRARY_TAB_LABELS = {

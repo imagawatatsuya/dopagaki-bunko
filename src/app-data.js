@@ -6,7 +6,7 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260620053345';
+} from './state.js?v=20260620053941';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
@@ -115,13 +115,16 @@ export function createAppData({
     }
   }
 
-  async function clearWorkReadingState(workId) {
+  async function resetWorkToUnread(workId) {
     if (!workId) {
       return;
     }
 
     await deleteRecord('readingStates', workId);
+    await deleteRecord('bookmarks', workId);
     state.readingStateRecords = state.readingStateRecords.filter((item) => item.workId !== workId);
+    state.bookmarkRecords = state.bookmarkRecords.filter((item) => item.workId !== workId);
+    state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
   }
 
   async function clearAllStoresAndResetUi() {
@@ -144,7 +147,7 @@ export function createAppData({
 
   return {
     clearAllStoresAndResetUi,
-    clearWorkReadingState,
+    resetWorkToUnread,
     deleteWorkCascade,
     ensureWorkMarkedReadingAtIndex,
     loadStateFromDb,

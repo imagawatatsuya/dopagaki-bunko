@@ -5,35 +5,35 @@ import {
   getBookmarkForWork,
   getLikeRecordsForWork,
   savedCollectionLabel
-} from './state.js?v=20260620053345';
+} from './state.js?v=20260620053941';
 import {
   buildCollectionHash,
   buildLibraryHash
-} from './router.js?v=20260620053345';
+} from './router.js?v=20260620053941';
 import {
   bindCollectionActions,
   bindLibraryWorkActions
-} from './ui-bindings.js?v=20260620053345';
+} from './ui-bindings.js?v=20260620053941';
 import {
   collectionBodyMarkup,
   libraryBodyMarkup,
   libraryTabButtonMarkup
-} from './views.js?v=20260620053345';
+} from './views.js?v=20260620053941';
 import {
   LIBRARY_TAB_ORDER,
   libraryDeleteScopeLabel,
   normalizeLibraryTab,
   readingStatusLabel
-} from './renderer-shared.js?v=20260620053345';
+} from './renderer-shared.js?v=20260620053941';
 
 export function createLibraryRenderers({
   app,
   state,
   renderLayout,
-  clearWorkReadingState,
   deleteWorkCascade,
   handleCollectionAction,
   loadStateFromDb,
+  resetWorkToUnread,
   helpers
 }) {
   const {
@@ -72,7 +72,7 @@ export function createLibraryRenderers({
             aria-label="${escapeHtml(work.title)} の操作を開く"
           >…</button>
           <div class="library-inline-menu" role="menu" aria-label="${escapeHtml(work.title)} の操作">
-            ${activeTab === 'completed'
+            ${activeTab === 'reading'
               ? `<button type="button" class="library-menu-action-button" data-library-action="mark-unread" data-work-id="${escapeHtml(work.id)}" role="menuitem">未読に戻す</button>`
               : ''}
             <button type="button" class="library-delete-button" data-library-action="delete-work" data-work-id="${escapeHtml(work.id)}" role="menuitem">削除</button>
@@ -126,12 +126,12 @@ export function createLibraryRenderers({
       }
 
       if (action === 'mark-unread') {
-        const confirmed = window.confirm(`「${work.title}」を未読に戻します。よろしいですか。`);
+        const confirmed = window.confirm(`「${work.title}」を未読に戻します。しおりは外れますが、ふせんとメモは残ります。よろしいですか。`);
         if (!confirmed) {
           return;
         }
 
-        await clearWorkReadingState(workId);
+        await resetWorkToUnread(workId);
         await loadStateFromDb();
         renderLibrary({ tab: activeTab });
         return;

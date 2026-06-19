@@ -494,7 +494,7 @@ test('work reading starts only after reaching fragment 3', async () => {
   assert.equal(savedRecords.length, 1);
 });
 
-test('clearing a work reading state returns it to unread', async () => {
+test('resetting a work to unread clears reading state and bookmark but keeps likes', async () => {
   const state = createInitialAppState();
   state.readingStateRecords = [{
     id: 'work-1',
@@ -503,6 +503,21 @@ test('clearing a work reading state returns it to unread', async () => {
     createdAt: '2026-06-20T00:00:00.000Z',
     updatedAt: '2026-06-20T00:00:00.000Z'
   }];
+  state.bookmarkRecords = [{
+    id: 'work-1',
+    workId: 'work-1',
+    fragmentId: 'work-1-fragment-0002',
+    fragmentIndex: 2,
+    savedAt: '2026-06-20T00:00:00.000Z'
+  }];
+  state.bookmarks = new Set(['work-1-fragment-0002']);
+  state.likeRecords = [{
+    id: 'work-1-fragment-0003',
+    fragmentId: 'work-1-fragment-0003',
+    savedAt: '2026-06-20T00:00:00.000Z',
+    note: '残す'
+  }];
+  state.likes = new Set(['work-1-fragment-0003']);
   const deletedRecords = [];
   const appData = createAppData({
     state,
@@ -523,9 +538,16 @@ test('clearing a work reading state returns it to unread', async () => {
     putRecords: async () => {}
   });
 
-  await appData.clearWorkReadingState('work-1');
-  assert.deepEqual(deletedRecords, [{ storeName: 'readingStates', id: 'work-1' }]);
+  await appData.resetWorkToUnread('work-1');
+  assert.deepEqual(deletedRecords, [
+    { storeName: 'readingStates', id: 'work-1' },
+    { storeName: 'bookmarks', id: 'work-1' }
+  ]);
   assert.equal(state.readingStateRecords.length, 0);
+  assert.equal(state.bookmarkRecords.length, 0);
+  assert.equal(state.bookmarks.size, 0);
+  assert.equal(state.likeRecords.length, 1);
+  assert.equal(state.likes.has('work-1-fragment-0003'), true);
 });
 
 test('compact Aozora catalog payload expands to searchable records', () => {

@@ -1,12 +1,12 @@
 import {
   errorBodyMarkup,
   loadingBodyMarkup
-} from './views.js?v=20260620053345';
-import { createRendererHelpers } from './renderer-shared.js?v=20260620053345';
-import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260620053345';
-import { createLibraryRenderers } from './screen-renderers-library.js?v=20260620053345';
-import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260620053345';
-import { createWorkRenderers } from './screen-renderers-work.js?v=20260620053345';
+} from './views.js?v=20260620053941';
+import { createRendererHelpers } from './renderer-shared.js?v=20260620053941';
+import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260620053941';
+import { createLibraryRenderers } from './screen-renderers-library.js?v=20260620053941';
+import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260620053941';
+import { createWorkRenderers } from './screen-renderers-work.js?v=20260620053941';
 
 export function createScreenRenderers({
   app,
@@ -14,7 +14,6 @@ export function createScreenRenderers({
   state,
   route,
   ensureWorkMarkedReadingAtIndex,
-  clearWorkReadingState,
   deleteWorkCascade,
   handleAozoraImportFile,
   handleCollectionAction,
@@ -25,6 +24,7 @@ export function createScreenRenderers({
   loadStateFromDb,
   removeBookmark,
   removeLike,
+  resetWorkToUnread,
   saveReaderFontScale,
   saveLike,
   saveWorkReadingState,
@@ -75,10 +75,10 @@ export function createScreenRenderers({
     app,
     state,
     renderLayout,
-    clearWorkReadingState,
     deleteWorkCascade,
     handleCollectionAction,
     loadStateFromDb,
+    resetWorkToUnread,
     helpers
   });
   const workRenderers = createWorkRenderers({
