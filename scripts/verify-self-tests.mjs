@@ -249,9 +249,10 @@ test('search import sheet exposes url, paste, file, and pc import paths together
   assert.match(markup, /作品名\n著者名/u);
   assert.match(markup, /ZIP または TXT を選ぶ/u);
   assert.match(markup, /PCの最新作を読む/u);
+  assert.match(markup, /PCからプレビューを開く/u);
   assert.match(markup, /http:\/\/192\.168\.0\.10:8765/u);
-  assert.match(markup, /一時LAN配信URLをまず試します/u);
-  assert.match(markup, /ローカルネットワークアクセス許可/u);
+  assert.match(markup, /PCからプレビューを開く/u);
+  assert.match(markup, /PC上の中継ページ/u);
   assert.match(markup, /クリックまたはタップ。ドラッグ&ドロップでも追加できます。/u);
   assert.doesNotMatch(markup, /上のボタン/u);
   assert.doesNotMatch(markup, /data-search-action="pick-aozora-zip"/u);

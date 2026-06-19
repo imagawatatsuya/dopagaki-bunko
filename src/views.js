@@ -239,8 +239,9 @@ export function searchImportSheetMarkup({
           >
           <div class="settings-button-grid">
             <button type="button" class="detail-action-button settings-button" data-search-action="load-converter-latest">PCの最新作を読む</button>
+            <button type="button" class="detail-action-button settings-button" data-search-action="open-converter-bridge">PCからプレビューを開く</button>
           </div>
-          <p class="settings-status settings-status-subtle import-help-text">GitHub Pages の <code>https://</code> 版からでも <code>http://</code> の一時LAN配信URLをまず試します。失敗した場合は、同じWi-Fi、PC側配信継続、Windowsファイアウォール、ブラウザのローカルネットワークアクセス許可を確認してください。</p>
+          <p class="settings-status settings-status-subtle import-help-text">iPhone ではまず <code>PCからプレビューを開く</code> を使ってください。PC上の中継ページを開き、そのままプレビューへ戻します。うまくいかない場合だけ <code>PCの最新作を読む</code> を試してください。</p>
         </div>
         ${importStatusHtml}
       </div>

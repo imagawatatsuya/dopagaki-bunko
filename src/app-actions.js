@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620041153';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620041153';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620041514';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620041514';
 
 export function createBookmarkActions({
   state,
@@ -710,6 +710,26 @@ export function createSearchActions({
 
     if (action === 'load-converter-latest') {
       await loadLatestConverterText(payload.baseUrl ?? state.converterBaseUrl);
+      return;
+    }
+
+    if (action === 'open-converter-bridge') {
+      try {
+        const normalizedBaseUrl = normalizeConverterBaseUrl(payload.baseUrl ?? state.converterBaseUrl);
+        if (!normalizedBaseUrl) {
+          throw new Error('PCのURLを入力してください。');
+        }
+        await saveConverterBaseUrl(normalizedBaseUrl);
+        const targetUrl = buildBridgeImportUrl(`${normalizedBaseUrl}/latest.txt`);
+        state.importWorkNoticeTone = '';
+        state.importWorkStatus = 'PC上の中継ページを開いています。';
+        renderSearch();
+        globalThis.location.assign(targetUrl);
+      } catch (error) {
+        state.importWorkNoticeTone = '';
+        state.importWorkStatus = `PCの中継ページを開けませんでした: ${error?.message ?? '不明なエラー'}`;
+        renderSearch();
+      }
       return;
     }
 
