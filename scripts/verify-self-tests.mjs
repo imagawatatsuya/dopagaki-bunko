@@ -18,7 +18,7 @@ import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRe
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
 import { buildImportedWorkSavePlan, findMatchingImportedWork } from '../src/app-actions.js';
-import { aozoraSearchResultsMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
+import { aozoraSearchResultsMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
 
@@ -450,6 +450,14 @@ test('initial app state starts with empty collections and search batch size', ()
   assert.equal(state.remoteImportUrl, '');
   assert.equal(state.importTextDraft, '');
   assert.equal(state.workLoadMode, 'auto');
+  assert.equal(state.readerActionStatus, '');
+  assert.equal(state.readerActionStatusTone, '');
+});
+
+test('reader action status markup renders only non-empty messages', () => {
+  assert.equal(readerActionStatusMarkup('', 'error'), '');
+  assert.match(readerActionStatusMarkup('しおり保存に失敗しました: IndexedDB transaction failed.', 'error'), /settings-status-error/u);
+  assert.match(readerActionStatusMarkup('しおり保存に失敗しました: IndexedDB transaction failed.', 'error'), /IndexedDB transaction failed/u);
 });
 
 test('work reading starts only after reaching fragment 3', async () => {

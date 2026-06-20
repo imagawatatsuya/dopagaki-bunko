@@ -20,6 +20,23 @@ export const ALL_STORE_NAMES = [
 ];
 
 let openPromise = null;
+let cachedDatabase = null;
+
+function clearOpenState() {
+  openPromise = null;
+  cachedDatabase = null;
+}
+
+function resetOpenState() {
+  if (cachedDatabase) {
+    try {
+      cachedDatabase.close();
+    } catch {
+      // Ignore close failures and force a new open on the next request.
+    }
+  }
+  clearOpenState();
+}
 
 function requireIndexedDb() {
   if (!('indexedDB' in globalThis)) {
@@ -56,6 +73,43 @@ function deleteRemovedStores(database) {
   });
 }
 
+function rememberDatabase(database) {
+  cachedDatabase = database;
+  database.addEventListener('versionchange', () => {
+    try {
+      database.close();
+    } catch {
+      // Ignore close failures and force a new open on the next request.
+    }
+    clearOpenState();
+  });
+  database.addEventListener('close', () => {
+    if (cachedDatabase === database) {
+      clearOpenState();
+    }
+  });
+}
+
+function isRecoverableDbError(error) {
+  const name = String(error?.name ?? '');
+  const message = String(error?.message ?? '');
+
+  if (name === 'InvalidStateError' || name === 'AbortError' || name === 'TransactionInactiveError' || name === 'UnknownError') {
+    return true;
+  }
+
+  return (
+    message.includes('IndexedDB request failed')
+    || message.includes('IndexedDB transaction aborted')
+    || message.includes('IndexedDB transaction failed')
+    || message.includes('database connection is closing')
+    || message.includes('connection is closing')
+    || message.includes('transaction is not active')
+    || message.includes('not active')
+    || message.includes('Failed to execute')
+  );
+}
+
 export function openDb() {
   requireIndexedDb();
 
@@ -73,19 +127,17 @@ export function openDb() {
 
       request.addEventListener('success', () => {
         const database = request.result;
-        database.addEventListener('versionchange', () => {
-          database.close();
-          openPromise = null;
-        });
+        rememberDatabase(database);
         resolve(database);
       }, { once: true });
 
       request.addEventListener('error', () => {
-        openPromise = null;
+        clearOpenState();
         reject(request.error ?? new Error('Failed to open IndexedDB.'));
       }, { once: true });
 
       request.addEventListener('blocked', () => {
+        clearOpenState();
         reject(new Error('IndexedDB upgrade was blocked by another open tab.'));
       }, { once: true });
     });
@@ -99,12 +151,26 @@ export async function withStore(storeName, mode, callback) {
     throw new Error(`Unknown store: ${storeName}`);
   }
 
-  const database = await openDb();
-  const transaction = database.transaction(storeName, mode);
-  const store = transaction.objectStore(storeName);
-  const result = await callback(store, transaction);
-  await transactionDone(transaction);
-  return result;
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const database = await openDb();
+      const transaction = database.transaction(storeName, mode);
+      const store = transaction.objectStore(storeName);
+      const result = await callback(store, transaction);
+      await transactionDone(transaction);
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (attempt > 0 || !isRecoverableDbError(error)) {
+        throw error;
+      }
+      resetOpenState();
+    }
+  }
+
+  throw lastError ?? new Error('IndexedDB operation failed.');
 }
 
 export function getAllRecords(storeName) {

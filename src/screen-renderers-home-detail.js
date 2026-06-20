@@ -1,20 +1,21 @@
 import {
   buildHomeTimelineEvents,
   getReadableFragments
-} from './state.js?v=20260620053941';
+} from './state.js?v=20260620210631';
 import {
   buildFragmentHash,
   buildWorkHash
-} from './router.js?v=20260620053941';
+} from './router.js?v=20260620210631';
 import {
   bindDetailActions,
   focusFragmentCard
-} from './ui-bindings.js?v=20260620053941';
+} from './ui-bindings.js?v=20260620210631';
 import {
   fragmentDetailBodyMarkup,
-  homeBodyMarkup
-} from './views.js?v=20260620053941';
-import { returnLinkLabel } from './renderer-shared.js?v=20260620053941';
+  homeBodyMarkup,
+  readerActionStatusMarkup
+} from './views.js?v=20260620210631';
+import { returnLinkLabel } from './renderer-shared.js?v=20260620210631';
 
 export function createHomeDetailRenderers({
   app,
@@ -112,6 +113,7 @@ export function createHomeDetailRenderers({
       body: fragmentDetailBodyMarkup({
         author: escapeHtml(work?.author ?? ''),
         displayHtml: safeDisplayHtml,
+        actionStatusHtml: readerActionStatusMarkup(state.readerActionStatus, state.readerActionStatusTone),
         inlineToolsHtml: `
           <div class="detail-inline-tools" aria-label="本文まわりの操作">
             <button type="button" class="detail-inline-tool detail-inline-tool-note ${noteText ? 'has-note' : ''}" data-action="memo" data-fragment-id="${escapeHtml(fragment.id)}">${noteButtonLabel}</button>

@@ -5,13 +5,13 @@ import {
   getReadableWorkFragments,
   getVisibleCountParam,
   sliceWorkFragmentsForVisibleCount
-} from './state.js?v=20260620053941';
+} from './state.js?v=20260620210631';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260620053941';
+} from './router.js?v=20260620210631';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -21,18 +21,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260620053941';
+} from './ui-bindings.js?v=20260620210631';
 import {
   breakCardMarkup,
+  readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260620053941';
+} from './views.js?v=20260620210631';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260620053941';
+} from './renderer-shared.js?v=20260620210631';
 
 export function createWorkRenderers({
   app,
@@ -61,25 +62,42 @@ export function createWorkRenderers({
     renderWorkFragmentCard
   } = helpers;
 
+  function clearReaderActionStatus() {
+    state.readerActionStatus = '';
+    state.readerActionStatusTone = '';
+  }
+
+  function setReaderActionError(actionLabel, error) {
+    state.readerActionStatusTone = 'error';
+    state.readerActionStatus = `${actionLabel}に失敗しました: ${error?.message ?? '不明なエラー'}`;
+  }
+
   async function cycleWorkOverlayState(fragmentId) {
     const fragment = state.fragments.find((item) => item.id === fragmentId) ?? null;
     if (!fragment || fragment.type === 'break') {
       return;
     }
 
-    const overlayState = getWorkOverlayState(fragmentId);
-    if (overlayState === 'bookmark') {
-      await removeBookmark(fragment.workId);
-      if (!state.likes.has(fragmentId)) {
-        await saveLike(fragmentId);
+    try {
+      const overlayState = getWorkOverlayState(fragmentId);
+      if (overlayState === 'bookmark') {
+        await removeBookmark(fragment.workId);
+        if (!state.likes.has(fragmentId)) {
+          await saveLike(fragmentId);
+        }
+      } else if (overlayState === 'like') {
+        await removeLike(fragmentId);
+      } else {
+        await toggleBookmark(fragmentId, { rerender: false });
       }
-    } else if (overlayState === 'like') {
-      await removeLike(fragmentId);
-    } else {
-      await toggleBookmark(fragmentId, { rerender: false });
-    }
 
-    await loadStateFromDb();
+      clearReaderActionStatus();
+      await loadStateFromDb();
+    } catch (error) {
+      console.error(error);
+      setReaderActionError('しおり/ふせん更新', error);
+      route();
+    }
   }
 
   function renderWorkPage(workId, options = {}) {
@@ -181,6 +199,7 @@ export function createWorkRenderers({
         workAuthor: escapeHtml(work.author ?? ''),
         totalTextFragments,
         shownTextCount,
+        actionStatusHtml: readerActionStatusMarkup(state.readerActionStatus, state.readerActionStatusTone),
         bookmarkHtml,
         markerHtml,
         outlineHtml,
@@ -251,8 +270,15 @@ export function createWorkRenderers({
         return;
       }
 
-      await saveWorkReadingState(workId, getWorkReadingStatus(workId) === 'completed' ? 'reading' : 'completed');
-      route();
+      try {
+        await saveWorkReadingState(workId, getWorkReadingStatus(workId) === 'completed' ? 'reading' : 'completed');
+        clearReaderActionStatus();
+        route();
+      } catch (error) {
+        console.error(error);
+        setReaderActionError('読了切替', error);
+        route();
+      }
     });
     bindWorkOverlayActions(app, async (fragmentId) => {
       await cycleWorkOverlayState(fragmentId);

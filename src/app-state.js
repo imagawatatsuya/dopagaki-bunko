@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620053941';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620210631';
 
 export function createInitialAppState() {
   return {
@@ -30,6 +30,8 @@ export function createInitialAppState() {
     converterBaseUrl: '',
     workLoadMode: 'auto',
     readerFontScale: 1,
+    readerActionStatus: '',
+    readerActionStatusTone: '',
     libraryWorkActionsCleanup: null,
     workHeaderProgressCleanup: null,
     workAutoLoadCleanup: null

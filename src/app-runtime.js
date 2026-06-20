@@ -1,33 +1,33 @@
-import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260620053941';
-import { ALL_STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260620053941';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260620053941';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260620053941';
+import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260620210631';
+import { ALL_STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260620210631';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260620210631';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260620210631';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260620053941';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260620053941';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260620053941';
-import { derivePreviewFromText } from './import-preview.js?v=20260620053941';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260620053941';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260620053941';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260620053941';
-import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260620053941';
-import { buildImportSummary, createAppShell } from './app-shell.js?v=20260620053941';
-import { createAppData } from './app-data.js?v=20260620053941';
-import { createScreenRenderers } from './screen-renderers.js?v=20260620053941';
+} from './app-actions.js?v=20260620210631';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260620210631';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260620210631';
+import { derivePreviewFromText } from './import-preview.js?v=20260620210631';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260620210631';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260620210631';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260620210631';
+import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260620210631';
+import { buildImportSummary, createAppShell } from './app-shell.js?v=20260620210631';
+import { createAppData } from './app-data.js?v=20260620210631';
+import { createScreenRenderers } from './screen-renderers.js?v=20260620210631';
 import {
   SEARCH_RESULTS_BATCH_SIZE,
   WORK_LOAD_MODE_SETTING_ID,
   WORK_PAGE_BATCH_SIZE,
   CONVERTER_BASE_URL_SETTING_ID
-} from './app-config.js?v=20260620053941';
-import { createAppRouter } from './app-router.js?v=20260620053941';
-import { createInitialAppState } from './app-state.js?v=20260620053941';
-import { normalizeConverterBaseUrl } from './remote-import.js?v=20260620053941';
+} from './app-config.js?v=20260620210631';
+import { createAppRouter } from './app-router.js?v=20260620210631';
+import { createInitialAppState } from './app-state.js?v=20260620210631';
+import { normalizeConverterBaseUrl } from './remote-import.js?v=20260620210631';
 
 export function createAppRuntime({ app }) {
   const state = createInitialAppState();
@@ -174,6 +174,29 @@ export function createAppRuntime({ app }) {
     searchResultsBatchSize: SEARCH_RESULTS_BATCH_SIZE
   });
 
+  let resumeRefreshPending = false;
+
+  async function refreshAfterResume() {
+    if (resumeRefreshPending) {
+      return;
+    }
+
+    resumeRefreshPending = true;
+    try {
+      await loadStateFromDb();
+      state.readerActionStatus = '';
+      state.readerActionStatusTone = '';
+      route();
+    } catch (error) {
+      console.error(error);
+      state.readerActionStatusTone = 'error';
+      state.readerActionStatus = `保存データの再読込に失敗しました: ${error?.message ?? '不明なエラー'}`;
+      route();
+    } finally {
+      resumeRefreshPending = false;
+    }
+  }
+
   async function start() {
     renderers.renderLoading();
 
@@ -201,7 +224,26 @@ export function createAppRuntime({ app }) {
     });
   }
 
+  function handleVisibilityChange() {
+    if (document.visibilityState !== 'visible') {
+      return;
+    }
+
+    void refreshAfterResume();
+  }
+
+  function handlePageShow() {
+    void refreshAfterResume();
+  }
+
+  function handleWindowFocus() {
+    void refreshAfterResume();
+  }
+
   globalThis.addEventListener('message', handleBridgeMessage);
+  globalThis.addEventListener('pageshow', handlePageShow);
+  globalThis.addEventListener('focus', handleWindowFocus);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   return {
     route,

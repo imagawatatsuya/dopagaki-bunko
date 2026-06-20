@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Hardened IndexedDB recovery for iPhone-style app switching by reopening stale DB connections after transaction/request failures and reloading saved state when the page becomes visible again, reducing silent bookmark/save failures after returning from other apps.
+- Added reader-visible failure messages on fragment and work pages for bookmark, sticky-note, memo, completion-toggle, and resume reload errors, so naturally occurring iPhone recovery failures now leave the underlying error text on screen instead of failing silently.
 - Reordered the add-work dialog to `ZIP または TXT を選ぶ` -> `TXT を貼り付ける` -> `TXT 公開URL` -> `PCのURL`, shortened the header guidance to a plain preview-before-save sentence, replaced the `TXT 公開URL` example placeholder with blank-state `https://` guidance, stopped restoring stale remote URLs into that field from saved settings or PC-bridge payloads, and removed the non-working `PCの最新作を読む` action in favor of the bridge preview flow.
 - Changed unread-to-reading promotion so opening a work no longer marks it as started immediately; a work now moves to `読書中` only after the reader actually reaches fragment 3.
 - Moved the library-card `…` button to the lower right to keep wrapped titles readable, and added `未読に戻す` to the reading-tab menu so it clears that work's reading state and bookmark while keeping likes and memo notes intact.

@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620053941';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620053941';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260620210631';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260620210631';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -162,6 +162,11 @@ export function createBookmarkActions({
   loadStateFromDb,
   route
 }) {
+  function clearReaderActionStatus() {
+    state.readerActionStatus = '';
+    state.readerActionStatusTone = '';
+  }
+
   async function toggleBookmark(fragmentId, options = {}) {
     const fragment = getFragmentById(state.fragments, fragmentId);
     if (!fragment || fragment.type === 'break') {
@@ -173,6 +178,7 @@ export function createBookmarkActions({
       return;
     }
 
+    clearReaderActionStatus();
     await saveBookmark(fragment);
 
     if (options.rerender === false) {
@@ -950,6 +956,16 @@ export function createDetailActions({
   loadStateFromDb,
   route
 }) {
+  function setReaderActionError(actionLabel, error) {
+    state.readerActionStatusTone = 'error';
+    state.readerActionStatus = `${actionLabel}に失敗しました: ${error?.message ?? '不明なエラー'}`;
+  }
+
+  function clearReaderActionStatus() {
+    state.readerActionStatus = '';
+    state.readerActionStatusTone = '';
+  }
+
   function confirmLikeRemovalIfNeeded(record) {
     const note = typeof record?.note === 'string' ? record.note.trim() : '';
     if (!note) {
@@ -965,50 +981,65 @@ export function createDetailActions({
       return;
     }
 
-    const currentLikeRecord = state.likeRecords.find((item) => item.fragmentId === fragmentId) ?? null;
+    try {
+      const currentLikeRecord = state.likeRecords.find((item) => item.fragmentId === fragmentId) ?? null;
 
-    if (action === 'like') {
-      if (state.likes.has(fragmentId)) {
-        if (!confirmLikeRemovalIfNeeded(currentLikeRecord)) {
+      if (action === 'like') {
+        if (state.likes.has(fragmentId)) {
+          if (!confirmLikeRemovalIfNeeded(currentLikeRecord)) {
+            return;
+          }
+          await removeLike(fragmentId);
+          state.likes.delete(fragmentId);
+        } else {
+          await saveLike(fragmentId, {
+            savedAt: currentLikeRecord?.savedAt,
+            note: currentLikeRecord?.note ?? ''
+          });
+          state.likes.add(fragmentId);
+        }
+      } else if (action === 'bookmark') {
+        await toggleBookmark(fragmentId);
+        return;
+      } else if (action === 'memo') {
+        const answer = globalThis.prompt(
+          state.likes.has(fragmentId)
+            ? 'ふせんメモを編集します。空欄でメモだけ外せます。'
+            : 'ふせんメモを入力します。保存するとふせんも付きます。',
+          currentLikeRecord?.note ?? ''
+        );
+        if (answer === null) {
           return;
         }
-        await removeLike(fragmentId);
-        state.likes.delete(fragmentId);
-      } else {
+
+        const note = String(answer).trim();
+        if (!state.likes.has(fragmentId) && !note) {
+          return;
+        }
+
         await saveLike(fragmentId, {
           savedAt: currentLikeRecord?.savedAt,
-          note: currentLikeRecord?.note ?? ''
+          note
         });
         state.likes.add(fragmentId);
       }
-    } else if (action === 'bookmark') {
-      await toggleBookmark(fragmentId);
-      return;
-    } else if (action === 'memo') {
-      const answer = globalThis.prompt(
-        state.likes.has(fragmentId)
-          ? 'ふせんメモを編集します。空欄でメモだけ外せます。'
-          : 'ふせんメモを入力します。保存するとふせんも付きます。',
-        currentLikeRecord?.note ?? ''
+
+      clearReaderActionStatus();
+      await loadStateFromDb();
+      route();
+    } catch (error) {
+      console.error(error);
+      setReaderActionError(
+        action === 'bookmark'
+          ? 'しおり保存'
+          : action === 'memo'
+            ? 'メモ保存'
+            : 'ふせん更新',
+        error
       );
-      if (answer === null) {
-        return;
-      }
 
-      const note = String(answer).trim();
-      if (!state.likes.has(fragmentId) && !note) {
-        return;
-      }
-
-      await saveLike(fragmentId, {
-        savedAt: currentLikeRecord?.savedAt,
-        note
-      });
-      state.likes.add(fragmentId);
+      route();
     }
-
-    await loadStateFromDb();
-    route();
   }
 
   return { handleDetailAction, confirmLikeRemovalIfNeeded };

@@ -153,6 +153,20 @@ export function searchBodyMarkup({
   `;
 }
 
+export function readerActionStatusMarkup(message, tone = '') {
+  const text = String(message ?? '').trim();
+  if (!text) {
+    return '';
+  }
+
+  const toneClassName = tone === 'success'
+    ? ' settings-status-success'
+    : tone === 'error'
+      ? ' settings-status-error'
+      : '';
+  return `<p class="settings-status${toneClassName}">${text}</p>`;
+}
+
 export function searchImportSheetMarkup({
   isOpen = false,
   importStatusHtml = '',
@@ -432,6 +446,7 @@ export function workBodyMarkup({
   workAuthor,
   totalTextFragments,
   shownTextCount,
+  actionStatusHtml = '',
   bookmarkHtml,
   markerHtml,
   outlineHtml = '',
@@ -449,6 +464,7 @@ export function workBodyMarkup({
             <p class="section-text">${workAuthor}</p>
             <p class="settings-status settings-status-subtle">${totalTextFragments}断片</p>
             <p class="settings-status settings-status-subtle">表示中: ${shownTextCount}断片</p>
+            ${actionStatusHtml}
             ${bookmarkHtml}
             ${markerHtml}
             ${outlineHtml}
@@ -582,6 +598,7 @@ export function savedItemCardMarkup({
 export function fragmentDetailBodyMarkup({
   author,
   displayHtml,
+  actionStatusHtml = '',
   inlineToolsHtml = '',
   previousLinkHtml,
   nextLinkHtml,
@@ -594,6 +611,7 @@ export function fragmentDetailBodyMarkup({
   return `
     <article class="detail-card">
       <p class="detail-author">${author}</p>
+      ${actionStatusHtml}
       <div class="detail-body">${displayHtml}</div>
       ${inlineToolsHtml}
     </article>
