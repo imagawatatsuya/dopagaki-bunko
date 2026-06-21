@@ -1,4 +1,4 @@
-import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260620210631';
+import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260622081351';
 
 const STORE_NAME = 'likes';
 
