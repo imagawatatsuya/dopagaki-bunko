@@ -231,6 +231,8 @@ test('search import preview renders only the first four fragments', () => {
 
   assert.match(markup, /断片 4/u);
   assert.doesNotMatch(markup, /断片 5/u);
+  assert.match(markup, /data-search-preview tabindex="-1"/u);
+  assert.match(markup, /aria-labelledby="search-preview-title"/u);
 });
 
 test('search import sheet exposes url, paste, file, and bridge import paths together', () => {

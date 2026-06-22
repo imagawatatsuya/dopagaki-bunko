@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260622081351';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260622081351';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260622142146';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260622142146';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -402,15 +402,21 @@ export function createSearchActions({
   }
 
   function scrollSearchPreviewIntoView() {
-    scrollElementIntoView('[data-search-preview]');
+    const preview = document.querySelector('[data-search-preview]');
+    if (!preview) {
+      return;
+    }
+
+    preview.focus({ preventScroll: true });
+    scrollElementIntoView(preview);
   }
 
   function scrollImportNoticeIntoView() {
     scrollElementIntoView('[data-search-import-notice]');
   }
 
-  function scrollElementIntoView(selector) {
-    const element = document.querySelector(selector);
+  function scrollElementIntoView(target) {
+    const element = typeof target === 'string' ? document.querySelector(target) : target;
     if (!element) {
       return;
     }

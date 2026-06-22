@@ -326,8 +326,8 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
     : '';
 
   return `
-    <article class="info-panel" data-search-preview>
-      <h2 class="section-title">取り込みプレビュー</h2>
+    <article class="info-panel" data-search-preview tabindex="-1" aria-labelledby="search-preview-title">
+      <h2 class="section-title" id="search-preview-title">取り込みプレビュー</h2>
       <p class="section-text">作品名: ${preview.title}<br>著者名: ${preview.author}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${preview.encoding}</p>
       ${updateNoticeHtml}
       ${preview.copyrightWarning ? '<p class="settings-status">この作品は著作権に注意が必要です。保存や利用前に図書カードを確認してください。</p>' : ''}
