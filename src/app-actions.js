@@ -287,7 +287,8 @@ export function createSearchActions({
         sourceUrl: String(payload.sourceUrl ?? ''),
         sourceFileName: String(payload.sourceFileName ?? '')
       },
-      String(payload.sourceLabel ?? '公開TXT')
+      String(payload.sourceLabel ?? '公開TXT'),
+      text
     );
   }
 
@@ -482,7 +483,7 @@ export function createSearchActions({
     };
   }
 
-  async function handleImportedPreview(preview, sourceMeta, sourceLabel) {
+  async function handleImportedPreview(preview, sourceMeta, sourceLabel, rawText = '') {
     state.importSheetOpen = true;
     state.importWorkNoticeTone = '';
     state.importWorkStatus = `${sourceLabel} を読み込んでいます。`;
@@ -498,6 +499,7 @@ export function createSearchActions({
         existingWorkTitle: matchingWork?.title ?? '',
         isExistingWorkUpdate: Boolean(matchingWork)
       };
+      state.importTextLastImported = String(rawText ?? '');
       state.importSheetOpen = false;
       state.importWorkNoticeTone = '';
       state.importWorkStatus = matchingWork
