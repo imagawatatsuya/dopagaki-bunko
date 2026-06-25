@@ -524,7 +524,12 @@ export function createSearchActions({
   async function handleAozoraTextArrayBuffer(arrayBuffer, sourceMeta = {}) {
     const sourceLabel = String(sourceMeta.sourceLabel ?? sourceMeta.sourceFileName ?? 'TXT');
     const decoded = decodeAozoraText(arrayBuffer);
-    await handleImportedPreview(derivePreviewFromText(decoded.text, decoded.encoding), sourceMeta, sourceLabel);
+    await handleImportedPreview(
+      derivePreviewFromText(decoded.text, decoded.encoding),
+      sourceMeta,
+      sourceLabel,
+      decoded.text
+    );
   }
 
   async function handleAozoraZipArrayBuffer(arrayBuffer, sourceMeta = {}) {
@@ -543,6 +548,7 @@ export function createSearchActions({
         sourceType: String(sourceMeta.sourceType ?? 'zip-upload'),
         sourceFileName: String(sourceMeta.sourceFileName ?? extracted.fileName)
       });
+      state.importTextLastImported = String(decoded.text ?? '');
       state.importSheetOpen = false;
       state.importWorkNoticeTone = '';
       state.importWorkStatus = `${extracted.fileName} を読み込みました。保存前に内容を確認してください。`;
@@ -602,7 +608,7 @@ export function createSearchActions({
     state.importWorkStatus = savePlan.isUpdate
       ? `${state.importPreview.title} を更新しました。別の作品を探すか、続きの取り込みを進めてください。`
       : `${state.importPreview.title} を保存しました。別の作品を探すか、別のファイルを追加してください。`;
-    if (state.importPreview.sourceType === 'pasted-text') {
+    if (state.importPreview.sourceType === 'pasted-text' || state.importTextDraft === state.importTextLastImported) {
       state.importTextDraft = '';
     }
     state.importPreview = null;
@@ -714,7 +720,8 @@ export function createSearchActions({
         sourceType: 'pasted-text',
         sourceLabel: '貼り付けTXT'
       },
-      '貼り付けTXT'
+      '貼り付けTXT',
+      state.importTextDraft
     );
   }
 
@@ -815,18 +822,18 @@ export function createSearchActions({
     if (payload.remoteImportUrl !== undefined) {
       state.remoteImportUrl = String(payload.remoteImportUrl ?? '').trim();
     }
-    if (payload.pastedText !== undefined) {
-      state.importTextDraft = String(payload.pastedText ?? '');
-    }
 
     if (action === 'open-import-sheet') {
-      state.importWorkNoticeTone = '';
-      state.importSheetOpen = true;
+      openImportSheetForNewInput();
       renderSearch();
       return;
     }
 
     if (action === 'close-import-sheet') {
+      if (payload.pastedText !== undefined) {
+        state.importTextDraft = String(payload.pastedText ?? '');
+        clearSuccessfulImportFromTextDraft();
+      }
       state.importSheetOpen = false;
       renderSearch();
       return;
@@ -958,7 +965,8 @@ export function createSearchActions({
             sourceUrl: String(windowNamePayload.sourceUrl ?? ''),
             sourceFileName: String(windowNamePayload.sourceFileName ?? '')
           },
-          String(windowNamePayload.sourceLabel ?? '公開TXT')
+          String(windowNamePayload.sourceLabel ?? '公開TXT'),
+          text
         );
       }
     }
