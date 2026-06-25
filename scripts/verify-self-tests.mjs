@@ -362,6 +362,44 @@ test('window name import does not fill the pasted text draft', () => {
   }
 });
 
+test('successful imported text is kept separate from the visible pasted draft', async () => {
+  const state = createInitialAppState();
+  const { actions } = createSearchActionsForTest(state);
+  const importedText = 'PC作品\n作者\n\nPCから受け取った本文です。';
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      text: importedText
+    }
+  });
+
+  assert.equal(state.importPreview.sourceType, 'bridge-import');
+  assert.equal(state.importTextLastImported, importedText);
+  assert.equal(state.importTextDraft, '');
+
+  await actions.handleSearchAction('save-imported-work');
+  await actions.handleSearchAction('open-import-sheet');
+
+  assert.equal(state.importPreview, null);
+  assert.equal(state.importSheetOpen, true);
+  assert.equal(state.importTextDraft, '');
+});
+
+test('opening the import sheet clears a draft that matches the last imported text', async () => {
+  const state = createInitialAppState();
+  state.importTextDraft = '成功済み作品\n作者\n\n残してはいけない本文です。';
+  state.importTextLastImported = state.importTextDraft;
+  const { actions } = createSearchActionsForTest(state);
+
+  await actions.handleSearchAction('open-import-sheet', {
+    pastedText: 'クリック時の値は新規オープンでは採用しない'
+  });
+
+  assert.equal(state.importSheetOpen, true);
+  assert.equal(state.importTextDraft, '');
+});
+
 test('converter import helper normalizes base urls', () => {
   assert.equal(normalizeConverterBaseUrl(' http://192.168.0.10:8765/ '), 'http://192.168.0.10:8765');
 });
@@ -554,6 +592,7 @@ test('initial app state starts with empty collections and search batch size', ()
   assert.equal(state.searchScope, 'aozora');
   assert.equal(state.remoteImportUrl, '');
   assert.equal(state.importTextDraft, '');
+  assert.equal(state.importTextLastImported, '');
   assert.equal(state.workLoadMode, 'auto');
   assert.equal(state.readerActionStatus, '');
   assert.equal(state.readerActionStatusTone, '');
