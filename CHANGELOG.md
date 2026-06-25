@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed the add-work paste textarea so saved pasted text and PC/URL handoff text no longer reappear the next time the import sheet opens, while still preserving unsaved manual drafts when the sheet is closed.
 - Hardened IndexedDB recovery for iPhone-style app switching by reopening stale DB connections after transaction/request failures and reloading saved state when the page becomes visible again, reducing silent bookmark/save failures after returning from other apps.
 - Added reader-visible failure messages on fragment and work pages for bookmark, sticky-note, memo, completion-toggle, and resume reload errors, so naturally occurring iPhone recovery failures now leave the underlying error text on screen instead of failing silently.
 - Reordered the add-work dialog to `ZIP または TXT を選ぶ` -> `TXT を貼り付ける` -> `TXT 公開URL` -> `PCのURL`, shortened the header guidance to a plain preview-before-save sentence, replaced the `TXT 公開URL` example placeholder with blank-state `https://` guidance, stopped restoring stale remote URLs into that field from saved settings or PC-bridge payloads, and removed the non-working `PCの最新作を読む` action in favor of the bridge preview flow.

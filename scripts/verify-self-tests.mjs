@@ -17,10 +17,11 @@ import { createAppData } from '../src/app-data.js';
 import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
-import { buildImportedWorkSavePlan, findMatchingImportedWork } from '../src/app-actions.js';
+import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork } from '../src/app-actions.js';
 import { aozoraSearchResultsMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
+globalThis.requestAnimationFrame = () => 0;
 
 function test(name, fn) {
   tests.push({ name, fn });
@@ -257,6 +258,108 @@ test('search import sheet exposes url, paste, file, and bridge import paths toge
   assert.match(markup, /クリックまたはタップ。ドラッグ&ドロップでも追加できます。/u);
   assert.doesNotMatch(markup, /上のボタン/u);
   assert.doesNotMatch(markup, /data-search-action="pick-aozora-zip"/u);
+});
+
+function createSearchActionsForTest(state) {
+  const savedRecords = [];
+  const actions = createSearchActions({
+    state,
+    renderSearch: () => {},
+    readFileAsArrayBuffer: async () => new ArrayBuffer(0),
+    extractAozoraTxtFromZip,
+    buildAozoraCatalogMeta: () => ({}),
+    normalizeAozoraCatalogPayload: (payload) => payload,
+    decodeAozoraText: (bytes) => ({
+      text: new TextDecoder().decode(bytes),
+      encoding: 'utf-8'
+    }),
+    derivePreviewFromText,
+    searchAozoraCatalog,
+    searchWorkRecords,
+    converterBaseUrlSettingId: 'setting:converter-base-url',
+    normalizeConverterBaseUrl,
+    AOZORA_CATALOG_META_ID: 'catalog-meta',
+    AOZORA_CATALOG_ASSET_PATH: './data/aozora-catalog.json.gz',
+    getAllRecords: async () => [],
+    clearStore: async () => {},
+    deleteRecord: async () => {},
+    putRecord: async (storeName, record) => {
+      savedRecords.push({ storeName, record });
+    },
+    putRecords: async (storeName, records) => {
+      for (const record of records) {
+        savedRecords.push({ storeName, record });
+      }
+    },
+    loadStateFromDb: async () => {}
+  });
+
+  return { actions, savedRecords };
+}
+
+test('pasted text draft is cleared after saving a pasted preview', async () => {
+  const state = createInitialAppState();
+  const { actions } = createSearchActionsForTest(state);
+  const pastedText = '貼り付け作品\n作者\n\n本文です。';
+
+  await actions.handleSearchAction('preview-pasted-text', {
+    pastedText
+  });
+
+  assert.equal(state.importPreview.sourceType, 'pasted-text');
+  assert.equal(state.importTextDraft, pastedText);
+
+  await actions.handleSearchAction('save-imported-work');
+
+  assert.equal(state.importPreview, null);
+  assert.equal(state.importTextDraft, '');
+});
+
+test('bridge import does not replace an unsaved pasted draft', async () => {
+  const state = createInitialAppState();
+  state.importTextDraft = '未保存の手入力\n作者\n\n消さない本文です。';
+  const { actions } = createSearchActionsForTest(state);
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      text: 'PC作品\n作者\n\nPCから受け取った本文です。'
+    }
+  });
+
+  assert.equal(state.importPreview.sourceType, 'bridge-import');
+  assert.equal(state.importTextDraft, '未保存の手入力\n作者\n\n消さない本文です。');
+
+  await actions.handleSearchAction('save-imported-work');
+
+  assert.equal(state.importTextDraft, '未保存の手入力\n作者\n\n消さない本文です。');
+});
+
+test('window name import does not fill the pasted text draft', () => {
+  const state = createInitialAppState();
+  state.importTextDraft = '未保存の手入力\n作者\n\n保持する本文です。';
+  const { actions } = createSearchActionsForTest(state);
+  const previousWindow = globalThis.window;
+
+  globalThis.window = {
+    name: JSON.stringify({
+      type: 'dopagaki-window-name-import-v1',
+      text: '受け渡し作品\n作者\n\nwindow.nameから受け取った本文です。'
+    })
+  };
+
+  try {
+    assert.equal(actions.applySearchRouteIntent({ shouldConsumeWindowNameImport: true }), true);
+    assert.equal(globalThis.window.name, '');
+    assert.equal(state.importPreview.sourceType, 'window-name-import');
+    assert.equal(state.importTextDraft, '未保存の手入力\n作者\n\n保持する本文です。');
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
 });
 
 test('converter import helper normalizes base urls', () => {

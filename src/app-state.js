@@ -27,6 +27,7 @@ export function createInitialAppState() {
     searchScope: 'aozora',
     remoteImportUrl: '',
     importTextDraft: '',
+    importTextLastImported: '',
     converterBaseUrl: '',
     workLoadMode: 'auto',
     readerFontScale: 1,

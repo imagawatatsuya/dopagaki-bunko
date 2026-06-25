@@ -141,6 +141,7 @@ export function createAppData({
     state.searchScope = 'aozora';
     state.remoteImportUrl = '';
     state.importTextDraft = '';
+    state.importTextLastImported = '';
     state.converterBaseUrl = '';
     state.importSheetOpen = false;
   }

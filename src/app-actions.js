@@ -227,6 +227,24 @@ export function createSearchActions({
     return scope === 'library' ? 'library' : 'aozora';
   }
 
+  function clearSuccessfulImportFromTextDraft() {
+    const lastImportedText = String(state.importTextLastImported ?? '');
+    if (!lastImportedText || state.importTextDraft !== lastImportedText) {
+      return;
+    }
+
+    const previewSourceType = String(state.importPreview?.sourceType ?? '');
+    if (!state.importPreview || previewSourceType !== 'pasted-text') {
+      state.importTextDraft = '';
+    }
+  }
+
+  function openImportSheetForNewInput() {
+    state.importWorkNoticeTone = '';
+    clearSuccessfulImportFromTextDraft();
+    state.importSheetOpen = true;
+  }
+
   function importedWorkByAozoraId() {
     return new Map(state.works
       .filter((work) => work.aozoraWorkId)
@@ -260,7 +278,6 @@ export function createSearchActions({
     state.importSheetOpen = true;
     state.importWorkNoticeTone = '';
     state.importWorkStatus = 'PC上のTXTを受け取っています。';
-    state.importTextDraft = text;
 
     await handleImportedPreview(
       derivePreviewFromText(text, 'bridge-import'),
@@ -583,6 +600,9 @@ export function createSearchActions({
     state.importWorkStatus = savePlan.isUpdate
       ? `${state.importPreview.title} を更新しました。別の作品を探すか、続きの取り込みを進めてください。`
       : `${state.importPreview.title} を保存しました。別の作品を探すか、別のファイルを追加してください。`;
+    if (state.importPreview.sourceType === 'pasted-text') {
+      state.importTextDraft = '';
+    }
     state.importPreview = null;
     state.importSheetOpen = false;
   }
@@ -927,9 +947,9 @@ export function createSearchActions({
         state.importSheetOpen = true;
         state.importWorkNoticeTone = '';
         state.importWorkStatus = 'PC上のTXTを受け取っています。';
-        state.importTextDraft = String(windowNamePayload.text ?? '');
+        const text = String(windowNamePayload.text ?? '');
         void handleImportedPreview(
-          derivePreviewFromText(state.importTextDraft, 'window-name-import'),
+          derivePreviewFromText(text, 'window-name-import'),
           {
             sourceType: 'window-name-import',
             sourceLabel: String(windowNamePayload.sourceLabel ?? '公開TXT'),
