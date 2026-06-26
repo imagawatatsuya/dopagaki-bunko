@@ -326,9 +326,56 @@ export function createSearchActions({
     }
 
     const parsedUrl = new URL(normalizedBaseUrl, globalThis.location?.href ?? 'http://localhost/');
-    parsedUrl.pathname = `${parsedUrl.pathname.replace(/\/$/u, '')}/dopagaki-import-works.html`;
+    if (!parsedUrl.pathname.endsWith('/dopagaki-import-works.html')) {
+      parsedUrl.pathname = parsedUrl.pathname.endsWith('/dopagaki-import-bridge.html')
+        ? parsedUrl.pathname.replace(/\/dopagaki-import-bridge\.html$/u, '/dopagaki-import-works.html')
+        : `${parsedUrl.pathname.replace(/\/$/u, '')}/dopagaki-import-works.html`;
+    }
     parsedUrl.search = '';
     return parsedUrl.toString();
+  }
+
+  function buildConverterShareRootUrl(baseUrl) {
+    const normalizedBaseUrl = normalizeConverterBaseUrl(baseUrl);
+    if (!normalizedBaseUrl) {
+      throw new Error('PCのURLを入力してください。');
+    }
+
+    const parsedUrl = new URL(normalizedBaseUrl, globalThis.location?.href ?? 'http://localhost/');
+    if (parsedUrl.pathname.endsWith('/dopagaki-import-works.html')) {
+      parsedUrl.pathname = parsedUrl.pathname.replace(/\/dopagaki-import-works\.html$/u, '/');
+    } else if (parsedUrl.pathname.endsWith('/dopagaki-import-bridge.html')) {
+      parsedUrl.pathname = parsedUrl.pathname.replace(/\/dopagaki-import-bridge\.html$/u, '/');
+    } else if (parsedUrl.pathname.endsWith('/latest.txt') || parsedUrl.pathname.endsWith('/latest.json')) {
+      parsedUrl.pathname = parsedUrl.pathname.replace(/\/latest\.(txt|json)$/u, '/');
+    } else if (parsedUrl.pathname.includes('/works/')) {
+      parsedUrl.pathname = parsedUrl.pathname.replace(/\/works\/.*$/u, '/');
+    } else {
+      parsedUrl.pathname = `${parsedUrl.pathname.replace(/\/?$/u, '/')}`;
+    }
+    parsedUrl.search = '';
+    parsedUrl.hash = '';
+    return parsedUrl.toString();
+  }
+
+  async function fetchConverterWorksAvailability(baseUrl) {
+    const shareRootUrl = buildConverterShareRootUrl(baseUrl);
+    const worksIndexUrl = new URL('works.json', shareRootUrl).toString();
+    try {
+      const response = await fetch(`${worksIndexUrl}${worksIndexUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
+        method: 'GET',
+        credentials: 'omit',
+        cache: 'no-store'
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const payload = await response.json();
+      const works = Array.isArray(payload?.works) ? payload.works : [];
+      return works.length > 0;
+    } catch {
+      return null;
+    }
   }
 
   function normalizeConverterLatestTextUrl(baseUrl) {
@@ -932,6 +979,12 @@ export function createSearchActions({
           targetUrl = buildBridgeImportUrl(latestTextUrl);
           state.importWorkStatus = 'PC上の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
         } else {
+          const hasWorks = await fetchConverterWorksAvailability(normalizedBaseUrl);
+          if (hasWorks === false) {
+            state.importWorkStatus = 'PC側に送信待ちの作品がありません。PCで作品を送ってから、もう一度開いてください。';
+            renderSearch();
+            return;
+          }
           targetUrl = buildConverterWorksPageUrl(normalizedBaseUrl);
           state.importWorkStatus = 'PC上の作品一覧を別タブで開いています。開きたい作品を選ぶと、この画面にプレビューが戻ります。';
         }

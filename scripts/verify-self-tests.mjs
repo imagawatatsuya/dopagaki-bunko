@@ -522,6 +522,92 @@ test('converter bridge opens works list when given only the pc base url', async 
   }
 });
 
+test('converter bridge keeps an exact works page url stable', async () => {
+  const state = createInitialAppState();
+  const { actions } = createSearchActionsForTest(state);
+  const previousWindow = globalThis.window;
+  const previousLocation = globalThis.location;
+  let opened = null;
+
+  globalThis.location = {
+    href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
+  };
+  globalThis.window = {
+    open: (url, target) => {
+      opened = { url, target };
+      return {};
+    }
+  };
+
+  try {
+    await actions.handleSearchAction('open-converter-bridge', {
+      baseUrl: 'http://192.168.0.10:8765/dopagaki-import-works.html'
+    });
+
+    assert.equal(opened?.target, '_blank');
+    assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+    if (previousLocation === undefined) {
+      delete globalThis.location;
+    } else {
+      globalThis.location = previousLocation;
+    }
+  }
+});
+
+test('converter bridge does not open a tab when the sender list is empty', async () => {
+  const state = createInitialAppState();
+  const { actions } = createSearchActionsForTest(state);
+  const previousWindow = globalThis.window;
+  const previousLocation = globalThis.location;
+  const previousFetch = globalThis.fetch;
+  let opened = null;
+
+  globalThis.location = {
+    href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
+  };
+  globalThis.window = {
+    open: (url, target) => {
+      opened = { url, target };
+      return {};
+    }
+  };
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ works: [] })
+  });
+
+  try {
+    await actions.handleSearchAction('open-converter-bridge', {
+      baseUrl: 'http://192.168.0.10:8765'
+    });
+
+    assert.equal(opened, null);
+    assert.match(state.importWorkStatus, /PC側に送信待ちの作品がありません。/u);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+    if (previousLocation === undefined) {
+      delete globalThis.location;
+    } else {
+      globalThis.location = previousLocation;
+    }
+    if (previousFetch === undefined) {
+      delete globalThis.fetch;
+    } else {
+      globalThis.fetch = previousFetch;
+    }
+  }
+});
+
 test('converter bridge rewrites exact works zip urls to txt', async () => {
   const state = createInitialAppState();
   const { actions } = createSearchActionsForTest(state);
