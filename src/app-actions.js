@@ -301,6 +301,18 @@ export function createSearchActions({
     return bridgeUrl.toString();
   }
 
+  function buildConverterWorksPageUrl(baseUrl) {
+    const normalizedBaseUrl = normalizeConverterBaseUrl(baseUrl);
+    if (!normalizedBaseUrl) {
+      throw new Error('PCのURLを入力してください。');
+    }
+
+    const parsedUrl = new URL(normalizedBaseUrl, globalThis.location?.href ?? 'http://localhost/');
+    parsedUrl.pathname = `${parsedUrl.pathname.replace(/\/$/u, '')}/dopagaki-import-qr.html`;
+    parsedUrl.search = '';
+    return parsedUrl.toString();
+  }
+
   function normalizeConverterLatestTextUrl(baseUrl) {
     const normalizedBaseUrl = normalizeConverterBaseUrl(baseUrl);
     if (!normalizedBaseUrl) {
@@ -866,11 +878,23 @@ export function createSearchActions({
     if (action === 'open-converter-bridge') {
       try {
         const normalizedBaseUrl = normalizeConverterBaseUrl(payload.baseUrl ?? state.converterBaseUrl);
-        const latestTextUrl = normalizeConverterLatestTextUrl(normalizedBaseUrl);
         void saveConverterBaseUrl(normalizedBaseUrl);
-        const targetUrl = buildBridgeImportUrl(latestTextUrl);
         state.importWorkNoticeTone = '';
-        state.importWorkStatus = 'PC上の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
+        let targetUrl = '';
+        const lowerUrl = normalizedBaseUrl.toLowerCase();
+        if (
+          lowerUrl.endsWith('.txt')
+          || lowerUrl.endsWith('.zip')
+          || lowerUrl.endsWith('/latest.txt')
+          || lowerUrl.endsWith('/latest.json')
+        ) {
+          const latestTextUrl = normalizeConverterLatestTextUrl(normalizedBaseUrl);
+          targetUrl = buildBridgeImportUrl(latestTextUrl);
+          state.importWorkStatus = 'PC上の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
+        } else {
+          targetUrl = buildConverterWorksPageUrl(normalizedBaseUrl);
+          state.importWorkStatus = 'PC上の作品一覧を別タブで開いています。開きたい作品を選ぶと、この画面にプレビューが戻ります。';
+        }
         renderSearch();
         const openedWindow = globalThis.window.open(targetUrl, '_blank');
         if (!openedWindow) {

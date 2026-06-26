@@ -239,7 +239,7 @@ export function searchImportSheetMarkup({
           <div class="settings-button-grid">
             <button type="button" class="detail-action-button settings-button" data-search-action="open-converter-bridge">PCからプレビューを開く</button>
           </div>
-          <p class="settings-status settings-status-subtle import-help-text"><code>PCからプレビューを開く</code> を使うと、PC上の中継ページを開いてそのままプレビューへ戻します。複数作品を出しているときは <code>/works/作品名.txt</code> を入れるとその作品を開けます。</p>
+          <p class="settings-status settings-status-subtle import-help-text"><code>PCからプレビューを開く</code> を使うと、PCのURLだけなら作品一覧、<code>/works/作品名.txt</code> まで入れるとその作品を直接開けます。</p>
         </div>
         ${importStatusHtml}
       </div>

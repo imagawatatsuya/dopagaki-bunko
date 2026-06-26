@@ -255,7 +255,7 @@ test('search import sheet exposes url, paste, file, and bridge import paths toge
   assert.match(markup, /http:\/\/192\.168\.0\.10:8765/u);
   assert.match(markup, /works\/作品名\.txt/u);
   assert.match(markup, /PCからプレビューを開く/u);
-  assert.match(markup, /PC上の中継ページ/u);
+  assert.match(markup, /PCのURLだけなら作品一覧/u);
   assert.match(markup, /クリックまたはタップ。ドラッグ&ドロップでも追加できます。/u);
   assert.doesNotMatch(markup, /上のボタン/u);
   assert.doesNotMatch(markup, /data-search-action="pick-aozora-zip"/u);
@@ -431,6 +431,46 @@ test('converter bridge accepts exact works txt urls', async () => {
     assert.equal(opened?.target, '_blank');
     assert.match(opened?.url ?? '', /txt=http%3A%2F%2F192\.168\.0\.10%3A8765%2Fworks%2Fserial-work\.txt/u);
     assert.match(state.importWorkStatus, /PC上の中継ページを別タブで開いています。/u);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+    if (previousLocation === undefined) {
+      delete globalThis.location;
+    } else {
+      globalThis.location = previousLocation;
+    }
+  }
+});
+
+test('converter bridge opens works list when given only the pc base url', async () => {
+  const state = createInitialAppState();
+  const { actions, savedRecords } = createSearchActionsForTest(state);
+  const previousWindow = globalThis.window;
+  const previousLocation = globalThis.location;
+  let opened = null;
+
+  globalThis.location = {
+    href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
+  };
+  globalThis.window = {
+    open: (url, target) => {
+      opened = { url, target };
+      return {};
+    }
+  };
+
+  try {
+    await actions.handleSearchAction('open-converter-bridge', {
+      baseUrl: 'http://192.168.0.10:8765'
+    });
+
+    assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765');
+    assert.equal(opened?.target, '_blank');
+    assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-qr.html');
+    assert.match(state.importWorkStatus, /PC上の作品一覧を別タブで開いています。/u);
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
