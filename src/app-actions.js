@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627052840';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627052840';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627053347';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627053347';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -675,7 +675,7 @@ export function createSearchActions({
       }
     }
     await loadStateFromDb();
-    if (state.importPreview.sourceType === 'bridge-import' && state.importPreview.bridgeAckUrl) {
+    if (state.importPreview.bridgeAckUrl) {
       try {
         await sendBridgeImportAck(
           state.importPreview.bridgeAckUrl,
@@ -1068,7 +1068,11 @@ export function createSearchActions({
             sourceType: 'window-name-import',
             sourceLabel: String(windowNamePayload.sourceLabel ?? '公開TXT'),
             sourceUrl: String(windowNamePayload.sourceUrl ?? ''),
-            sourceFileName: String(windowNamePayload.sourceFileName ?? '')
+            sourceFileName: String(windowNamePayload.sourceFileName ?? ''),
+            bridgeAckUrl: String(windowNamePayload.bridgeAckUrl ?? ''),
+            bridgeAckPayload: windowNamePayload.bridgeAckPayload && typeof windowNamePayload.bridgeAckPayload === 'object'
+              ? windowNamePayload.bridgeAckPayload
+              : null
           },
           String(windowNamePayload.sourceLabel ?? '公開TXT'),
           text

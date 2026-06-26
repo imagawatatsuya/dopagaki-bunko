@@ -424,6 +424,46 @@ test('bridge import save acknowledges the sender list entry after saving', async
   ]);
 });
 
+test('window name import save acknowledges the sender list entry after saving', async () => {
+  const state = createInitialAppState();
+  const { actions, bridgeAcks } = createSearchActionsForTest(state);
+  const previousWindow = globalThis.window;
+
+  globalThis.window = {
+    name: JSON.stringify({
+      type: 'dopagaki-window-name-import-v1',
+      sourceUrl: 'https://example.com/source',
+      bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+      bridgeAckPayload: {
+        sourceUrl: 'https://example.com/source',
+        txtPath: 'works/source.txt'
+      },
+      text: '受け渡し作品\n作者\n\nwindow.nameから受け取った本文です。'
+    })
+  };
+
+  try {
+    assert.equal(actions.applySearchRouteIntent({ shouldConsumeWindowNameImport: true }), true);
+    await actions.handleSearchAction('save-imported-work');
+
+    assert.deepEqual(bridgeAcks, [
+      {
+        ackUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+        ackPayload: {
+          sourceUrl: 'https://example.com/source',
+          txtPath: 'works/source.txt'
+        }
+      }
+    ]);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
+});
+
 test('opening the import sheet clears a draft that matches the last imported text', async () => {
   const state = createInitialAppState();
   state.importTextDraft = '成功済み作品\n作者\n\n残してはいけない本文です。';
