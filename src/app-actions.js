@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627050429';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627050429';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627051123';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627051123';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -378,6 +378,22 @@ export function createSearchActions({
     } catch {
       return null;
     }
+  }
+
+  function openPendingConverterWindow() {
+    const openedWindow = globalThis.window.open('', '_blank');
+    if (!openedWindow) {
+      return null;
+    }
+    try {
+      const doc = openedWindow.document;
+      doc.open();
+      doc.write('<!doctype html><html lang="ja"><meta charset="utf-8"><title>読み込み中</title><body style="font: 16px/1.5 sans-serif; padding: 24px;">PC側の送信作品を確認しています。</body></html>');
+      doc.close();
+    } catch {
+      // Ignore browsers that do not allow writing to the pending tab.
+    }
+    return openedWindow;
   }
 
   function normalizeConverterLatestTextUrl(baseUrl) {
@@ -971,6 +987,15 @@ export function createSearchActions({
         state.importWorkNoticeTone = '';
         let targetUrl = '';
         const lowerUrl = normalizedBaseUrl.toLowerCase();
+        const shouldOpenDirectBridge = (
+          (lowerUrl.endsWith('.txt') || lowerUrl.endsWith('.zip'))
+          && !lowerUrl.endsWith('/latest.txt')
+          && !lowerUrl.endsWith('/latest.json')
+        );
+        let pendingWindow = null;
+        if (!shouldOpenDirectBridge) {
+          pendingWindow = openPendingConverterWindow();
+        }
         if (
           lowerUrl.endsWith('.txt')
           || lowerUrl.endsWith('.zip')
@@ -979,6 +1004,11 @@ export function createSearchActions({
             const hasWorks = await fetchConverterWorksAvailability(normalizedBaseUrl);
             if (hasWorks === false) {
               state.importWorkStatus = 'PC側に送信待ちの作品がありません。PCで作品を送ってから、もう一度開いてください。';
+              try {
+                pendingWindow?.close();
+              } catch {
+                // Ignore browsers that block closing the pending tab.
+              }
               renderSearch();
               return;
             }
@@ -993,6 +1023,11 @@ export function createSearchActions({
           const hasWorks = await fetchConverterWorksAvailability(normalizedBaseUrl);
           if (hasWorks === false) {
             state.importWorkStatus = 'PC側に送信待ちの作品がありません。PCで作品を送ってから、もう一度開いてください。';
+            try {
+              pendingWindow?.close();
+            } catch {
+              // Ignore browsers that block closing the pending tab.
+            }
             renderSearch();
             return;
           }
@@ -1000,6 +1035,14 @@ export function createSearchActions({
           state.importWorkStatus = 'PC上の作品一覧を別タブで開いています。開きたい作品を選ぶと、この画面にプレビューが戻ります。';
         }
         renderSearch();
+        if (pendingWindow) {
+          try {
+            pendingWindow.location.assign(targetUrl);
+          } catch {
+            globalThis.location.assign(targetUrl);
+          }
+          return;
+        }
         const openedWindow = globalThis.window.open(targetUrl, '_blank');
         if (!openedWindow) {
           globalThis.location.assign(targetUrl);

@@ -487,7 +487,9 @@ test('converter bridge opens works list when given only the pc base url', async 
   const { actions, savedRecords } = createSearchActionsForTest(state);
   const previousWindow = globalThis.window;
   const previousLocation = globalThis.location;
+  const previousFetch = globalThis.fetch;
   let opened = null;
+  let assignedUrl = null;
 
   globalThis.location = {
     href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
@@ -495,9 +497,24 @@ test('converter bridge opens works list when given only the pc base url', async 
   globalThis.window = {
     open: (url, target) => {
       opened = { url, target };
-      return {};
+      return {
+        document: {
+          open() {},
+          write() {},
+          close() {}
+        },
+        location: {
+          assign: (nextUrl) => {
+            assignedUrl = nextUrl;
+          }
+        }
+      };
     }
   };
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ works: [{ txtPath: 'works/a.txt' }] })
+  });
 
   try {
     await actions.handleSearchAction('open-converter-bridge', {
@@ -506,7 +523,8 @@ test('converter bridge opens works list when given only the pc base url', async 
 
     assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765');
     assert.equal(opened?.target, '_blank');
-    assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
+    assert.equal(opened?.url, '');
+    assert.equal(assignedUrl, 'http://192.168.0.10:8765/dopagaki-import-works.html');
     assert.match(state.importWorkStatus, /PC上の作品一覧を別タブで開いています。/u);
   } finally {
     if (previousWindow === undefined) {
@@ -519,6 +537,11 @@ test('converter bridge opens works list when given only the pc base url', async 
     } else {
       globalThis.location = previousLocation;
     }
+    if (previousFetch === undefined) {
+      delete globalThis.fetch;
+    } else {
+      globalThis.fetch = previousFetch;
+    }
   }
 });
 
@@ -527,7 +550,9 @@ test('converter bridge keeps an exact works page url stable', async () => {
   const { actions } = createSearchActionsForTest(state);
   const previousWindow = globalThis.window;
   const previousLocation = globalThis.location;
+  const previousFetch = globalThis.fetch;
   let opened = null;
+  let assignedUrl = null;
 
   globalThis.location = {
     href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
@@ -535,9 +560,24 @@ test('converter bridge keeps an exact works page url stable', async () => {
   globalThis.window = {
     open: (url, target) => {
       opened = { url, target };
-      return {};
+      return {
+        document: {
+          open() {},
+          write() {},
+          close() {}
+        },
+        location: {
+          assign: (nextUrl) => {
+            assignedUrl = nextUrl;
+          }
+        }
+      };
     }
   };
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ works: [{ txtPath: 'works/a.txt' }] })
+  });
 
   try {
     await actions.handleSearchAction('open-converter-bridge', {
@@ -545,7 +585,8 @@ test('converter bridge keeps an exact works page url stable', async () => {
     });
 
     assert.equal(opened?.target, '_blank');
-    assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
+    assert.equal(opened?.url, '');
+    assert.equal(assignedUrl, 'http://192.168.0.10:8765/dopagaki-import-works.html');
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
@@ -557,6 +598,11 @@ test('converter bridge keeps an exact works page url stable', async () => {
     } else {
       globalThis.location = previousLocation;
     }
+    if (previousFetch === undefined) {
+      delete globalThis.fetch;
+    } else {
+      globalThis.fetch = previousFetch;
+    }
   }
 });
 
@@ -567,6 +613,7 @@ test('converter bridge treats latest txt as a works-list entrypoint', async () =
   const previousLocation = globalThis.location;
   const previousFetch = globalThis.fetch;
   let opened = null;
+  let assignedUrl = null;
 
   globalThis.location = {
     href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
@@ -574,7 +621,18 @@ test('converter bridge treats latest txt as a works-list entrypoint', async () =
   globalThis.window = {
     open: (url, target) => {
       opened = { url, target };
-      return {};
+      return {
+        document: {
+          open() {},
+          write() {},
+          close() {}
+        },
+        location: {
+          assign: (nextUrl) => {
+            assignedUrl = nextUrl;
+          }
+        }
+      };
     }
   };
   globalThis.fetch = async () => ({
@@ -588,7 +646,8 @@ test('converter bridge treats latest txt as a works-list entrypoint', async () =
     });
 
     assert.equal(opened?.target, '_blank');
-    assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
+    assert.equal(opened?.url, '');
+    assert.equal(assignedUrl, 'http://192.168.0.10:8765/dopagaki-import-works.html');
     assert.match(state.importWorkStatus, /PC上の作品一覧を別タブで開いています。/u);
   } finally {
     if (previousWindow === undefined) {
@@ -616,6 +675,7 @@ test('converter bridge does not open a tab when the sender list is empty', async
   const previousLocation = globalThis.location;
   const previousFetch = globalThis.fetch;
   let opened = null;
+  let closed = false;
 
   globalThis.location = {
     href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
@@ -623,7 +683,16 @@ test('converter bridge does not open a tab when the sender list is empty', async
   globalThis.window = {
     open: (url, target) => {
       opened = { url, target };
-      return {};
+      return {
+        document: {
+          open() {},
+          write() {},
+          close() {}
+        },
+        close: () => {
+          closed = true;
+        }
+      };
     }
   };
   globalThis.fetch = async () => ({
@@ -636,7 +705,8 @@ test('converter bridge does not open a tab when the sender list is empty', async
       baseUrl: 'http://192.168.0.10:8765'
     });
 
-    assert.equal(opened, null);
+    assert.equal(opened?.target, '_blank');
+    assert.equal(closed, true);
     assert.match(state.importWorkStatus, /PC側に送信待ちの作品がありません。/u);
   } finally {
     if (previousWindow === undefined) {
@@ -664,6 +734,7 @@ test('converter bridge does not open latest txt when the sender list is empty', 
   const previousLocation = globalThis.location;
   const previousFetch = globalThis.fetch;
   let opened = null;
+  let closed = false;
 
   globalThis.location = {
     href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
@@ -671,7 +742,16 @@ test('converter bridge does not open latest txt when the sender list is empty', 
   globalThis.window = {
     open: (url, target) => {
       opened = { url, target };
-      return {};
+      return {
+        document: {
+          open() {},
+          write() {},
+          close() {}
+        },
+        close: () => {
+          closed = true;
+        }
+      };
     }
   };
   globalThis.fetch = async () => ({
@@ -684,7 +764,8 @@ test('converter bridge does not open latest txt when the sender list is empty', 
       baseUrl: 'http://192.168.0.10:8765/latest.txt'
     });
 
-    assert.equal(opened, null);
+    assert.equal(opened?.target, '_blank');
+    assert.equal(closed, true);
     assert.match(state.importWorkStatus, /PC側に送信待ちの作品がありません。/u);
   } finally {
     if (previousWindow === undefined) {
