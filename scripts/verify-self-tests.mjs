@@ -725,6 +725,53 @@ test('converter bridge does not open latest txt when the sender list is empty', 
   }
 });
 
+test('converter bridge does not open a tab when sender list availability is unknown', async () => {
+  const state = createInitialAppState();
+  const { actions } = createSearchActionsForTest(state);
+  const previousWindow = globalThis.window;
+  const previousLocation = globalThis.location;
+  const previousFetch = globalThis.fetch;
+  let opened = null;
+
+  globalThis.location = {
+    href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
+  };
+  globalThis.window = {
+    open: (url, target) => {
+      opened = { url, target };
+      return {};
+    }
+  };
+  globalThis.fetch = async () => {
+    throw new Error('network timeout');
+  };
+
+  try {
+    await actions.handleSearchAction('open-converter-bridge', {
+      baseUrl: 'http://192.168.0.10:8765'
+    });
+
+    assert.equal(opened, null);
+    assert.match(state.importWorkStatus, /PC側の送信リストを確認できませんでした。/u);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+    if (previousLocation === undefined) {
+      delete globalThis.location;
+    } else {
+      globalThis.location = previousLocation;
+    }
+    if (previousFetch === undefined) {
+      delete globalThis.fetch;
+    } else {
+      globalThis.fetch = previousFetch;
+    }
+  }
+});
+
 test('converter bridge rewrites exact works zip urls to txt', async () => {
   const state = createInitialAppState();
   const { actions } = createSearchActionsForTest(state);
