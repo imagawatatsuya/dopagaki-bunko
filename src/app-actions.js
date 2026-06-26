@@ -316,6 +316,15 @@ export function createSearchActions({
       parsedUrl.search = '';
       return parsedUrl.toString();
     }
+    if (parsedUrl.pathname.endsWith('.zip')) {
+      parsedUrl.pathname = parsedUrl.pathname.replace(/\.zip$/u, '.txt');
+      parsedUrl.search = '';
+      return parsedUrl.toString();
+    }
+    if (parsedUrl.pathname.endsWith('.txt')) {
+      parsedUrl.search = '';
+      return parsedUrl.toString();
+    }
 
     parsedUrl.pathname = `${parsedUrl.pathname.replace(/\/$/u, '')}/latest.txt`;
     parsedUrl.search = '';

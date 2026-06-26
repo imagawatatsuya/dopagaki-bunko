@@ -232,14 +232,14 @@ export function searchImportSheetMarkup({
             type="url"
             class="search-input"
             value="${converterBaseUrl}"
-            placeholder="http://192.168.0.10:8765"
+            placeholder="http://192.168.0.10:8765 または /works/作品名.txt"
             inputmode="url"
             data-search-input="converter-base-url"
           >
           <div class="settings-button-grid">
             <button type="button" class="detail-action-button settings-button" data-search-action="open-converter-bridge">PCからプレビューを開く</button>
           </div>
-          <p class="settings-status settings-status-subtle import-help-text"><code>PCからプレビューを開く</code> を使うと、PC上の中継ページを開いてそのままプレビューへ戻します。</p>
+          <p class="settings-status settings-status-subtle import-help-text"><code>PCからプレビューを開く</code> を使うと、PC上の中継ページを開いてそのままプレビューへ戻します。複数作品を出しているときは <code>/works/作品名.txt</code> を入れるとその作品を開けます。</p>
         </div>
         ${importStatusHtml}
       </div>
