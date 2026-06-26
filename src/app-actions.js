@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627045519';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627045519';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627050429';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627050429';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -329,7 +329,9 @@ export function createSearchActions({
     if (!parsedUrl.pathname.endsWith('/dopagaki-import-works.html')) {
       parsedUrl.pathname = parsedUrl.pathname.endsWith('/dopagaki-import-bridge.html')
         ? parsedUrl.pathname.replace(/\/dopagaki-import-bridge\.html$/u, '/dopagaki-import-works.html')
-        : `${parsedUrl.pathname.replace(/\/$/u, '')}/dopagaki-import-works.html`;
+        : parsedUrl.pathname.endsWith('/latest.txt') || parsedUrl.pathname.endsWith('/latest.json')
+          ? parsedUrl.pathname.replace(/\/latest\.(txt|json)$/u, '/dopagaki-import-works.html')
+          : `${parsedUrl.pathname.replace(/\/$/u, '')}/dopagaki-import-works.html`;
     }
     parsedUrl.search = '';
     return parsedUrl.toString();
@@ -972,12 +974,21 @@ export function createSearchActions({
         if (
           lowerUrl.endsWith('.txt')
           || lowerUrl.endsWith('.zip')
-          || lowerUrl.endsWith('/latest.txt')
-          || lowerUrl.endsWith('/latest.json')
         ) {
-          const latestTextUrl = normalizeConverterLatestTextUrl(normalizedBaseUrl);
-          targetUrl = buildBridgeImportUrl(latestTextUrl);
-          state.importWorkStatus = 'PC上の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
+          if (lowerUrl.endsWith('/latest.txt') || lowerUrl.endsWith('/latest.json')) {
+            const hasWorks = await fetchConverterWorksAvailability(normalizedBaseUrl);
+            if (hasWorks === false) {
+              state.importWorkStatus = 'PC側に送信待ちの作品がありません。PCで作品を送ってから、もう一度開いてください。';
+              renderSearch();
+              return;
+            }
+            targetUrl = buildConverterWorksPageUrl(normalizedBaseUrl);
+            state.importWorkStatus = 'PC上の作品一覧を別タブで開いています。開きたい作品を選ぶと、この画面にプレビューが戻ります。';
+          } else {
+            const latestTextUrl = normalizeConverterLatestTextUrl(normalizedBaseUrl);
+            targetUrl = buildBridgeImportUrl(latestTextUrl);
+            state.importWorkStatus = 'PC上の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
+          }
         } else {
           const hasWorks = await fetchConverterWorksAvailability(normalizedBaseUrl);
           if (hasWorks === false) {
