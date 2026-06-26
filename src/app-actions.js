@@ -214,7 +214,21 @@ export function createSearchActions({
   deleteRecord,
   putRecord,
   putRecords,
-  loadStateFromDb
+  loadStateFromDb,
+  sendBridgeImportAck = async (ackUrl, ackPayload) => {
+    if (!ackUrl) {
+      return;
+    }
+    const response = await fetch(ackUrl, {
+      method: 'POST',
+      credentials: 'omit',
+      cache: 'no-store',
+      body: JSON.stringify(ackPayload ?? {})
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  }
 }) {
   function resetCatalogSearchSession() {
     state.aozoraCatalogQuery = '';
@@ -285,7 +299,11 @@ export function createSearchActions({
         sourceType: 'bridge-import',
         sourceLabel: String(payload.sourceLabel ?? '公開TXT'),
         sourceUrl: String(payload.sourceUrl ?? ''),
-        sourceFileName: String(payload.sourceFileName ?? '')
+        sourceFileName: String(payload.sourceFileName ?? ''),
+        bridgeAckUrl: String(payload.bridgeAckUrl ?? ''),
+        bridgeAckPayload: payload.bridgeAckPayload && typeof payload.bridgeAckPayload === 'object'
+          ? payload.bridgeAckPayload
+          : null
       },
       String(payload.sourceLabel ?? '公開TXT'),
       text
@@ -497,6 +515,10 @@ export function createSearchActions({
       sourceType: String(sourceMeta.sourceType ?? 'text-upload'),
       sourceUrl: String(sourceMeta.sourceUrl ?? sourceMeta.cardUrl ?? ''),
       sourceFileName: String(sourceMeta.sourceFileName ?? ''),
+      bridgeAckUrl: String(sourceMeta.bridgeAckUrl ?? ''),
+      bridgeAckPayload: sourceMeta.bridgeAckPayload && typeof sourceMeta.bridgeAckPayload === 'object'
+        ? { ...sourceMeta.bridgeAckPayload }
+        : null,
       aozoraWorkId: String(sourceMeta.aozoraWorkId ?? ''),
       textZipUrl: String(sourceMeta.textZipUrl ?? ''),
       cardUrl: String(sourceMeta.cardUrl ?? ''),
@@ -624,6 +646,24 @@ export function createSearchActions({
       }
     }
     await loadStateFromDb();
+    if (state.importPreview.sourceType === 'bridge-import' && state.importPreview.bridgeAckUrl) {
+      try {
+        await sendBridgeImportAck(
+          state.importPreview.bridgeAckUrl,
+          state.importPreview.bridgeAckPayload ?? {
+            sourceUrl: state.importPreview.sourceUrl ?? '',
+            txtPath: ''
+          }
+        );
+      } catch (error) {
+        console.error(error);
+        state.importWorkNoticeTone = '';
+        state.importWorkStatus = `保存は完了しましたが送信リストの更新に失敗しました: ${error?.message ?? '不明なエラー'}`;
+        state.importPreview = null;
+        state.importSheetOpen = false;
+        return;
+      }
+    }
     resetCatalogSearchSession();
     state.importWorkNoticeTone = 'success';
     state.importWorkStatus = savePlan.isUpdate

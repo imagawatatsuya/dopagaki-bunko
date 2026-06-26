@@ -261,8 +261,9 @@ test('search import sheet exposes url, paste, file, and bridge import paths toge
   assert.doesNotMatch(markup, /data-search-action="pick-aozora-zip"/u);
 });
 
-function createSearchActionsForTest(state) {
+function createSearchActionsForTest(state, options = {}) {
   const savedRecords = [];
+  const bridgeAcks = [];
   const actions = createSearchActions({
     state,
     renderSearch: () => {},
@@ -292,10 +293,16 @@ function createSearchActionsForTest(state) {
         savedRecords.push({ storeName, record });
       }
     },
-    loadStateFromDb: async () => {}
+    loadStateFromDb: async () => {},
+    sendBridgeImportAck: async (ackUrl, ackPayload) => {
+      bridgeAcks.push({ ackUrl, ackPayload });
+      if (options.failBridgeAck) {
+        throw new Error('ack failed');
+      }
+    }
   });
 
-  return { actions, savedRecords };
+  return { actions, savedRecords, bridgeAcks };
 }
 
 test('pasted text draft is cleared after saving a pasted preview', async () => {
@@ -385,6 +392,36 @@ test('successful imported text is kept separate from the visible pasted draft', 
   assert.equal(state.importPreview, null);
   assert.equal(state.importSheetOpen, true);
   assert.equal(state.importTextDraft, '');
+});
+
+test('bridge import save acknowledges the sender list entry after saving', async () => {
+  const state = createInitialAppState();
+  const { actions, bridgeAcks } = createSearchActionsForTest(state);
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      sourceUrl: 'https://example.com/source',
+      bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+      bridgeAckPayload: {
+        sourceUrl: 'https://example.com/source',
+        txtPath: 'works/source.txt'
+      },
+      text: 'PC作品\n作者\n\nPCから受け取った本文です。'
+    }
+  });
+
+  await actions.handleSearchAction('save-imported-work');
+
+  assert.deepEqual(bridgeAcks, [
+    {
+      ackUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+      ackPayload: {
+        sourceUrl: 'https://example.com/source',
+        txtPath: 'works/source.txt'
+      }
+    }
+  ]);
 });
 
 test('opening the import sheet clears a draft that matches the last imported text', async () => {
