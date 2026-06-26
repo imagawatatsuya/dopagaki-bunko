@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627053451';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627053451';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627054349';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627054349';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -150,6 +150,28 @@ export function buildImportedWorkSavePlan({
     migratedLikeRecords,
     oldFragmentIds: oldWorkFragments.map((fragment) => fragment.id)
   };
+}
+
+function getOpenedWindowHref(openedWindow) {
+  try {
+    return String(openedWindow?.location?.href ?? '');
+  } catch {
+    return null;
+  }
+}
+
+export function shouldTreatOpenedWindowAsStalled(openedWindow, openedAt, timeoutMs, now = Date.now()) {
+  if (!openedWindow || openedWindow.closed) {
+    return false;
+  }
+  const href = getOpenedWindowHref(openedWindow);
+  if (href === null) {
+    return false;
+  }
+  if (href && href !== 'about:blank') {
+    return false;
+  }
+  return now - openedAt >= timeoutMs;
 }
 
 export function createBookmarkActions({
@@ -335,6 +357,36 @@ export function createSearchActions({
     }
     parsedUrl.search = '';
     return parsedUrl.toString();
+  }
+
+  function monitorOpenedConverterWindow(openedWindow, failureMessage) {
+    if (!openedWindow) {
+      return;
+    }
+    const openedAt = Date.now();
+    const timeoutMs = 2500;
+    const poll = () => {
+      if (!openedWindow || openedWindow.closed) {
+        return;
+      }
+      if (shouldTreatOpenedWindowAsStalled(openedWindow, openedAt, timeoutMs)) {
+        try {
+          openedWindow.close();
+        } catch {
+          // Ignore browsers that block close.
+        }
+        state.importWorkNoticeTone = '';
+        state.importWorkStatus = failureMessage;
+        renderSearch();
+        return;
+      }
+      const href = getOpenedWindowHref(openedWindow);
+      if (href === null || (href && href !== 'about:blank')) {
+        return;
+      }
+      globalThis.setTimeout(poll, 150);
+    };
+    globalThis.setTimeout(poll, 150);
   }
 
   function buildConverterShareRootUrl(baseUrl) {
@@ -971,6 +1023,11 @@ export function createSearchActions({
         const openedWindow = globalThis.window.open(targetUrl, '_blank');
         if (!openedWindow) {
           globalThis.location.assign(targetUrl);
+        } else {
+          monitorOpenedConverterWindow(
+            openedWindow,
+            'PC側の配信ページを開けませんでした。PC側の配信ウィンドウ、PCのURL、同じWi-Fi、Windowsファイアウォールを確認してください。'
+          );
         }
       } catch (error) {
         state.importWorkNoticeTone = '';

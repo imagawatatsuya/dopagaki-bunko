@@ -17,7 +17,7 @@ import { createAppData } from '../src/app-data.js';
 import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
-import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork } from '../src/app-actions.js';
+import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
 import { aozoraSearchResultsMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
@@ -675,6 +675,21 @@ test('converter bridge rewrites exact works zip urls to txt', async () => {
       globalThis.location = previousLocation;
     }
   }
+});
+
+test('stalled popup detection only flags about blank windows past the timeout', () => {
+  assert.equal(
+    shouldTreatOpenedWindowAsStalled({ closed: false, location: { href: 'about:blank' } }, 0, 2500, 2600),
+    true
+  );
+  assert.equal(
+    shouldTreatOpenedWindowAsStalled({ closed: false, location: { href: 'about:blank' } }, 0, 2500, 1000),
+    false
+  );
+  assert.equal(
+    shouldTreatOpenedWindowAsStalled({ closed: false, location: { href: 'http://192.168.0.10:8765/dopagaki-import-works.html' } }, 0, 2500, 2600),
+    false
+  );
 });
 
 test('search route intent opens the import sheet and carries remoteImportUrl', () => {
