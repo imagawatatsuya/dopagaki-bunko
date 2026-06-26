@@ -469,7 +469,7 @@ test('converter bridge opens works list when given only the pc base url', async 
 
     assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765');
     assert.equal(opened?.target, '_blank');
-    assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-qr.html');
+    assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
     assert.match(state.importWorkStatus, /PC上の作品一覧を別タブで開いています。/u);
   } finally {
     if (previousWindow === undefined) {

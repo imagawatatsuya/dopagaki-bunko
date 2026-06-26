@@ -308,7 +308,7 @@ export function createSearchActions({
     }
 
     const parsedUrl = new URL(normalizedBaseUrl, globalThis.location?.href ?? 'http://localhost/');
-    parsedUrl.pathname = `${parsedUrl.pathname.replace(/\/$/u, '')}/dopagaki-import-qr.html`;
+    parsedUrl.pathname = `${parsedUrl.pathname.replace(/\/$/u, '')}/dopagaki-import-works.html`;
     parsedUrl.search = '';
     return parsedUrl.toString();
   }
