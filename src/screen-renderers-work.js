@@ -5,13 +5,13 @@ import {
   getReadableWorkFragments,
   getVisibleCountParam,
   sliceWorkFragmentsForVisibleCount
-} from './state.js?v=20260627051739';
+} from './state.js?v=20260627052840';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260627051739';
+} from './router.js?v=20260627052840';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -21,19 +21,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260627051739';
+} from './ui-bindings.js?v=20260627052840';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260627051739';
+} from './views.js?v=20260627052840';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260627051739';
+} from './renderer-shared.js?v=20260627052840';
 
 export function createWorkRenderers({
   app,

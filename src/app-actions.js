@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627051739';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627051739';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627052840';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627052840';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -358,39 +358,6 @@ export function createSearchActions({
     parsedUrl.search = '';
     parsedUrl.hash = '';
     return parsedUrl.toString();
-  }
-
-  async function fetchConverterWorksAvailability(baseUrl) {
-    const shareRootUrl = buildConverterShareRootUrl(baseUrl);
-    const worksIndexUrl = new URL('works.json', shareRootUrl).toString();
-    const controller = typeof AbortController === 'function' ? new AbortController() : null;
-    const timeoutId = controller
-      ? setTimeout(() => controller.abort(), 3500)
-      : null;
-    try {
-      const response = await fetch(`${worksIndexUrl}${worksIndexUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
-        method: 'GET',
-        credentials: 'omit',
-        cache: 'no-store',
-        signal: controller?.signal
-      });
-      if (!response.ok) {
-        return null;
-      }
-      const payload = await response.json();
-      const works = Array.isArray(payload?.works) ? payload.works : [];
-      return works.length > 0;
-    } catch {
-      return null;
-    } finally {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    }
-  }
-
-  function buildConverterWorksUnavailableMessage() {
-    return 'PC側の送信リストを確認できませんでした。PC側の配信ウィンドウ、同じWi-Fi、PCのURL、Windowsファイアウォールを確認してください。';
   }
 
   function normalizeConverterLatestTextUrl(baseUrl) {
@@ -989,19 +956,6 @@ export function createSearchActions({
           || lowerUrl.endsWith('.zip')
         ) {
           if (lowerUrl.endsWith('/latest.txt') || lowerUrl.endsWith('/latest.json')) {
-            state.importWorkStatus = 'PC側の送信リストを確認しています。';
-            renderSearch();
-            const hasWorks = await fetchConverterWorksAvailability(normalizedBaseUrl);
-            if (hasWorks === false) {
-              state.importWorkStatus = 'PC側に送信待ちの作品がありません。PCで作品を送ってから、もう一度開いてください。';
-              renderSearch();
-              return;
-            }
-            if (hasWorks !== true) {
-              state.importWorkStatus = buildConverterWorksUnavailableMessage();
-              renderSearch();
-              return;
-            }
             targetUrl = buildConverterWorksPageUrl(normalizedBaseUrl);
             state.importWorkStatus = 'PC上の作品一覧を別タブで開いています。開きたい作品を選ぶと、この画面にプレビューが戻ります。';
           } else {
@@ -1010,19 +964,6 @@ export function createSearchActions({
             state.importWorkStatus = 'PC上の中継ページを別タブで開いています。読み込み後、この画面にプレビューが戻ります。';
           }
         } else {
-          state.importWorkStatus = 'PC側の送信リストを確認しています。';
-          renderSearch();
-          const hasWorks = await fetchConverterWorksAvailability(normalizedBaseUrl);
-          if (hasWorks === false) {
-            state.importWorkStatus = 'PC側に送信待ちの作品がありません。PCで作品を送ってから、もう一度開いてください。';
-            renderSearch();
-            return;
-          }
-          if (hasWorks !== true) {
-            state.importWorkStatus = buildConverterWorksUnavailableMessage();
-            renderSearch();
-            return;
-          }
           targetUrl = buildConverterWorksPageUrl(normalizedBaseUrl);
           state.importWorkStatus = 'PC上の作品一覧を別タブで開いています。開きたい作品を選ぶと、この画面にプレビューが戻ります。';
         }

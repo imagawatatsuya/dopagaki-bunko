@@ -487,7 +487,6 @@ test('converter bridge opens works list when given only the pc base url', async 
   const { actions, savedRecords } = createSearchActionsForTest(state);
   const previousWindow = globalThis.window;
   const previousLocation = globalThis.location;
-  const previousFetch = globalThis.fetch;
   let opened = null;
 
   globalThis.location = {
@@ -499,10 +498,6 @@ test('converter bridge opens works list when given only the pc base url', async 
       return {};
     }
   };
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => ({ works: [{ txtPath: 'works/a.txt' }] })
-  });
 
   try {
     await actions.handleSearchAction('open-converter-bridge', {
@@ -524,11 +519,6 @@ test('converter bridge opens works list when given only the pc base url', async 
     } else {
       globalThis.location = previousLocation;
     }
-    if (previousFetch === undefined) {
-      delete globalThis.fetch;
-    } else {
-      globalThis.fetch = previousFetch;
-    }
   }
 });
 
@@ -537,7 +527,6 @@ test('converter bridge keeps an exact works page url stable', async () => {
   const { actions } = createSearchActionsForTest(state);
   const previousWindow = globalThis.window;
   const previousLocation = globalThis.location;
-  const previousFetch = globalThis.fetch;
   let opened = null;
 
   globalThis.location = {
@@ -549,10 +538,6 @@ test('converter bridge keeps an exact works page url stable', async () => {
       return {};
     }
   };
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => ({ works: [{ txtPath: 'works/a.txt' }] })
-  });
 
   try {
     await actions.handleSearchAction('open-converter-bridge', {
@@ -572,11 +557,6 @@ test('converter bridge keeps an exact works page url stable', async () => {
     } else {
       globalThis.location = previousLocation;
     }
-    if (previousFetch === undefined) {
-      delete globalThis.fetch;
-    } else {
-      globalThis.fetch = previousFetch;
-    }
   }
 });
 
@@ -585,7 +565,6 @@ test('converter bridge treats latest txt as a works-list entrypoint', async () =
   const { actions } = createSearchActionsForTest(state);
   const previousWindow = globalThis.window;
   const previousLocation = globalThis.location;
-  const previousFetch = globalThis.fetch;
   let opened = null;
 
   globalThis.location = {
@@ -597,10 +576,6 @@ test('converter bridge treats latest txt as a works-list entrypoint', async () =
       return {};
     }
   };
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => ({ works: [{ txtPath: 'works/a.txt' }] })
-  });
 
   try {
     await actions.handleSearchAction('open-converter-bridge', {
@@ -620,154 +595,6 @@ test('converter bridge treats latest txt as a works-list entrypoint', async () =
       delete globalThis.location;
     } else {
       globalThis.location = previousLocation;
-    }
-    if (previousFetch === undefined) {
-      delete globalThis.fetch;
-    } else {
-      globalThis.fetch = previousFetch;
-    }
-  }
-});
-
-test('converter bridge does not open a tab when the sender list is empty', async () => {
-  const state = createInitialAppState();
-  const { actions } = createSearchActionsForTest(state);
-  const previousWindow = globalThis.window;
-  const previousLocation = globalThis.location;
-  const previousFetch = globalThis.fetch;
-  let opened = null;
-
-  globalThis.location = {
-    href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
-  };
-  globalThis.window = {
-    open: (url, target) => {
-      opened = { url, target };
-      return {};
-    }
-  };
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => ({ works: [] })
-  });
-
-  try {
-    await actions.handleSearchAction('open-converter-bridge', {
-      baseUrl: 'http://192.168.0.10:8765'
-    });
-
-    assert.equal(opened, null);
-    assert.match(state.importWorkStatus, /PC側に送信待ちの作品がありません。/u);
-  } finally {
-    if (previousWindow === undefined) {
-      delete globalThis.window;
-    } else {
-      globalThis.window = previousWindow;
-    }
-    if (previousLocation === undefined) {
-      delete globalThis.location;
-    } else {
-      globalThis.location = previousLocation;
-    }
-    if (previousFetch === undefined) {
-      delete globalThis.fetch;
-    } else {
-      globalThis.fetch = previousFetch;
-    }
-  }
-});
-
-test('converter bridge does not open latest txt when the sender list is empty', async () => {
-  const state = createInitialAppState();
-  const { actions } = createSearchActionsForTest(state);
-  const previousWindow = globalThis.window;
-  const previousLocation = globalThis.location;
-  const previousFetch = globalThis.fetch;
-  let opened = null;
-
-  globalThis.location = {
-    href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
-  };
-  globalThis.window = {
-    open: (url, target) => {
-      opened = { url, target };
-      return {};
-    }
-  };
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => ({ works: [] })
-  });
-
-  try {
-    await actions.handleSearchAction('open-converter-bridge', {
-      baseUrl: 'http://192.168.0.10:8765/latest.txt'
-    });
-
-    assert.equal(opened, null);
-    assert.match(state.importWorkStatus, /PC側に送信待ちの作品がありません。/u);
-  } finally {
-    if (previousWindow === undefined) {
-      delete globalThis.window;
-    } else {
-      globalThis.window = previousWindow;
-    }
-    if (previousLocation === undefined) {
-      delete globalThis.location;
-    } else {
-      globalThis.location = previousLocation;
-    }
-    if (previousFetch === undefined) {
-      delete globalThis.fetch;
-    } else {
-      globalThis.fetch = previousFetch;
-    }
-  }
-});
-
-test('converter bridge does not open a tab when sender list availability is unknown', async () => {
-  const state = createInitialAppState();
-  const { actions } = createSearchActionsForTest(state);
-  const previousWindow = globalThis.window;
-  const previousLocation = globalThis.location;
-  const previousFetch = globalThis.fetch;
-  let opened = null;
-
-  globalThis.location = {
-    href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
-  };
-  globalThis.window = {
-    open: (url, target) => {
-      opened = { url, target };
-      return {};
-    }
-  };
-  globalThis.fetch = async () => {
-    throw new Error('network timeout');
-  };
-
-  try {
-    await actions.handleSearchAction('open-converter-bridge', {
-      baseUrl: 'http://192.168.0.10:8765'
-    });
-
-    assert.equal(opened, null);
-    assert.match(state.importWorkStatus, /PC側の送信リストを確認できませんでした。/u);
-  } finally {
-    if (previousWindow === undefined) {
-      delete globalThis.window;
-    } else {
-      globalThis.window = previousWindow;
-    }
-    if (previousLocation === undefined) {
-      delete globalThis.location;
-    } else {
-      globalThis.location = previousLocation;
-    }
-    if (previousFetch === undefined) {
-      delete globalThis.fetch;
-    } else {
-      globalThis.fetch = previousFetch;
     }
   }
 });
