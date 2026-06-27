@@ -1,33 +1,33 @@
-import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260627054349';
-import { ALL_STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260627054349';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260627054349';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260627054349';
+import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260627123148';
+import { ALL_STORE_NAMES, clearStore, deleteRecord, getAllRecords, getRecord, putRecord, putRecords } from './db.js?v=20260627123148';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260627123148';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260627123148';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260627054349';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260627054349';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260627054349';
-import { derivePreviewFromText } from './import-preview.js?v=20260627054349';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260627054349';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260627054349';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260627054349';
-import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260627054349';
-import { buildImportSummary, createAppShell } from './app-shell.js?v=20260627054349';
-import { createAppData } from './app-data.js?v=20260627054349';
-import { createScreenRenderers } from './screen-renderers.js?v=20260627054349';
+} from './app-actions.js?v=20260627123148';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260627123148';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260627123148';
+import { derivePreviewFromText } from './import-preview.js?v=20260627123148';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260627123148';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260627123148';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260627123148';
+import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260627123148';
+import { buildImportSummary, createAppShell } from './app-shell.js?v=20260627123148';
+import { createAppData } from './app-data.js?v=20260627123148';
+import { createScreenRenderers } from './screen-renderers.js?v=20260627123148';
 import {
   SEARCH_RESULTS_BATCH_SIZE,
   WORK_LOAD_MODE_SETTING_ID,
   WORK_PAGE_BATCH_SIZE,
   CONVERTER_BASE_URL_SETTING_ID
-} from './app-config.js?v=20260627054349';
-import { createAppRouter } from './app-router.js?v=20260627054349';
-import { createInitialAppState } from './app-state.js?v=20260627054349';
-import { normalizeConverterBaseUrl } from './remote-import.js?v=20260627054349';
+} from './app-config.js?v=20260627123148';
+import { createAppRouter } from './app-router.js?v=20260627123148';
+import { createInitialAppState } from './app-state.js?v=20260627123148';
+import { normalizeConverterBaseUrl } from './remote-import.js?v=20260627123148';
 
 export function createAppRuntime({ app }) {
   const state = createInitialAppState();

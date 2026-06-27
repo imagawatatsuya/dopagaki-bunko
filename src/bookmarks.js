@@ -1,4 +1,4 @@
-import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260627054349';
+import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260627123148';
 
 const STORE_NAME = 'bookmarks';
 
