@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627124517';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627124517';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627130014';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627130014';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -321,7 +321,8 @@ export function createSearchActions({
         bridgeAckUrl: String(payload.bridgeAckUrl ?? ''),
         bridgeAckPayload: payload.bridgeAckPayload && typeof payload.bridgeAckPayload === 'object'
           ? payload.bridgeAckPayload
-          : null
+          : null,
+        bridgeQueueRemaining: Math.max(0, Number(payload.bridgeQueueRemaining) || 0)
       },
       String(payload.sourceLabel ?? '公開TXT'),
       text
@@ -596,6 +597,7 @@ export function createSearchActions({
       bridgeAckPayload: sourceMeta.bridgeAckPayload && typeof sourceMeta.bridgeAckPayload === 'object'
         ? { ...sourceMeta.bridgeAckPayload }
         : null,
+      bridgeQueueRemaining: Math.max(0, Number(sourceMeta.bridgeQueueRemaining) || 0),
       aozoraWorkId: String(sourceMeta.aozoraWorkId ?? ''),
       textZipUrl: String(sourceMeta.textZipUrl ?? ''),
       cardUrl: String(sourceMeta.cardUrl ?? ''),
@@ -1125,7 +1127,8 @@ export function createSearchActions({
             bridgeAckUrl: String(windowNamePayload.bridgeAckUrl ?? ''),
             bridgeAckPayload: windowNamePayload.bridgeAckPayload && typeof windowNamePayload.bridgeAckPayload === 'object'
               ? windowNamePayload.bridgeAckPayload
-              : null
+              : null,
+            bridgeQueueRemaining: Math.max(0, Number(windowNamePayload.bridgeQueueRemaining) || 0)
           },
           String(windowNamePayload.sourceLabel ?? '公開TXT'),
           text

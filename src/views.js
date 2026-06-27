@@ -320,7 +320,18 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
     return '';
   }
 
-  const saveButtonLabel = preview.isExistingWorkUpdate ? '既存作品を更新する' : '作品として保存する';
+  const queueRemaining = Math.max(0, Number(preview.bridgeQueueRemaining) || 0);
+  const isQueuedBridgeImport = Boolean(preview.bridgeAckUrl);
+  const saveButtonLabel = isQueuedBridgeImport
+    ? (queueRemaining > 0 ? '更新して次へ' : '更新して完了')
+    : (preview.isExistingWorkUpdate ? '既存作品を更新する' : '作品として保存する');
+  const queueStatusHtml = isQueuedBridgeImport
+    ? `<p class="settings-status settings-status-subtle">${
+      queueRemaining > 0
+        ? `この作品の更新後、次の作品を開きます。残り ${queueRemaining}件`
+        : 'この作品が最後です。更新後にPC側の配信を終了します。'
+    }</p>`
+    : '';
   const updateNoticeHtml = preview.isExistingWorkUpdate
     ? `<p class="settings-status settings-status-subtle">この取り込みは既存の「${preview.existingWorkTitle || preview.title}」を更新します。</p>`
     : '';
@@ -329,6 +340,7 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
     <article class="info-panel" data-search-preview tabindex="-1" aria-labelledby="search-preview-title">
       <h2 class="section-title" id="search-preview-title">取り込みプレビュー</h2>
       <p class="section-text">作品名: ${preview.title}<br>著者名: ${preview.author}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${preview.encoding}</p>
+      ${queueStatusHtml}
       ${updateNoticeHtml}
       ${preview.copyrightWarning ? '<p class="settings-status">この作品は著作権に注意が必要です。保存や利用前に図書カードを確認してください。</p>' : ''}
       <div class="preview-list">

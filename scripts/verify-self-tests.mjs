@@ -236,6 +236,44 @@ test('search import preview renders only the first four fragments', () => {
   assert.match(markup, /aria-labelledby="search-preview-title"/u);
 });
 
+test('queued PC import preview shows remaining works and advances after save', () => {
+  const markup = searchPreviewMarkup({
+    title: '更新作品',
+    author: '著者名',
+    textFragmentCount: 1,
+    encoding: 'UTF-8',
+    bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+    bridgeQueueRemaining: 2,
+    fragments: [{
+      type: 'fragment',
+      index: 1,
+      displayHtml: '本文'
+    }]
+  }, '');
+
+  assert.match(markup, /残り 2件/u);
+  assert.match(markup, />更新して次へ</u);
+});
+
+test('last queued PC import preview labels the final update', () => {
+  const markup = searchPreviewMarkup({
+    title: '最終作品',
+    author: '著者名',
+    textFragmentCount: 1,
+    encoding: 'UTF-8',
+    bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+    bridgeQueueRemaining: 0,
+    fragments: [{
+      type: 'fragment',
+      index: 1,
+      displayHtml: '本文'
+    }]
+  }, '');
+
+  assert.match(markup, /この作品が最後です/u);
+  assert.match(markup, />更新して完了</u);
+});
+
 test('search import sheet exposes url, paste, file, and bridge import paths together', () => {
   const markup = searchImportSheetMarkup({
     isOpen: true,
