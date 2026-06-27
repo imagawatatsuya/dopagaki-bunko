@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627123148';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627123148';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627124517';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627124517';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -241,15 +241,11 @@ export function createSearchActions({
     if (!ackUrl) {
       return;
     }
-    const response = await fetch(ackUrl, {
-      method: 'POST',
-      credentials: 'omit',
-      cache: 'no-store',
-      body: JSON.stringify(ackPayload ?? {})
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
+    const navigationUrl = new URL(ackUrl);
+    navigationUrl.searchParams.set('sourceUrl', String(ackPayload?.sourceUrl ?? ''));
+    navigationUrl.searchParams.set('txtPath', String(ackPayload?.txtPath ?? ''));
+    navigationUrl.searchParams.set('returnUrl', globalThis.location?.href ?? '');
+    globalThis.location.assign(navigationUrl.toString());
   }
 }) {
   function resetCatalogSearchSession() {
