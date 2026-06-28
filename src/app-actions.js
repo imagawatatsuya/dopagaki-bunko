@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628134540';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628134540';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628135300';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628135300';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -624,7 +624,8 @@ export function createSearchActions({
         ...builtPreview,
         existingWorkId: matchingWork?.id ?? '',
         existingWorkTitle: matchingWork?.title ?? '',
-        isExistingWorkUpdate: Boolean(matchingWork)
+        isExistingWorkUpdate: Boolean(matchingWork),
+        libraryWorkCountAtImport: state.works.length
       };
       state.importTextLastImported = String(rawText ?? '');
       state.importSheetOpen = false;

@@ -322,24 +322,38 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
 
   const queueRemaining = Math.max(0, Number(preview.bridgeQueueRemaining) || 0);
   const isQueuedBridgeImport = Boolean(preview.bridgeAckUrl);
+  const isExistingWorkUpdate = Boolean(preview.isExistingWorkUpdate);
   const saveButtonLabel = isQueuedBridgeImport
-    ? (queueRemaining > 0 ? '更新して次へ' : '更新して完了')
-    : (preview.isExistingWorkUpdate ? '既存作品を更新する' : '作品として保存する');
+    ? (
+      isExistingWorkUpdate
+        ? (queueRemaining > 0 ? '更新して次へ' : '更新して完了')
+        : (queueRemaining > 0 ? '保存して次へ' : '保存して完了')
+    )
+    : (isExistingWorkUpdate ? '既存作品を更新する' : '作品として保存する');
   const queueStatusHtml = isQueuedBridgeImport
     ? `<p class="settings-status settings-status-subtle">${
       queueRemaining > 0
-        ? `この作品の更新後、次の作品を開きます。残り ${queueRemaining}件`
-        : 'この作品が最後です。更新後にPC側の配信を終了します。'
+        ? `この作品の${isExistingWorkUpdate ? '更新' : '保存'}後、次の作品を開きます。残り ${queueRemaining}件`
+        : `この作品が最後です。${isExistingWorkUpdate ? '更新' : '保存'}後にPC側の配信を終了します。`
     }</p>`
     : '';
-  const updateNoticeHtml = preview.isExistingWorkUpdate
+  const updateNoticeHtml = isExistingWorkUpdate
     ? `<p class="settings-status settings-status-subtle">この取り込みは既存の「${preview.existingWorkTitle || preview.title}」を更新します。</p>`
+    : '';
+  const libraryWorkCount = Number(preview.libraryWorkCountAtImport);
+  const libraryStateHtml = isQueuedBridgeImport && Number.isFinite(libraryWorkCount)
+    ? (
+      libraryWorkCount === 0
+        ? '<p class="settings-status">このブラウザの本棚は0件です。この作品は既存更新ではなく新規保存になります。以前の作品があるはずなら、保存せずブラウザの保存状態を確認してください。</p>'
+        : `<p class="settings-status settings-status-subtle">このブラウザの本棚: ${libraryWorkCount}作品。${isExistingWorkUpdate ? '同じ作品を確認しました。' : '同じ作品は見つからないため新規保存になります。'}</p>`
+    )
     : '';
 
   return `
     <article class="info-panel" data-search-preview tabindex="-1" aria-labelledby="search-preview-title">
       <h2 class="section-title" id="search-preview-title">取り込みプレビュー</h2>
       <p class="section-text">作品名: ${preview.title}<br>著者名: ${preview.author}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${preview.encoding}</p>
+      ${libraryStateHtml}
       ${queueStatusHtml}
       ${updateNoticeHtml}
       ${preview.copyrightWarning ? '<p class="settings-status">この作品は著作権に注意が必要です。保存や利用前に図書カードを確認してください。</p>' : ''}

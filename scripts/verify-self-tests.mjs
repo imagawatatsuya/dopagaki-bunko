@@ -244,6 +244,8 @@ test('queued PC import preview shows remaining works and advances after save', (
     encoding: 'UTF-8',
     bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
     bridgeQueueRemaining: 2,
+    isExistingWorkUpdate: true,
+    libraryWorkCountAtImport: 5,
     fragments: [{
       type: 'fragment',
       index: 1,
@@ -252,6 +254,7 @@ test('queued PC import preview shows remaining works and advances after save', (
   }, '');
 
   assert.match(markup, /残り 2件/u);
+  assert.match(markup, /このブラウザの本棚: 5作品/u);
   assert.match(markup, />更新して次へ</u);
 });
 
@@ -263,6 +266,8 @@ test('last queued PC import preview labels the final update', () => {
     encoding: 'UTF-8',
     bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
     bridgeQueueRemaining: 0,
+    isExistingWorkUpdate: true,
+    libraryWorkCountAtImport: 5,
     fragments: [{
       type: 'fragment',
       index: 1,
@@ -272,6 +277,29 @@ test('last queued PC import preview labels the final update', () => {
 
   assert.match(markup, /この作品が最後です/u);
   assert.match(markup, />更新して完了</u);
+});
+
+test('queued PC import warns when the browser library is empty and uses save wording', () => {
+  const markup = searchPreviewMarkup({
+    title: '新規作品',
+    author: '著者名',
+    textFragmentCount: 1,
+    encoding: 'UTF-8',
+    bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+    bridgeQueueRemaining: 1,
+    isExistingWorkUpdate: false,
+    libraryWorkCountAtImport: 0,
+    fragments: [{
+      type: 'fragment',
+      index: 1,
+      displayHtml: '本文'
+    }]
+  }, '');
+
+  assert.match(markup, /このブラウザの本棚は0件/u);
+  assert.match(markup, /以前の作品があるはずなら、保存せず/u);
+  assert.match(markup, />保存して次へ</u);
+  assert.doesNotMatch(markup, />更新して次へ</u);
 });
 
 test('search import sheet exposes url, paste, file, and bridge import paths together', () => {
