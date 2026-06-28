@@ -10,7 +10,7 @@ import { extractAozoraTxtFromZip } from '../src/aozora-zip-importer.js';
 import { buildAozoraCatalogPayload, normalizeAozoraCatalogPayload, normalizeAozoraTextZipUrl } from '../src/aozora-catalog.js';
 import { SEARCH_SORT_MODES, searchAozoraCatalog, searchWorkRecords } from '../src/aozora-search.js';
 import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
-import { STORE_NAMES } from '../src/db.js';
+import { STORE_NAMES, assertStoreCountsEmpty } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
 import { buildWorkEndHash, buildWorkOutlineHash, parseSearchRouteIntent } from '../src/router.js';
 import { normalizeConverterBaseUrl } from '../src/remote-import.js';
@@ -19,7 +19,7 @@ import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRe
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
 import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
-import { aozoraSearchResultsMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
+import { aozoraSearchResultsMarkup, errorBodyMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup, settingsBodyMarkup } from '../src/views.js';
 
 const tests = [];
 globalThis.requestAnimationFrame = () => 0;
@@ -1009,6 +1009,33 @@ test('database transactions subscribe to completion before running requests', ()
   assert.match(source, /IndexedDB transaction timed out/u);
 });
 
+test('reset verification rejects any remaining user-store records', () => {
+  assert.equal(assertStoreCountsEmpty({
+    works: 0,
+    fragments: 0,
+    likes: 0,
+    bookmarks: 0,
+    readingStates: 0,
+    settings: 0
+  }), true);
+  assert.throws(
+    () => assertStoreCountsEmpty({ works: 1, fragments: 0 }),
+    /初期化後も保存データが残っています（works:1）/u
+  );
+});
+
+test('reset closes the old connection and verifies stores before reporting completion', () => {
+  const dbSource = readFileSync(new URL('../src/db.js', import.meta.url), 'utf8');
+  const actionsSource = readFileSync(new URL('../src/app-actions.js', import.meta.url), 'utf8');
+  assert.match(dbSource, /verifyStoresEmpty[\s\S]*resetOpenState\(\)[\s\S]*\.count\(\)/u);
+  const clearIndex = actionsSource.indexOf('await clearAllStores();');
+  const verifyIndex = actionsSource.indexOf('await verifyUserStoresEmpty();', clearIndex);
+  const completedIndex = actionsSource.indexOf("state.importStatus = 'アプリを初期化しました。';", verifyIndex);
+  assert.ok(clearIndex !== -1 && clearIndex < verifyIndex);
+  assert.ok(verifyIndex < completedIndex);
+  assert.match(actionsSource, /データが残っている可能性があります/u);
+});
+
 test('destructive multi-store operations use the shared atomic mutation path', () => {
   const appDataSource = readFileSync(new URL('../src/app-data.js', import.meta.url), 'utf8');
   const appActionsSource = readFileSync(new URL('../src/app-actions.js', import.meta.url), 'utf8');
@@ -1039,6 +1066,37 @@ test('reader action status markup renders only non-empty messages', () => {
   assert.equal(readerActionStatusMarkup('', 'error'), '');
   assert.match(readerActionStatusMarkup('しおり保存に失敗しました: IndexedDB transaction failed.', 'error'), /settings-status-error/u);
   assert.match(readerActionStatusMarkup('しおり保存に失敗しました: IndexedDB transaction failed.', 'error'), /IndexedDB transaction failed/u);
+});
+
+test('loading failures and settings show non-destructive iPhone recovery guidance', () => {
+  const errorMarkup = errorBodyMarkup('IndexedDB transaction timed out.');
+  const settingsMarkup = settingsBodyMarkup({
+    exportStatusHtml: '',
+    importStatusHtml: '',
+    releaseStatusHtml: '',
+    readingStatusHtml: '',
+    workLoadMode: 'auto',
+    pendingImportMarkup: ''
+  });
+
+  assert.match(errorMarkup, /このタブを閉じ/u);
+  assert.match(errorMarkup, /アプリを初期化する.*使わない/u);
+  assert.match(settingsMarkup, /困ったとき/u);
+  assert.match(settingsMarkup, /ブラウザで新しいタブを開きます/u);
+  assert.match(settingsMarkup, /表示不良や「準備中」の復旧には使わない/u);
+});
+
+test('startup replaces prolonged loading with recovery guidance', () => {
+  const source = readFileSync(new URL('../src/app-runtime.js', import.meta.url), 'utf8');
+  assert.match(source, /recoveryGuideTimer/u);
+  assert.match(source, /このタブを閉じて新しいタブでdopagaki-bunkoを開き直してください/u);
+  assert.match(source, /clearTimeout\(recoveryGuideTimer\)/u);
+});
+
+test('reset confirmation states that reset is not a recovery action', () => {
+  const source = readFileSync(new URL('../src/app-actions.js', import.meta.url), 'utf8');
+  assert.match(source, /これは復旧操作ではありません/u);
+  assert.match(source, /それでも全データを消去しますか/u);
 });
 
 test('work reading starts only after reaching fragment 3', async () => {

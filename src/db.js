@@ -322,6 +322,27 @@ export function clearStore(storeName) {
   });
 }
 
+export function assertStoreCountsEmpty(counts) {
+  const remaining = Object.entries(counts).filter(([, count]) => Number(count) > 0);
+  if (remaining.length > 0) {
+    const summary = remaining.map(([storeName, count]) => `${storeName}:${count}`).join(', ');
+    throw new Error(`初期化後も保存データが残っています（${summary}）。`);
+  }
+  return true;
+}
+
+export async function verifyStoresEmpty(storeNames) {
+  resetOpenState();
+  const counts = await withStores(storeNames, 'readonly', async (stores) => {
+    const entries = await Promise.all(storeNames.map(async (storeName) => {
+      return [storeName, await requestToPromise(stores[storeName].count())];
+    }));
+    return Object.fromEntries(entries);
+  });
+  assertStoreCountsEmpty(counts);
+  return counts;
+}
+
 export async function exportStores() {
   return withStores(STORE_NAMES, 'readonly', async (stores) => {
     const entries = await Promise.all(STORE_NAMES.map(async (storeName) => {

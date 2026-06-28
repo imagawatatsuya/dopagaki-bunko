@@ -1,4 +1,4 @@
-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260628142320';
+import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260628191219';
 
 const AOZORA_NUMBER_PATTERN = '[0-9０-９]+';
 const HEADING_INLINE_PATTERN = /^(.*?)[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;

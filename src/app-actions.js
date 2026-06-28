@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628142320';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628142320';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628191219';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628191219';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -932,7 +932,7 @@ export function createSearchActions({
       state.aozoraCatalogStatus = `${payload.records.length}件の同梱作品一覧を読み込みました。`;
     } catch (error) {
       console.error(error);
-      state.aozoraCatalogStatus = `作品一覧の更新に失敗しました: ${error?.message ?? '不明なエラー'}`;
+      state.aozoraCatalogStatus = `作品一覧の更新に失敗しました: ${error?.message ?? '不明なエラー'} この表示が変わらない場合は、アプリを初期化せず、このタブを閉じて新しいタブで開き直してください。`;
     } finally {
       state.aozoraCatalogLoading = false;
     }
@@ -1342,6 +1342,7 @@ export function createSettingsActions({
   buildImportSummary,
   loadStateFromDb,
   clearAllStores,
+  verifyUserStoresEmpty,
   pickImportInput,
   saveWorkLoadMode
 }) {
@@ -1448,7 +1449,7 @@ export function createSettingsActions({
   }
 
   async function resetAppData() {
-    const confirmed = globalThis.confirm('保存した作品、断片、ふせん、しおり、設定を消去して初期状態へ戻します。続行しますか。');
+    const confirmed = globalThis.confirm('これは復旧操作ではありません。保存した作品、断片、ふせん、しおり、設定を実際に消去します。「準備中」や本棚0件の復旧には、先にこのタブを閉じて新しいタブで開き直してください。それでも全データを消去しますか。');
     if (!confirmed) {
       return;
     }
@@ -1463,11 +1464,12 @@ export function createSettingsActions({
 
     try {
       await clearAllStores();
+      await verifyUserStoresEmpty();
       await loadStateFromDb();
       state.importStatus = 'アプリを初期化しました。';
     } catch (error) {
       console.error(error);
-      state.importStatus = `初期化に失敗しました: ${error?.message ?? '不明なエラー'}`;
+      state.importStatus = `初期化を完了できませんでした: ${error?.message ?? '不明なエラー'} データが残っている可能性があります。アプリを初期化し直さず、このタブを閉じて新しいタブで開き直してください。`;
     }
 
     renderSettings();

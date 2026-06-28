@@ -1,33 +1,33 @@
-import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260628142320';
-import { STORE_NAMES, applyRecordMutations, getAllRecords, getRecord, putRecord } from './db.js?v=20260628142320';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260628142320';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260628142320';
+import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260628191219';
+import { STORE_NAMES, applyRecordMutations, getAllRecords, getRecord, putRecord, verifyStoresEmpty } from './db.js?v=20260628191219';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260628191219';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260628191219';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260628142320';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260628142320';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260628142320';
-import { derivePreviewFromText } from './import-preview.js?v=20260628142320';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260628142320';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260628142320';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260628142320';
-import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260628142320';
-import { buildImportSummary, createAppShell } from './app-shell.js?v=20260628142320';
-import { createAppData } from './app-data.js?v=20260628142320';
-import { createScreenRenderers } from './screen-renderers.js?v=20260628142320';
+} from './app-actions.js?v=20260628191219';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260628191219';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260628191219';
+import { derivePreviewFromText } from './import-preview.js?v=20260628191219';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260628191219';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260628191219';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260628191219';
+import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260628191219';
+import { buildImportSummary, createAppShell } from './app-shell.js?v=20260628191219';
+import { createAppData } from './app-data.js?v=20260628191219';
+import { createScreenRenderers } from './screen-renderers.js?v=20260628191219';
 import {
   SEARCH_RESULTS_BATCH_SIZE,
   WORK_LOAD_MODE_SETTING_ID,
   WORK_PAGE_BATCH_SIZE,
   CONVERTER_BASE_URL_SETTING_ID
-} from './app-config.js?v=20260628142320';
-import { createAppRouter } from './app-router.js?v=20260628142320';
-import { createInitialAppState } from './app-state.js?v=20260628142320';
-import { normalizeConverterBaseUrl } from './remote-import.js?v=20260628142320';
+} from './app-config.js?v=20260628191219';
+import { createAppRouter } from './app-router.js?v=20260628191219';
+import { createInitialAppState } from './app-state.js?v=20260628191219';
+import { normalizeConverterBaseUrl } from './remote-import.js?v=20260628191219';
 
 export function createAppRuntime({ app }) {
   const state = createInitialAppState();
@@ -133,6 +133,7 @@ export function createAppRuntime({ app }) {
     buildImportSummary,
     loadStateFromDb,
     clearAllStores: clearAllStoresAndResetUi,
+    verifyUserStoresEmpty: () => verifyStoresEmpty(STORE_NAMES),
     saveWorkLoadMode: async (mode) => {
       await putRecord('settings', {
         id: WORK_LOAD_MODE_SETTING_ID,
@@ -200,6 +201,9 @@ export function createAppRuntime({ app }) {
 
   async function start() {
     renderers.renderLoading();
+    const recoveryGuideTimer = globalThis.setTimeout(() => {
+      renderers.renderLoading('読み込みに時間がかかっています。この表示が続く場合は、このタブを閉じて新しいタブでdopagaki-bunkoを開き直してください。アプリの初期化はしないでください。');
+    }, 12000);
 
     try {
       if ('scrollRestoration' in history) {
@@ -223,6 +227,8 @@ export function createAppRuntime({ app }) {
     } catch (error) {
       console.error(error);
       renderers.renderError(error);
+    } finally {
+      globalThis.clearTimeout(recoveryGuideTimer);
     }
   }
 

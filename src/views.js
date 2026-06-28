@@ -51,6 +51,7 @@ export function errorBodyMarkup(message) {
       <article class="info-panel">
         <h2 class="section-title">読み込みエラー</h2>
         <p class="section-text">${message}</p>
+        <p class="settings-status">本棚が0件に見えても、データは端末に残っている可能性があります。このタブを閉じ、ブラウザで新しいタブを開いてdopagaki-bunkoのURLへ入り直してください。読込不良の復旧に「アプリを初期化する」は使わないでください。</p>
       </article>
     </section>
   `;
@@ -436,8 +437,18 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
         ${readingStatusHtml}
       </article>
       <article class="info-panel">
+        <h2 class="section-title">困ったとき</h2>
+        <p class="section-text">「準備中」が長く続く、本棚が突然0件になる、追加画面の表示が変わらない場合は、データを初期化しないでください。</p>
+        <ol class="section-text">
+          <li>いま開いているdopagaki-bunkoのタブを閉じます。</li>
+          <li>ブラウザで新しいタブを開きます。</li>
+          <li>dopagaki-bunkoのURLへ入り直します。</li>
+        </ol>
+        <p class="settings-status settings-status-subtle">本棚データが端末に残っていれば、新しいタブで再び表示されます。</p>
+      </article>
+      <article class="info-panel">
         <h2 class="section-title">アプリ初期化</h2>
-        <p class="section-text">保存した作品、断片、ふせん、しおり、設定を消去して最初の状態へ戻します。</p>
+        <p class="section-text">保存した作品、断片、ふせん、しおり、設定を実際に消去します。表示不良や「準備中」の復旧には使わないでください。先に上の「困ったとき」を実行してください。</p>
         <div class="settings-actions">
           <button type="button" class="detail-action-button settings-button" data-settings-action="reset-app">アプリを初期化する</button>
         </div>
