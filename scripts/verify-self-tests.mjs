@@ -1030,7 +1030,7 @@ test('reset closes the old connection and verifies stores before reporting compl
   assert.match(dbSource, /verifyStoresEmpty[\s\S]*resetOpenState\(\)[\s\S]*\.count\(\)/u);
   const clearIndex = actionsSource.indexOf('await clearAllStores();');
   const verifyIndex = actionsSource.indexOf('await verifyUserStoresEmpty();', clearIndex);
-  const completedIndex = actionsSource.indexOf("state.importStatus = 'アプリを初期化しました。';", verifyIndex);
+  const completedIndex = actionsSource.indexOf("state.resetStatus = 'アプリを初期化しました。';", verifyIndex);
   assert.ok(clearIndex !== -1 && clearIndex < verifyIndex);
   assert.ok(verifyIndex < completedIndex);
   assert.match(actionsSource, /データが残っている可能性があります/u);
@@ -1076,6 +1076,7 @@ test('loading failures and settings show non-destructive iPhone recovery guidanc
     releaseStatusHtml: '',
     readingStatusHtml: '',
     workLoadMode: 'auto',
+    resetStatusHtml: '',
     pendingImportMarkup: ''
   });
 
@@ -1095,8 +1096,42 @@ test('startup replaces prolonged loading with recovery guidance', () => {
 
 test('reset confirmation states that reset is not a recovery action', () => {
   const source = readFileSync(new URL('../src/app-actions.js', import.meta.url), 'utf8');
-  assert.match(source, /これは復旧操作ではありません/u);
-  assert.match(source, /それでも全データを消去しますか/u);
+  const resetFunction = source.slice(
+    source.indexOf('async function resetAppData()'),
+    source.indexOf('async function handleSettingsAction')
+  );
+  assert.doesNotMatch(resetFunction, /globalThis\.confirm/u);
+  assert.match(source, /resetConfirmationStep = 'backup'/u);
+  assert.match(source, /resetConfirmationStep = 'final'/u);
+  assert.match(source, /初期化を中止しました/u);
+});
+
+test('reset uses backup and final confirmation panels with explicit cancel wording', () => {
+  const shared = {
+    exportStatusHtml: '',
+    importStatusHtml: '',
+    releaseStatusHtml: '',
+    readingStatusHtml: '',
+    workLoadMode: 'auto',
+    pendingImportMarkup: ''
+  };
+  const backupMarkup = settingsBodyMarkup({
+    ...shared,
+    resetConfirmationStep: 'backup'
+  });
+  const finalMarkup = settingsBodyMarkup({
+    ...shared,
+    resetConfirmationStep: 'final'
+  });
+
+  assert.match(backupMarkup, /初期化前のバックアップ/u);
+  assert.match(backupMarkup, /バックアップを書き出す/u);
+  assert.match(backupMarkup, /バックアップ済みなので次へ/u);
+  assert.match(backupMarkup, /初期化を中止する/u);
+  assert.doesNotMatch(backupMarkup, />キャンセル</u);
+  assert.match(finalMarkup, /初期化の最終確認/u);
+  assert.match(finalMarkup, /確認したので初期化する/u);
+  assert.match(finalMarkup, /初期化を中止する/u);
 });
 
 test('work reading starts only after reaching fragment 3', async () => {

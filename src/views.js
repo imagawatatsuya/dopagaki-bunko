@@ -399,7 +399,31 @@ export function settingsPendingImportMarkup(pendingImport, statusHtml) {
   `;
 }
 
-export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, releaseStatusHtml, readingStatusHtml = '', workLoadMode = 'auto', pendingImportMarkup }) {
+export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, releaseStatusHtml, readingStatusHtml = '', workLoadMode = 'auto', resetConfirmationStep = '', resetStatusHtml = '', pendingImportMarkup }) {
+  const resetConfirmationMarkup = resetConfirmationStep === 'backup'
+    ? `
+      <article class="info-panel settings-confirm-panel">
+        <h2 class="section-title">初期化前のバックアップ</h2>
+        <p class="section-text">初期化すると本棚、しおり、ふせん、設定を削除します。先にJSONバックアップを書き出してください。</p>
+        <div class="settings-button-grid">
+          <button type="button" class="detail-action-button settings-button" data-settings-action="reset-export-backup">バックアップを書き出す</button>
+          <button type="button" class="detail-action-button settings-button" data-settings-action="reset-backup-confirmed">バックアップ済みなので次へ</button>
+          <button type="button" class="detail-action-button settings-button" data-settings-action="reset-cancel">初期化を中止する</button>
+        </div>
+      </article>
+    `
+    : resetConfirmationStep === 'final'
+      ? `
+        <article class="info-panel settings-confirm-panel">
+          <h2 class="section-title">初期化の最終確認</h2>
+          <p class="section-text">これは復旧操作ではありません。バックアップから戻せることを確認しましたか。実行すると保存データを消去します。</p>
+          <div class="settings-button-grid">
+            <button type="button" class="detail-action-button settings-button" data-settings-action="reset-confirm">確認したので初期化する</button>
+            <button type="button" class="detail-action-button settings-button" data-settings-action="reset-cancel">初期化を中止する</button>
+          </div>
+        </article>
+      `
+      : '';
   return `
     <section class="panel-stack">
       <article class="info-panel">
@@ -452,7 +476,9 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
         <div class="settings-actions">
           <button type="button" class="detail-action-button settings-button" data-settings-action="reset-app">アプリを初期化する</button>
         </div>
+        ${resetStatusHtml}
       </article>
+      ${resetConfirmationMarkup}
       ${pendingImportMarkup}
     </section>
   `;

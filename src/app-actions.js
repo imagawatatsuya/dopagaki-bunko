@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628191219';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628191219';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628192212';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628192212';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -1395,12 +1395,14 @@ export function createSettingsActions({
     try {
       const result = await downloadExportJson();
       state.exportStatus = `${result.downloadName} を書き出しました。`;
+      renderSettings();
+      return true;
     } catch (error) {
       console.error(error);
       state.exportStatus = `書き出しに失敗しました: ${error?.message ?? '不明なエラー'}`;
+      renderSettings();
+      return false;
     }
-
-    renderSettings();
   }
 
   async function handleImportFileSelection(file) {
@@ -1449,14 +1451,10 @@ export function createSettingsActions({
   }
 
   async function resetAppData() {
-    const confirmed = globalThis.confirm('これは復旧操作ではありません。保存した作品、断片、ふせん、しおり、設定を実際に消去します。「準備中」や本棚0件の復旧には、先にこのタブを閉じて新しいタブで開き直してください。それでも全データを消去しますか。');
-    if (!confirmed) {
-      return;
-    }
-
     state.exportStatus = '';
-    state.importStatus = 'アプリを初期化しています。';
+    state.resetStatus = 'アプリを初期化しています。';
     state.pendingImport = null;
+    state.resetConfirmationStep = '';
     state.importWorkStatus = '';
     state.importPreview = null;
     state.importSheetOpen = false;
@@ -1466,10 +1464,10 @@ export function createSettingsActions({
       await clearAllStores();
       await verifyUserStoresEmpty();
       await loadStateFromDb();
-      state.importStatus = 'アプリを初期化しました。';
+      state.resetStatus = 'アプリを初期化しました。';
     } catch (error) {
       console.error(error);
-      state.importStatus = `初期化を完了できませんでした: ${error?.message ?? '不明なエラー'} データが残っている可能性があります。アプリを初期化し直さず、このタブを閉じて新しいタブで開き直してください。`;
+      state.resetStatus = `初期化を完了できませんでした: ${error?.message ?? '不明なエラー'} データが残っている可能性があります。アプリを初期化し直さず、このタブを閉じて新しいタブで開き直してください。`;
     }
 
     renderSettings();
@@ -1521,6 +1519,34 @@ export function createSettingsActions({
     }
 
     if (action === 'reset-app') {
+      state.resetConfirmationStep = 'backup';
+      state.resetStatus = '';
+      renderSettings();
+      return;
+    }
+
+    if (action === 'reset-export-backup') {
+      if (await handleExportJson()) {
+        state.resetConfirmationStep = 'final';
+        renderSettings();
+      }
+      return;
+    }
+
+    if (action === 'reset-backup-confirmed') {
+      state.resetConfirmationStep = 'final';
+      renderSettings();
+      return;
+    }
+
+    if (action === 'reset-cancel') {
+      state.resetConfirmationStep = '';
+      state.resetStatus = '初期化を中止しました。';
+      renderSettings();
+      return;
+    }
+
+    if (action === 'reset-confirm') {
       await resetAppData();
     }
   }

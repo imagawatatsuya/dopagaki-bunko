@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260628191219';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260628192212';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,7 +6,7 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260628191219';
+} from './views.js?v=20260628192212';
 
 export function createSearchSettingsRenderers({
   app,
@@ -153,6 +153,8 @@ export function createSearchSettingsRenderers({
         readingStatusHtml: `<p class="settings-status settings-status-subtle">現在: ${escapeHtml(state.workLoadMode === 'auto' ? '自動で続ける' : '手動で続ける')}</p>`,
         workLoadMode: state.workLoadMode,
         releaseStatusHtml: state.releaseStatus ? `<p class="settings-status">${escapeHtml(state.releaseStatus)}</p>` : '',
+        resetConfirmationStep: state.resetConfirmationStep,
+        resetStatusHtml: state.resetStatus ? `<p class="settings-status">${escapeHtml(state.resetStatus)}</p>` : '',
         pendingImportMarkup: pendingImportSummary
       })
     });
