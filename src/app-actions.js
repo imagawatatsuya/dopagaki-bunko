@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260627130014';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260627130014';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628134540';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628134540';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -237,15 +237,18 @@ export function createSearchActions({
   putRecord,
   putRecords,
   loadStateFromDb,
-  sendBridgeImportAck = async (ackUrl, ackPayload) => {
+  sendBridgeImportAck = async (ackUrl, ackPayload, bridgeWindow = null) => {
     if (!ackUrl) {
       return;
+    }
+    if (!bridgeWindow || bridgeWindow.closed) {
+      throw new Error('PC側の配信タブが閉じています。dopagaki-bunkoの保存データはそのままです。');
     }
     const navigationUrl = new URL(ackUrl);
     navigationUrl.searchParams.set('sourceUrl', String(ackPayload?.sourceUrl ?? ''));
     navigationUrl.searchParams.set('txtPath', String(ackPayload?.txtPath ?? ''));
-    navigationUrl.searchParams.set('returnUrl', globalThis.location?.href ?? '');
-    globalThis.location.assign(navigationUrl.toString());
+    navigationUrl.searchParams.set('returnUrl', new URL('/dopagaki-import-works.html', navigationUrl).toString());
+    bridgeWindow.location.assign(navigationUrl.toString());
   }
 }) {
   function resetCatalogSearchSession() {
@@ -322,6 +325,7 @@ export function createSearchActions({
         bridgeAckPayload: payload.bridgeAckPayload && typeof payload.bridgeAckPayload === 'object'
           ? payload.bridgeAckPayload
           : null,
+        bridgeWindow: payload.bridgeSourceWindow ?? null,
         bridgeQueueRemaining: Math.max(0, Number(payload.bridgeQueueRemaining) || 0)
       },
       String(payload.sourceLabel ?? '公開TXT'),
@@ -597,6 +601,7 @@ export function createSearchActions({
       bridgeAckPayload: sourceMeta.bridgeAckPayload && typeof sourceMeta.bridgeAckPayload === 'object'
         ? { ...sourceMeta.bridgeAckPayload }
         : null,
+      bridgeWindow: sourceMeta.bridgeWindow ?? null,
       bridgeQueueRemaining: Math.max(0, Number(sourceMeta.bridgeQueueRemaining) || 0),
       aozoraWorkId: String(sourceMeta.aozoraWorkId ?? ''),
       textZipUrl: String(sourceMeta.textZipUrl ?? ''),
@@ -732,7 +737,8 @@ export function createSearchActions({
           state.importPreview.bridgeAckPayload ?? {
             sourceUrl: state.importPreview.sourceUrl ?? '',
             txtPath: ''
-          }
+          },
+          state.importPreview.bridgeWindow
         );
       } catch (error) {
         console.error(error);

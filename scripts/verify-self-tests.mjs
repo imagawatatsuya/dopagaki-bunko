@@ -332,8 +332,8 @@ function createSearchActionsForTest(state, options = {}) {
       }
     },
     loadStateFromDb: async () => {},
-    sendBridgeImportAck: async (ackUrl, ackPayload) => {
-      bridgeAcks.push({ ackUrl, ackPayload });
+    sendBridgeImportAck: async (ackUrl, ackPayload, bridgeWindow) => {
+      bridgeAcks.push({ ackUrl, ackPayload, bridgeWindow });
       if (options.failBridgeAck) {
         throw new Error('ack failed');
       }
@@ -435,6 +435,7 @@ test('successful imported text is kept separate from the visible pasted draft', 
 test('bridge import save acknowledges the sender list entry after saving', async () => {
   const state = createInitialAppState();
   const { actions, bridgeAcks } = createSearchActionsForTest(state);
+  const bridgeWindow = { closed: false };
 
   await actions.handleSearchAction('import-bridge-message', {
     bridgePayload: {
@@ -445,6 +446,7 @@ test('bridge import save acknowledges the sender list entry after saving', async
         sourceUrl: 'https://example.com/source',
         txtPath: 'works/source.txt'
       },
+      bridgeSourceWindow: bridgeWindow,
       text: 'PC作品\n作者\n\nPCから受け取った本文です。'
     }
   });
@@ -457,7 +459,8 @@ test('bridge import save acknowledges the sender list entry after saving', async
       ackPayload: {
         sourceUrl: 'https://example.com/source',
         txtPath: 'works/source.txt'
-      }
+      },
+      bridgeWindow
     }
   ]);
 });
@@ -490,7 +493,8 @@ test('window name import save acknowledges the sender list entry after saving', 
         ackPayload: {
           sourceUrl: 'https://example.com/source',
           txtPath: 'works/source.txt'
-        }
+        },
+        bridgeWindow: null
       }
     ]);
   } finally {
