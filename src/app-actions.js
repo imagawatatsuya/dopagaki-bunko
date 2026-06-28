@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628192212';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628192212';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628192546';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628192546';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -1346,6 +1346,22 @@ export function createSettingsActions({
   pickImportInput,
   saveWorkLoadMode
 }) {
+  function focusResetConfirmationPanel() {
+    globalThis.requestAnimationFrame(() => {
+      const panel = globalThis.document?.querySelector('[data-settings-reset-confirmation]');
+      if (!panel) {
+        return;
+      }
+      panel.focus({ preventScroll: true });
+      const headerBottom = globalThis.document?.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
+      const panelTop = globalThis.scrollY + panel.getBoundingClientRect().top;
+      globalThis.scrollTo({
+        top: Math.max(0, panelTop - headerBottom - 8),
+        behavior: 'smooth'
+      });
+    });
+  }
+
   async function refreshRelease() {
     state.releaseStatus = '最新版を確認しています。';
     renderSettings();
@@ -1522,6 +1538,7 @@ export function createSettingsActions({
       state.resetConfirmationStep = 'backup';
       state.resetStatus = '';
       renderSettings();
+      focusResetConfirmationPanel();
       return;
     }
 
@@ -1529,6 +1546,7 @@ export function createSettingsActions({
       if (await handleExportJson()) {
         state.resetConfirmationStep = 'final';
         renderSettings();
+        focusResetConfirmationPanel();
       }
       return;
     }
@@ -1536,6 +1554,7 @@ export function createSettingsActions({
     if (action === 'reset-backup-confirmed') {
       state.resetConfirmationStep = 'final';
       renderSettings();
+      focusResetConfirmationPanel();
       return;
     }
 

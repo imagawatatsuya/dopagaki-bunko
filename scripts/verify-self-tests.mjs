@@ -1125,13 +1125,24 @@ test('reset uses backup and final confirmation panels with explicit cancel wordi
   });
 
   assert.match(backupMarkup, /初期化前のバックアップ/u);
+  assert.match(backupMarkup, /data-settings-reset-confirmation tabindex="-1"/u);
   assert.match(backupMarkup, /バックアップを書き出す/u);
   assert.match(backupMarkup, /バックアップ済みなので次へ/u);
   assert.match(backupMarkup, /初期化を中止する/u);
   assert.doesNotMatch(backupMarkup, />キャンセル</u);
   assert.match(finalMarkup, /初期化の最終確認/u);
+  assert.match(finalMarkup, /data-settings-reset-confirmation tabindex="-1"/u);
   assert.match(finalMarkup, /確認したので初期化する/u);
   assert.match(finalMarkup, /初期化を中止する/u);
+});
+
+test('reset confirmation actions focus and scroll the newly rendered panel', () => {
+  const source = readFileSync(new URL('../src/app-actions.js', import.meta.url), 'utf8');
+  assert.match(source, /function focusResetConfirmationPanel\(\)/u);
+  assert.match(source, /querySelector\('\[data-settings-reset-confirmation\]'\)/u);
+  assert.match(source, /panel\.focus\(\{ preventScroll: true \}\)/u);
+  assert.match(source, /behavior: 'smooth'/u);
+  assert.match(source, /renderSettings\(\);\s*focusResetConfirmationPanel\(\);/u);
 });
 
 test('work reading starts only after reaching fragment 3', async () => {

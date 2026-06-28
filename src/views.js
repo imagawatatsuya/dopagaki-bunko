@@ -402,7 +402,7 @@ export function settingsPendingImportMarkup(pendingImport, statusHtml) {
 export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, releaseStatusHtml, readingStatusHtml = '', workLoadMode = 'auto', resetConfirmationStep = '', resetStatusHtml = '', pendingImportMarkup }) {
   const resetConfirmationMarkup = resetConfirmationStep === 'backup'
     ? `
-      <article class="info-panel settings-confirm-panel">
+      <article class="info-panel settings-confirm-panel" data-settings-reset-confirmation tabindex="-1">
         <h2 class="section-title">初期化前のバックアップ</h2>
         <p class="section-text">初期化すると本棚、しおり、ふせん、設定を削除します。先にJSONバックアップを書き出してください。</p>
         <div class="settings-button-grid">
@@ -414,7 +414,7 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
     `
     : resetConfirmationStep === 'final'
       ? `
-        <article class="info-panel settings-confirm-panel">
+        <article class="info-panel settings-confirm-panel" data-settings-reset-confirmation tabindex="-1">
           <h2 class="section-title">初期化の最終確認</h2>
           <p class="section-text">これは復旧操作ではありません。バックアップから戻せることを確認しましたか。実行すると保存データを消去します。</p>
           <div class="settings-button-grid">
