@@ -17,7 +17,7 @@ import { createAppData } from '../src/app-data.js';
 import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
-import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
+import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, putRecordsInBatches, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
 import { aozoraSearchResultsMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
@@ -956,6 +956,52 @@ test('initial app state starts with empty collections and search batch size', ()
   assert.equal(state.readerActionStatusTone, '');
 });
 
+test('catalog records are persisted in bounded batches', async () => {
+  const calls = [];
+  const records = Array.from({ length: 601 }, (_, index) => ({ id: `catalog-${index}` }));
+  await putRecordsInBatches('aozoraCatalog', records, async (storeName, batch) => {
+    calls.push({ storeName, size: batch.length });
+  }, 250);
+
+  assert.deepEqual(calls, [
+    { storeName: 'aozoraCatalog', size: 250 },
+    { storeName: 'aozoraCatalog', size: 250 },
+    { storeName: 'aozoraCatalog', size: 101 }
+  ]);
+});
+
+test('app reset clears only user stores and keeps the internal catalog state', async () => {
+  const state = createInitialAppState();
+  state.aozoraCatalogMeta = { id: 'catalog-meta', recordCount: 1 };
+  state.aozoraCatalogRecords = [{ id: 'catalog-1' }];
+  const clearedStores = [];
+  const appData = createAppData({
+    state,
+    userStoreNames: STORE_NAMES,
+    searchResultsBatchSize: 25,
+    workLoadModeSettingId: 'setting:work-load-mode',
+    converterBaseUrlSettingId: 'setting:converter-base-url',
+    canonicalizeBookmarkRecords: (records) => records,
+    clearStore: async (storeName) => {
+      clearedStores.push(storeName);
+    },
+    deleteRecord: async () => {},
+    getAllRecords: async () => [],
+    getRecord: async () => null,
+    listBookmarks: async () => [],
+    listLikes: async () => [],
+    putRecord: async () => {},
+    putRecords: async () => {}
+  });
+
+  await appData.clearAllStoresAndResetUi();
+
+  assert.deepEqual(clearedStores, STORE_NAMES);
+  assert.equal(clearedStores.includes('aozoraCatalog'), false);
+  assert.equal(state.aozoraCatalogRecords.length, 1);
+  assert.equal(state.aozoraCatalogMeta.recordCount, 1);
+});
+
 test('reader action status markup renders only non-empty messages', () => {
   assert.equal(readerActionStatusMarkup('', 'error'), '');
   assert.match(readerActionStatusMarkup('しおり保存に失敗しました: IndexedDB transaction failed.', 'error'), /settings-status-error/u);
@@ -967,7 +1013,7 @@ test('work reading starts only after reaching fragment 3', async () => {
   const savedRecords = [];
   const appData = createAppData({
     state,
-    allStoreNames: [],
+    userStoreNames: [],
     searchResultsBatchSize: 25,
     workLoadModeSettingId: 'setting:work-load-mode',
     converterBaseUrlSettingId: 'setting:converter-base-url',
@@ -1031,7 +1077,7 @@ test('resetting a work to unread clears reading state and bookmark but keeps lik
   const deletedRecords = [];
   const appData = createAppData({
     state,
-    allStoreNames: [],
+    userStoreNames: [],
     searchResultsBatchSize: 25,
     workLoadModeSettingId: 'setting:work-load-mode',
     converterBaseUrlSettingId: 'setting:converter-base-url',

@@ -6,7 +6,7 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260628135300';
+} from './state.js?v=20260628140023';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
@@ -18,7 +18,7 @@ function normalizeConverterBaseUrl(value) {
 
 export function createAppData({
   state,
-  allStoreNames,
+  userStoreNames,
   searchResultsBatchSize,
   workLoadModeSettingId,
   converterBaseUrlSettingId,
@@ -128,14 +128,9 @@ export function createAppData({
   }
 
   async function clearAllStoresAndResetUi() {
-    for (const storeName of allStoreNames) {
+    for (const storeName of userStoreNames) {
       await clearStore(storeName);
     }
-    state.aozoraCatalogQuery = '';
-    state.aozoraCatalogStatus = '';
-    state.aozoraCatalogLoading = false;
-    state.aozoraCatalogMeta = null;
-    state.aozoraCatalogRecords = [];
     state.aozoraCatalogResults = [];
     state.aozoraCatalogVisibleCount = searchResultsBatchSize;
     state.searchScope = 'aozora';

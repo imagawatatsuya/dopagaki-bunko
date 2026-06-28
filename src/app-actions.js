@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628135300';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628135300';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628140023';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628140023';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -14,6 +14,27 @@ function normalizeImportedWorkIdentityUrl(value) {
     return parsed.toString().replace(/\/$/u, '');
   } catch {
     return source.replace(/\/$/u, '');
+  }
+}
+
+function withTimeout(promise, timeoutMs, message) {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = globalThis.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    globalThis.clearTimeout(timer);
+  });
+}
+
+export async function putRecordsInBatches(storeName, records, putRecords, batchSize = 250, batchTimeoutMs = 15000) {
+  const safeBatchSize = Math.max(1, Number(batchSize) || 250);
+  for (let offset = 0; offset < records.length; offset += safeBatchSize) {
+    await withTimeout(
+      putRecords(storeName, records.slice(offset, offset + safeBatchSize)),
+      batchTimeoutMs,
+      `作品一覧の保存が停止しました（${offset + 1}件目付近）。`
+    );
   }
 }
 
@@ -888,14 +909,26 @@ export function createSearchActions({
     }
 
     try {
-      const response = await fetch(`${AOZORA_CATALOG_ASSET_PATH}?ts=${Date.now()}`, {
-        cache: 'no-store'
-      });
+      const controller = new AbortController();
+      const fetchTimer = globalThis.setTimeout(() => controller.abort(), 30000);
+      let response;
+      try {
+        response = await fetch(`${AOZORA_CATALOG_ASSET_PATH}?ts=${Date.now()}`, {
+          cache: 'no-store',
+          signal: controller.signal
+        });
+      } finally {
+        globalThis.clearTimeout(fetchTimer);
+      }
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const payload = normalizeAozoraCatalogPayload(await readCatalogResponseJson(response));
+      const payload = normalizeAozoraCatalogPayload(await withTimeout(
+        readCatalogResponseJson(response),
+        30000,
+        '圧縮された作品一覧の展開が停止しました。'
+      ));
       if (payload.records.length === 0) {
         throw new Error('作品一覧を読み取れませんでした。');
       }
@@ -906,7 +939,8 @@ export function createSearchActions({
         payload.meta.fetchedAt
       );
       await clearStore('aozoraCatalog');
-      await putRecords('aozoraCatalog', [...payload.records, metaRecord]);
+      await putRecordsInBatches('aozoraCatalog', payload.records, putRecords);
+      await putRecord('aozoraCatalog', metaRecord);
       state.aozoraCatalogRecords = payload.records;
       state.aozoraCatalogMeta = metaRecord;
       applyCatalogSearchResults(state.aozoraCatalogQuery);
