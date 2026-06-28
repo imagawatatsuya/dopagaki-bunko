@@ -1,5 +1,7 @@
 const DB_NAME = 'dopagaki-bunko';
 const DB_VERSION = 5;
+const OPEN_TIMEOUT_MS = 15000;
+const TRANSACTION_TIMEOUT_MS = 20000;
 
 export const STORE_NAMES = [
   'works',
@@ -51,11 +53,30 @@ function requestToPromise(request) {
   });
 }
 
-function transactionDone(transaction) {
+function transactionDone(transaction, timeoutMs = TRANSACTION_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
-    transaction.addEventListener('complete', () => resolve(), { once: true });
-    transaction.addEventListener('abort', () => reject(transaction.error ?? new Error('IndexedDB transaction aborted.')), { once: true });
-    transaction.addEventListener('error', () => reject(transaction.error ?? new Error('IndexedDB transaction failed.')), { once: true });
+    let settled = false;
+    const finish = (callback) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      globalThis.clearTimeout(timer);
+      callback();
+    };
+    const timer = globalThis.setTimeout(() => {
+      finish(() => {
+        try {
+          transaction.abort();
+        } catch {
+          // The transaction may already be inactive.
+        }
+        reject(new Error(`IndexedDB transaction timed out after ${timeoutMs}ms.`));
+      });
+    }, timeoutMs);
+    transaction.addEventListener('complete', () => finish(resolve), { once: true });
+    transaction.addEventListener('abort', () => finish(() => reject(transaction.error ?? new Error('IndexedDB transaction aborted.'))), { once: true });
+    transaction.addEventListener('error', () => finish(() => reject(transaction.error ?? new Error('IndexedDB transaction failed.'))), { once: true });
   });
 }
 
@@ -102,6 +123,8 @@ function isRecoverableDbError(error) {
     message.includes('IndexedDB request failed')
     || message.includes('IndexedDB transaction aborted')
     || message.includes('IndexedDB transaction failed')
+    || message.includes('IndexedDB transaction timed out')
+    || message.includes('IndexedDB open timed out')
     || message.includes('database connection is closing')
     || message.includes('connection is closing')
     || message.includes('transaction is not active')
@@ -116,8 +139,27 @@ export function openDb() {
   if (!openPromise) {
     openPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
+      let settled = false;
+      const finish = (callback) => {
+        if (settled) {
+          return false;
+        }
+        settled = true;
+        globalThis.clearTimeout(timer);
+        callback();
+        return true;
+      };
+      const timer = globalThis.setTimeout(() => {
+        finish(() => {
+          clearOpenState();
+          reject(new Error(`IndexedDB open timed out after ${OPEN_TIMEOUT_MS}ms.`));
+        });
+      }, OPEN_TIMEOUT_MS);
 
       request.addEventListener('upgradeneeded', () => {
+        if (settled) {
+          return;
+        }
         const database = request.result;
         deleteRemovedStores(database);
         ALL_STORE_NAMES.forEach((storeName) => {
@@ -127,18 +169,26 @@ export function openDb() {
 
       request.addEventListener('success', () => {
         const database = request.result;
-        rememberDatabase(database);
-        resolve(database);
+        if (!finish(() => {
+          rememberDatabase(database);
+          resolve(database);
+        })) {
+          database.close();
+        }
       }, { once: true });
 
       request.addEventListener('error', () => {
-        clearOpenState();
-        reject(request.error ?? new Error('Failed to open IndexedDB.'));
+        finish(() => {
+          clearOpenState();
+          reject(request.error ?? new Error('Failed to open IndexedDB.'));
+        });
       }, { once: true });
 
       request.addEventListener('blocked', () => {
-        clearOpenState();
-        reject(new Error('IndexedDB upgrade was blocked by another open tab.'));
+        finish(() => {
+          clearOpenState();
+          reject(new Error('IndexedDB upgrade was blocked by another open tab.'));
+        });
       }, { once: true });
     });
   }
@@ -146,9 +196,10 @@ export function openDb() {
   return openPromise;
 }
 
-export async function withStore(storeName, mode, callback) {
-  if (!ALL_STORE_NAMES.includes(storeName)) {
-    throw new Error(`Unknown store: ${storeName}`);
+export async function withStores(storeNames, mode, callback) {
+  const uniqueStoreNames = [...new Set(storeNames)];
+  if (uniqueStoreNames.length === 0 || uniqueStoreNames.some((storeName) => !ALL_STORE_NAMES.includes(storeName))) {
+    throw new Error(`Unknown or empty store list: ${uniqueStoreNames.join(', ')}`);
   }
 
   let lastError = null;
@@ -156,11 +207,24 @@ export async function withStore(storeName, mode, callback) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const database = await openDb();
-      const transaction = database.transaction(storeName, mode);
-      const store = transaction.objectStore(storeName);
-      const result = await callback(store, transaction);
-      await transactionDone(transaction);
-      return result;
+      const transaction = database.transaction(uniqueStoreNames, mode);
+      const completion = transactionDone(transaction);
+      const stores = Object.fromEntries(
+        uniqueStoreNames.map((storeName) => [storeName, transaction.objectStore(storeName)])
+      );
+      try {
+        const result = await callback(stores, transaction);
+        await completion;
+        return result;
+      } catch (error) {
+        try {
+          transaction.abort();
+        } catch {
+          // The transaction may already be inactive.
+        }
+        await completion.catch(() => {});
+        throw error;
+      }
     } catch (error) {
       lastError = error;
       if (attempt > 0 || !isRecoverableDbError(error)) {
@@ -171,6 +235,45 @@ export async function withStore(storeName, mode, callback) {
   }
 
   throw lastError ?? new Error('IndexedDB operation failed.');
+}
+
+export function withStore(storeName, mode, callback) {
+  return withStores([storeName], mode, (stores, transaction) => {
+    return callback(stores[storeName], transaction);
+  });
+}
+
+export function applyRecordMutations({
+  clearStores = [],
+  deleteRecords = {},
+  putRecords = {}
+} = {}) {
+  const storeNames = [...new Set([
+    ...clearStores,
+    ...Object.keys(deleteRecords),
+    ...Object.keys(putRecords)
+  ])];
+  if (storeNames.length === 0) {
+    return Promise.resolve();
+  }
+
+  return withStores(storeNames, 'readwrite', async (stores) => {
+    const requests = [];
+    for (const storeName of clearStores) {
+      requests.push(requestToPromise(stores[storeName].clear()));
+    }
+    for (const [storeName, ids] of Object.entries(deleteRecords)) {
+      for (const id of ids ?? []) {
+        requests.push(requestToPromise(stores[storeName].delete(id)));
+      }
+    }
+    for (const [storeName, values] of Object.entries(putRecords)) {
+      for (const value of values ?? []) {
+        requests.push(requestToPromise(stores[storeName].put(value)));
+      }
+    }
+    await Promise.all(requests);
+  });
 }
 
 export function getAllRecords(storeName) {
@@ -220,9 +323,10 @@ export function clearStore(storeName) {
 }
 
 export async function exportStores() {
-  const entries = await Promise.all(STORE_NAMES.map(async (storeName) => {
-    return [storeName, await getAllRecords(storeName)];
-  }));
-
-  return Object.fromEntries(entries);
+  return withStores(STORE_NAMES, 'readonly', async (stores) => {
+    const entries = await Promise.all(STORE_NAMES.map(async (storeName) => {
+      return [storeName, await requestToPromise(stores[storeName].getAll())];
+    }));
+    return Object.fromEntries(entries);
+  });
 }

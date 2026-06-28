@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628140023';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628140023';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628141254';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628141254';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -253,8 +253,8 @@ export function createSearchActions({
   AOZORA_CATALOG_META_ID,
   AOZORA_CATALOG_ASSET_PATH,
   getAllRecords,
+  applyRecordMutations,
   clearStore,
-  deleteRecord,
   putRecord,
   putRecords,
   loadStateFromDb,
@@ -733,24 +733,19 @@ export function createSearchActions({
       currentLikeRecords: state.likeRecords
     });
 
-    if (savePlan.isUpdate) {
-      await deleteRecord('bookmarks', savePlan.workRecord.id);
-      for (const fragmentId of savePlan.oldFragmentIds) {
-        await deleteRecord('likes', fragmentId);
-        await deleteRecord('fragments', fragmentId);
+    await applyRecordMutations({
+      deleteRecords: savePlan.isUpdate ? {
+        bookmarks: [savePlan.workRecord.id],
+        likes: savePlan.oldFragmentIds,
+        fragments: savePlan.oldFragmentIds
+      } : {},
+      putRecords: {
+        works: [savePlan.workRecord],
+        fragments: savePlan.fragmentRecords,
+        bookmarks: savePlan.migratedBookmarkRecord ? [savePlan.migratedBookmarkRecord] : [],
+        likes: savePlan.migratedLikeRecords
       }
-    }
-
-    await putRecord('works', savePlan.workRecord);
-    await putRecords('fragments', savePlan.fragmentRecords);
-    if (savePlan.isUpdate) {
-      if (savePlan.migratedBookmarkRecord) {
-        await putRecord('bookmarks', savePlan.migratedBookmarkRecord);
-      }
-      if (savePlan.migratedLikeRecords.length > 0) {
-        await putRecords('likes', savePlan.migratedLikeRecords);
-      }
-    }
+    });
     await loadStateFromDb();
     if (state.importPreview.bridgeAckUrl) {
       try {

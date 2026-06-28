@@ -6,7 +6,7 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260628140023';
+} from './state.js?v=20260628141254';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
@@ -23,14 +23,12 @@ export function createAppData({
   workLoadModeSettingId,
   converterBaseUrlSettingId,
   canonicalizeBookmarkRecords,
-  clearStore,
-  deleteRecord,
+  applyRecordMutations,
   getAllRecords,
   getRecord,
   listBookmarks,
   listLikes,
-  putRecord,
-  putRecords
+  putRecord
 }) {
   const pendingReadingStartWorkIds = new Set();
 
@@ -75,25 +73,41 @@ export function createAppData({
   }
 
   async function loadStateFromDb() {
-    state.works = await getAllRecords('works');
-    state.fragments = normalizeHeadingBreakKinds(await getAllRecords('fragments'));
-    state.likeRecords = sortSavedRecords(await listLikes());
-    const bookmarkRecords = await listBookmarks();
-    const canonicalBookmarks = canonicalizeBookmarkRecords(bookmarkRecords, state.fragments);
+    const [
+      works,
+      fragmentRecords,
+      likeRecords,
+      bookmarkRecords,
+      readingStateRecords,
+      workLoadModeSetting,
+      converterBaseUrlSetting
+    ] = await Promise.all([
+      getAllRecords('works'),
+      getAllRecords('fragments'),
+      listLikes(),
+      listBookmarks(),
+      getAllRecords('readingStates'),
+      getRecord('settings', workLoadModeSettingId),
+      getRecord('settings', converterBaseUrlSettingId)
+    ]);
+    const fragments = normalizeHeadingBreakKinds(fragmentRecords);
+    const canonicalBookmarks = canonicalizeBookmarkRecords(bookmarkRecords, fragments);
     const sortedBookmarkRecords = sortSavedRecords(bookmarkRecords);
     if (!sameBookmarkRecords(sortedBookmarkRecords, canonicalBookmarks)) {
-      await clearStore('bookmarks');
-      if (canonicalBookmarks.length > 0) {
-        await putRecords('bookmarks', canonicalBookmarks);
-      }
+      await applyRecordMutations({
+        clearStores: ['bookmarks'],
+        putRecords: { bookmarks: canonicalBookmarks }
+      });
     }
+
+    state.works = works;
+    state.fragments = fragments;
+    state.likeRecords = sortSavedRecords(likeRecords);
     state.bookmarkRecords = canonicalBookmarks;
-    state.readingStateRecords = sortUpdatedRecords(await getAllRecords('readingStates'));
+    state.readingStateRecords = sortUpdatedRecords(readingStateRecords);
     state.likes = new Set(state.likeRecords.map((item) => item.fragmentId));
     state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
-    const workLoadModeSetting = await getRecord('settings', workLoadModeSettingId);
     state.workLoadMode = normalizeWorkLoadMode(workLoadModeSetting?.value);
-    const converterBaseUrlSetting = await getRecord('settings', converterBaseUrlSettingId);
     state.converterBaseUrl = normalizeConverterBaseUrl(converterBaseUrlSetting?.value);
   }
 
@@ -105,14 +119,15 @@ export function createAppData({
     const workFragments = state.fragments.filter((fragment) => fragment.workId === workId);
     const fragmentIds = workFragments.map((fragment) => fragment.id);
 
-    await deleteRecord('works', workId);
-    await deleteRecord('bookmarks', workId);
-    await deleteRecord('readingStates', workId);
-
-    for (const fragmentId of fragmentIds) {
-      await deleteRecord('fragments', fragmentId);
-      await deleteRecord('likes', fragmentId);
-    }
+    await applyRecordMutations({
+      deleteRecords: {
+        works: [workId],
+        bookmarks: [workId],
+        readingStates: [workId],
+        fragments: fragmentIds,
+        likes: fragmentIds
+      }
+    });
   }
 
   async function resetWorkToUnread(workId) {
@@ -120,17 +135,19 @@ export function createAppData({
       return;
     }
 
-    await deleteRecord('readingStates', workId);
-    await deleteRecord('bookmarks', workId);
+    await applyRecordMutations({
+      deleteRecords: {
+        readingStates: [workId],
+        bookmarks: [workId]
+      }
+    });
     state.readingStateRecords = state.readingStateRecords.filter((item) => item.workId !== workId);
     state.bookmarkRecords = state.bookmarkRecords.filter((item) => item.workId !== workId);
     state.bookmarks = new Set(state.bookmarkRecords.map((item) => item.fragmentId));
   }
 
   async function clearAllStoresAndResetUi() {
-    for (const storeName of userStoreNames) {
-      await clearStore(storeName);
-    }
+    await applyRecordMutations({ clearStores: userStoreNames });
     state.aozoraCatalogResults = [];
     state.aozoraCatalogVisibleCount = searchResultsBatchSize;
     state.searchScope = 'aozora';

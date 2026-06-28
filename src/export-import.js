@@ -1,4 +1,4 @@
-import { STORE_NAMES, clearStore, exportStores, putRecords } from './db.js?v=20260628140023';
+import { STORE_NAMES, applyRecordMutations, exportStores } from './db.js?v=20260628141254';
 
 export function createExportPayload(data) {
   return {
@@ -71,15 +71,10 @@ export async function importJsonData(stores, mode) {
     throw new Error('インポートモードが不正です。');
   }
 
-  if (mode === 'replace') {
-    for (const storeName of STORE_NAMES) {
-      await clearStore(storeName);
-    }
-  }
-
-  for (const storeName of STORE_NAMES) {
-    if (stores[storeName]?.length) {
-      await putRecords(storeName, stores[storeName]);
-    }
-  }
+  await applyRecordMutations({
+    clearStores: mode === 'replace' ? STORE_NAMES : [],
+    putRecords: Object.fromEntries(
+      STORE_NAMES.map((storeName) => [storeName, stores[storeName] ?? []])
+    )
+  });
 }

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { convertAozoraRubyToHtml, repairAozoraLegacyRubyHtml } from '../src/aozora-ruby.js';
 import { convertAozoraEmphasisToHtml } from '../src/aozora-emphasis.js';
@@ -349,6 +350,13 @@ function createSearchActionsForTest(state, options = {}) {
     AOZORA_CATALOG_META_ID: 'catalog-meta',
     AOZORA_CATALOG_ASSET_PATH: './data/aozora-catalog.json.gz',
     getAllRecords: async () => [],
+    applyRecordMutations: async ({ putRecords = {} }) => {
+      for (const [storeName, records] of Object.entries(putRecords)) {
+        for (const record of records) {
+          savedRecords.push({ storeName, record });
+        }
+      }
+    },
     clearStore: async () => {},
     deleteRecord: async () => {},
     putRecord: async (storeName, record) => {
@@ -982,6 +990,9 @@ test('app reset clears only user stores and keeps the internal catalog state', a
     workLoadModeSettingId: 'setting:work-load-mode',
     converterBaseUrlSettingId: 'setting:converter-base-url',
     canonicalizeBookmarkRecords: (records) => records,
+    applyRecordMutations: async ({ clearStores = [] }) => {
+      clearedStores.push(...clearStores);
+    },
     clearStore: async (storeName) => {
       clearedStores.push(storeName);
     },
@@ -1002,6 +1013,26 @@ test('app reset clears only user stores and keeps the internal catalog state', a
   assert.equal(state.aozoraCatalogMeta.recordCount, 1);
 });
 
+test('database transactions subscribe to completion before running requests', () => {
+  const source = readFileSync(new URL('../src/db.js', import.meta.url), 'utf8');
+  const completionIndex = source.indexOf('const completion = transactionDone(transaction);');
+  const callbackIndex = source.indexOf('const result = await callback(stores, transaction);');
+  assert.notEqual(completionIndex, -1);
+  assert.notEqual(callbackIndex, -1);
+  assert.ok(completionIndex < callbackIndex);
+  assert.match(source, /IndexedDB transaction timed out/u);
+});
+
+test('destructive multi-store operations use the shared atomic mutation path', () => {
+  const appDataSource = readFileSync(new URL('../src/app-data.js', import.meta.url), 'utf8');
+  const appActionsSource = readFileSync(new URL('../src/app-actions.js', import.meta.url), 'utf8');
+  const importSource = readFileSync(new URL('../src/export-import.js', import.meta.url), 'utf8');
+  assert.match(appDataSource, /applyRecordMutations\(\{ clearStores: userStoreNames \}\)/u);
+  assert.match(appDataSource, /fragments: fragmentIds[\s\S]*likes: fragmentIds/u);
+  assert.match(appActionsSource, /deleteRecords: savePlan\.isUpdate/u);
+  assert.match(importSource, /clearStores: mode === 'replace' \? STORE_NAMES : \[\]/u);
+});
+
 test('reader action status markup renders only non-empty messages', () => {
   assert.equal(readerActionStatusMarkup('', 'error'), '');
   assert.match(readerActionStatusMarkup('しおり保存に失敗しました: IndexedDB transaction failed.', 'error'), /settings-status-error/u);
@@ -1018,6 +1049,7 @@ test('work reading starts only after reaching fragment 3', async () => {
     workLoadModeSettingId: 'setting:work-load-mode',
     converterBaseUrlSettingId: 'setting:converter-base-url',
     canonicalizeBookmarkRecords: (records) => records,
+    applyRecordMutations: async () => {},
     clearStore: async () => {},
     deleteRecord: async () => {},
     getAllRecords: async () => [],
@@ -1082,6 +1114,13 @@ test('resetting a work to unread clears reading state and bookmark but keeps lik
     workLoadModeSettingId: 'setting:work-load-mode',
     converterBaseUrlSettingId: 'setting:converter-base-url',
     canonicalizeBookmarkRecords: (records) => records,
+    applyRecordMutations: async ({ deleteRecords = {} }) => {
+      for (const [storeName, ids] of Object.entries(deleteRecords)) {
+        for (const id of ids) {
+          deletedRecords.push({ storeName, id });
+        }
+      }
+    },
     clearStore: async () => {},
     deleteRecord: async (storeName, id) => {
       deletedRecords.push({ storeName, id });
