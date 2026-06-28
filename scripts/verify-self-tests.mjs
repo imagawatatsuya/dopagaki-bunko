@@ -18,7 +18,7 @@ import { createAppData } from '../src/app-data.js';
 import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
-import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, putRecordsInBatches, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
+import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
 import { aozoraSearchResultsMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup } from '../src/views.js';
 
 const tests = [];
@@ -964,20 +964,6 @@ test('initial app state starts with empty collections and search batch size', ()
   assert.equal(state.readerActionStatusTone, '');
 });
 
-test('catalog records are persisted in bounded batches', async () => {
-  const calls = [];
-  const records = Array.from({ length: 601 }, (_, index) => ({ id: `catalog-${index}` }));
-  await putRecordsInBatches('aozoraCatalog', records, async (storeName, batch) => {
-    calls.push({ storeName, size: batch.length });
-  }, 250);
-
-  assert.deepEqual(calls, [
-    { storeName: 'aozoraCatalog', size: 250 },
-    { storeName: 'aozoraCatalog', size: 250 },
-    { storeName: 'aozoraCatalog', size: 101 }
-  ]);
-});
-
 test('app reset clears only user stores and keeps the internal catalog state', async () => {
   const state = createInitialAppState();
   state.aozoraCatalogMeta = { id: 'catalog-meta', recordCount: 1 };
@@ -1031,6 +1017,22 @@ test('destructive multi-store operations use the shared atomic mutation path', (
   assert.match(appDataSource, /fragments: fragmentIds[\s\S]*likes: fragmentIds/u);
   assert.match(appActionsSource, /deleteRecords: savePlan\.isUpdate/u);
   assert.match(importSource, /clearStores: mode === 'replace' \? STORE_NAMES : \[\]/u);
+});
+
+test('home routing does not wait for catalog initialization', () => {
+  const runtimeSource = readFileSync(new URL('../src/app-runtime.js', import.meta.url), 'utf8');
+  const initializationIndex = runtimeSource.indexOf('const catalogInitialization = initializeAozoraCatalogState();');
+  const routeIndex = runtimeSource.indexOf('route();', initializationIndex);
+  assert.notEqual(initializationIndex, -1);
+  assert.notEqual(routeIndex, -1);
+  assert.ok(initializationIndex < routeIndex);
+  assert.doesNotMatch(runtimeSource, /await initializeAozoraCatalogState\(\)/u);
+});
+
+test('catalog replacement clears and writes records in one atomic mutation', () => {
+  const source = readFileSync(new URL('../src/app-actions.js', import.meta.url), 'utf8');
+  assert.match(source, /clearStores: \['aozoraCatalog'\][\s\S]*aozoraCatalog: \[\.\.\.payload\.records, metaRecord\]/u);
+  assert.doesNotMatch(source, /putRecordsInBatches/u);
 });
 
 test('reader action status markup renders only non-empty messages', () => {

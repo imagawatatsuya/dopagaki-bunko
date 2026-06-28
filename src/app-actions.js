@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628141254';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628141254';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628142320';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628142320';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -25,17 +25,6 @@ function withTimeout(promise, timeoutMs, message) {
   return Promise.race([promise, timeout]).finally(() => {
     globalThis.clearTimeout(timer);
   });
-}
-
-export async function putRecordsInBatches(storeName, records, putRecords, batchSize = 250, batchTimeoutMs = 15000) {
-  const safeBatchSize = Math.max(1, Number(batchSize) || 250);
-  for (let offset = 0; offset < records.length; offset += safeBatchSize) {
-    await withTimeout(
-      putRecords(storeName, records.slice(offset, offset + safeBatchSize)),
-      batchTimeoutMs,
-      `作品一覧の保存が停止しました（${offset + 1}件目付近）。`
-    );
-  }
 }
 
 export function findMatchingImportedWork(works, preview) {
@@ -254,9 +243,7 @@ export function createSearchActions({
   AOZORA_CATALOG_ASSET_PATH,
   getAllRecords,
   applyRecordMutations,
-  clearStore,
   putRecord,
-  putRecords,
   loadStateFromDb,
   sendBridgeImportAck = async (ackUrl, ackPayload, bridgeWindow = null) => {
     if (!ackUrl) {
@@ -933,9 +920,12 @@ export function createSearchActions({
         payload.meta.sourceUrl,
         payload.meta.fetchedAt
       );
-      await clearStore('aozoraCatalog');
-      await putRecordsInBatches('aozoraCatalog', payload.records, putRecords);
-      await putRecord('aozoraCatalog', metaRecord);
+      await applyRecordMutations({
+        clearStores: ['aozoraCatalog'],
+        putRecords: {
+          aozoraCatalog: [...payload.records, metaRecord]
+        }
+      });
       state.aozoraCatalogRecords = payload.records;
       state.aozoraCatalogMeta = metaRecord;
       applyCatalogSearchResults(state.aozoraCatalogQuery);
@@ -953,14 +943,23 @@ export function createSearchActions({
   }
 
   async function initializeAozoraCatalogState() {
-    const records = await getAllRecords('aozoraCatalog');
-    const cachedMeta = records.find((record) => record.id === AOZORA_CATALOG_META_ID) ?? null;
-    const cachedRecords = records.filter((record) => record.id !== AOZORA_CATALOG_META_ID);
-    if (cachedRecords.length > 0 && cachedMeta) {
-      state.aozoraCatalogMeta = cachedMeta;
-      state.aozoraCatalogRecords = cachedRecords;
-      applyCatalogSearchResults(state.aozoraCatalogQuery);
+    if (state.aozoraCatalogLoading) {
       return;
+    }
+
+    state.aozoraCatalogLoading = true;
+    try {
+      const records = await getAllRecords('aozoraCatalog');
+      const cachedMeta = records.find((record) => record.id === AOZORA_CATALOG_META_ID) ?? null;
+      const cachedRecords = records.filter((record) => record.id !== AOZORA_CATALOG_META_ID);
+      if (cachedRecords.length > 0 && cachedMeta) {
+        state.aozoraCatalogMeta = cachedMeta;
+        state.aozoraCatalogRecords = cachedRecords;
+        applyCatalogSearchResults(state.aozoraCatalogQuery);
+        return;
+      }
+    } finally {
+      state.aozoraCatalogLoading = false;
     }
 
     await refreshAozoraCatalog({ render: false });
