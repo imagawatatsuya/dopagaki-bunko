@@ -384,6 +384,9 @@ function createSearchActionsForTest(state, options = {}) {
       return options.getRecord ? options.getRecord(storeName, id) : undefined;
     },
     applyRecordMutations: async ({ putRecords = {} }) => {
+      if (options.failMutations) {
+        throw new Error('IndexedDB transaction failed.');
+      }
       for (const [storeName, records] of Object.entries(putRecords)) {
         for (const record of records) {
           savedRecords.push({ storeName, record });
@@ -521,6 +524,65 @@ test('invalid bridge delivery is persisted and acknowledged as failed', async ()
   );
   assert.equal(bridgeAcks[0].ackPayload.outcome, 'failed');
   assert.match(bridgeAcks[0].ackPayload.error, /本文を受け取れません/u);
+});
+
+test('retryable database failure does not permanently reject a delivery', async () => {
+  const state = createInitialAppState();
+  const { actions, bridgeAcks, savedRecords } = createSearchActionsForTest(state, {
+    getRecord: async () => {
+      throw new Error('IndexedDB upgrade is still blocked by another dopagaki-bunko tab.');
+    }
+  });
+
+  const result = await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      bridgeImportId: 'delivery-retryable',
+      bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+      bridgeAckPayload: { deliveryId: 'delivery-retryable' },
+      bridgeSourceWindow: { closed: false },
+      text: '再試行作品\n作者\n\n本文です。'
+    }
+  });
+
+  assert.equal(result, 'retryable');
+  assert.equal(bridgeAcks.length, 0);
+  assert.equal(savedRecords.some(({ record }) => record.status === 'failed'), false);
+  assert.match(state.importWorkStatus, /ほかのdopagaki-bunkoタブを閉じて/u);
+});
+
+test('bridge receipt ack is sent only after import processing finishes', () => {
+  const source = readFileSync(new URL('../src/app-runtime.js', import.meta.url), 'utf8');
+  const handlerStart = source.indexOf('async function handleBridgeMessage(event)');
+  const importAwait = source.indexOf("await handleSearchAction('import-bridge-message'", handlerStart);
+  const receiptAck = source.indexOf("type: 'dopagaki-bridge-received-v1'", handlerStart);
+
+  assert.equal(handlerStart >= 0, true);
+  assert.equal(importAwait > handlerStart, true);
+  assert.equal(receiptAck > importAwait, true);
+});
+
+test('save database failure keeps the preview retryable and does not send a failed ack', async () => {
+  const state = createInitialAppState();
+  const { actions, bridgeAcks } = createSearchActionsForTest(state, {
+    failMutations: true
+  });
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      bridgeImportId: 'delivery-save-retry',
+      bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+      bridgeAckPayload: { deliveryId: 'delivery-save-retry' },
+      bridgeSourceWindow: { closed: false },
+      text: '保存再試行作品\n作者\n\n本文です。'
+    }
+  });
+  await actions.handleSearchAction('save-imported-work');
+
+  assert.equal(state.importPreview?.deliveryId, 'delivery-save-retry');
+  assert.equal(bridgeAcks.length, 0);
+  assert.match(state.importWorkStatus, /保存に失敗しました/u);
 });
 
 test('window name import does not fill the pasted text draft', () => {

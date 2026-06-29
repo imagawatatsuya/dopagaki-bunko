@@ -141,6 +141,7 @@ export function openDb() {
     openPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       let settled = false;
+      let blocked = false;
       const finish = (callback) => {
         if (settled) {
           return false;
@@ -153,7 +154,11 @@ export function openDb() {
       const timer = globalThis.setTimeout(() => {
         finish(() => {
           clearOpenState();
-          reject(new Error(`IndexedDB open timed out after ${OPEN_TIMEOUT_MS}ms.`));
+          reject(new Error(
+            blocked
+              ? 'IndexedDB upgrade is still blocked by another dopagaki-bunko tab. Close the other tab and retry.'
+              : `IndexedDB open timed out after ${OPEN_TIMEOUT_MS}ms.`
+          ));
         });
       }, OPEN_TIMEOUT_MS);
 
@@ -186,10 +191,7 @@ export function openDb() {
       }, { once: true });
 
       request.addEventListener('blocked', () => {
-        finish(() => {
-          clearOpenState();
-          reject(new Error('IndexedDB upgrade was blocked by another open tab.'));
-        });
+        blocked = true;
       }, { once: true });
     });
   }

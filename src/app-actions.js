@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629112900';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260629112900';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629114223';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260629114223';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -49,8 +49,6 @@ export function buildImportedWorkSavePlan({
   currentBookmarkRecords = [],
   currentLikeRecords = []
 }) {
-  const receivedBridgeImportIds = new Set();
-
   const workId = existingWork?.id ?? `work-${Date.now()}`;
   const workRecord = {
     id: workId,
@@ -265,6 +263,18 @@ export function createSearchActions({
     bridgeWindow.location.assign(navigationUrl.toString());
   }
 }) {
+  const receivedBridgeImportIds = new Set();
+  const pendingBridgeImports = new Map();
+
+  function isRetryableBridgeError(error) {
+    const name = String(error?.name ?? '');
+    const message = String(error?.message ?? '');
+    return (
+      ['AbortError', 'InvalidStateError', 'TransactionInactiveError', 'UnknownError'].includes(name)
+      || /IndexedDB|database|transaction|blocked|timed out|connection/i.test(message)
+    );
+  }
+
   function resetCatalogSearchSession() {
     state.aozoraCatalogQuery = '';
     state.aozoraCatalogStatus = '';
@@ -328,14 +338,11 @@ export function createSearchActions({
     if (deliveryId) {
       const persistedReceipt = await getRecord('importReceipts', deliveryId);
       if (persistedReceipt?.status === 'completed' || persistedReceipt?.status === 'failed') {
-        return;
+        return 'terminal';
       }
     }
     if (bridgeImportId && receivedBridgeImportIds.has(bridgeImportId)) {
-      return;
-    }
-    if (bridgeImportId) {
-      receivedBridgeImportIds.add(bridgeImportId);
+      return 'ready';
     }
 
     state.importSheetOpen = true;
@@ -362,7 +369,8 @@ export function createSearchActions({
       text
     );
     if (!deliveryId) {
-      return;
+      if (bridgeImportId) receivedBridgeImportIds.add(bridgeImportId);
+      return 'ready';
     }
     if (previewReady) {
       await putRecord('importReceipts', {
@@ -373,7 +381,8 @@ export function createSearchActions({
         lastError: '',
         updatedAt: new Date().toISOString()
       });
-      return;
+      if (bridgeImportId) receivedBridgeImportIds.add(bridgeImportId);
+      return 'ready';
     }
     const errorMessage = state.importWorkStatus || '取り込み候補を作成できませんでした。';
     await putRecord('importReceipts', {
@@ -395,6 +404,22 @@ export function createSearchActions({
         payload.bridgeSourceWindow
       );
     }
+    return 'failed';
+  }
+
+  function processBridgePayload(payload = {}) {
+    const key = String(payload.bridgeAckPayload?.deliveryId ?? payload.bridgeImportId ?? '');
+    if (!key) {
+      return importBridgePayload(payload);
+    }
+    if (pendingBridgeImports.has(key)) {
+      return pendingBridgeImports.get(key);
+    }
+    const pending = importBridgePayload(payload).finally(() => {
+      pendingBridgeImports.delete(key);
+    });
+    pendingBridgeImports.set(key, pending);
+    return pending;
   }
 
   function buildBridgeImportUrl(txtUrl) {
@@ -1163,7 +1188,7 @@ export function createSearchActions({
     if (action === 'import-bridge-message') {
       const bridgePayload = payload.bridgePayload ?? {};
       try {
-        await importBridgePayload(bridgePayload);
+        return await processBridgePayload(bridgePayload);
       } catch (error) {
         state.importWorkNoticeTone = '';
         const errorMessage = `PC側の受け渡しに失敗しました: ${error?.message ?? '不明なエラー'}`;
@@ -1173,7 +1198,7 @@ export function createSearchActions({
           || bridgePayload.bridgeImportId
           || ''
         );
-        if (deliveryId) {
+        if (deliveryId && !isRetryableBridgeError(error)) {
           try {
             await putRecord('importReceipts', {
               id: deliveryId,
@@ -1199,9 +1224,12 @@ export function createSearchActions({
             state.importWorkStatus = `${errorMessage} 失敗記録をPC側へ通知できませんでした。`;
           }
         }
+        if (isRetryableBridgeError(error)) {
+          state.importWorkStatus = `${errorMessage} 一時的な保存エラーです。ほかのdopagaki-bunkoタブを閉じてから、もう一度送信してください。`;
+        }
         renderSearch();
+        return isRetryableBridgeError(error) ? 'retryable' : 'failed';
       }
-      return;
     }
 
     if (action === 'set-search-scope-aozora' || action === 'set-search-scope-library') {
@@ -1258,26 +1286,13 @@ export function createSearchActions({
               id: deliveryId,
               deliveryId,
               sourceUrl: String(failedPreview?.sourceUrl ?? ''),
-              status: 'failed',
+              status: 'candidate',
               lastError: errorMessage,
               updatedAt: new Date().toISOString()
             });
-            if (failedPreview?.bridgeAckUrl && failedPreview?.bridgeWindow) {
-              await sendBridgeImportAck(
-                failedPreview.bridgeAckUrl,
-                {
-                  ...(failedPreview.bridgeAckPayload ?? {}),
-                  outcome: 'failed',
-                  error: errorMessage
-                },
-                failedPreview.bridgeWindow
-              );
-            }
-            state.importPreview = null;
-            state.importSheetOpen = false;
           } catch (ackError) {
             console.error(ackError);
-            state.importWorkStatus = `${errorMessage} 失敗記録をPC側へ通知できませんでした。`;
+            state.importWorkStatus = `${errorMessage} 候補は画面に残しています。ほかのdopagaki-bunkoタブを閉じてから再試行してください。`;
           }
         }
       } finally {

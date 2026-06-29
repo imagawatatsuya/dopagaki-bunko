@@ -1,33 +1,33 @@
-import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260629112900';
-import { STORE_NAMES, applyRecordMutations, getAllRecords, getRecord, putRecord, verifyStoresEmpty } from './db.js?v=20260629112900';
-import { listLikes, removeLike, saveLike } from './likes.js?v=20260629112900';
-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260629112900';
+import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260629114223';
+import { STORE_NAMES, applyRecordMutations, getAllRecords, getRecord, putRecord, verifyStoresEmpty } from './db.js?v=20260629114223';
+import { listLikes, removeLike, saveLike } from './likes.js?v=20260629114223';
+import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260629114223';
 import {
   createBookmarkActions,
   createCollectionActions,
   createDetailActions,
   createSearchActions,
   createSettingsActions
-} from './app-actions.js?v=20260629112900';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260629112900';
-import { readFileAsArrayBuffer } from './file-reader.js?v=20260629112900';
-import { derivePreviewFromText } from './import-preview.js?v=20260629112900';
-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260629112900';
-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260629112900';
-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260629112900';
-import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260629112900';
-import { buildImportSummary, createAppShell } from './app-shell.js?v=20260629112900';
-import { createAppData } from './app-data.js?v=20260629112900';
-import { createScreenRenderers } from './screen-renderers.js?v=20260629112900';
+} from './app-actions.js?v=20260629114223';
+import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260629114223';
+import { readFileAsArrayBuffer } from './file-reader.js?v=20260629114223';
+import { derivePreviewFromText } from './import-preview.js?v=20260629114223';
+import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260629114223';
+import { decodeAozoraText } from './aozora-text-decoder.js?v=20260629114223';
+import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260629114223';
+import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260629114223';
+import { buildImportSummary, createAppShell } from './app-shell.js?v=20260629114223';
+import { createAppData } from './app-data.js?v=20260629114223';
+import { createScreenRenderers } from './screen-renderers.js?v=20260629114223';
 import {
   SEARCH_RESULTS_BATCH_SIZE,
   WORK_LOAD_MODE_SETTING_ID,
   WORK_PAGE_BATCH_SIZE,
   CONVERTER_BASE_URL_SETTING_ID
-} from './app-config.js?v=20260629112900';
-import { createAppRouter } from './app-router.js?v=20260629112900';
-import { createInitialAppState } from './app-state.js?v=20260629112900';
-import { normalizeConverterBaseUrl } from './remote-import.js?v=20260629112900';
+} from './app-config.js?v=20260629114223';
+import { createAppRouter } from './app-router.js?v=20260629114223';
+import { createInitialAppState } from './app-state.js?v=20260629114223';
+import { normalizeConverterBaseUrl } from './remote-import.js?v=20260629114223';
 
 export function createAppRuntime({ app }) {
   const state = createInitialAppState();
@@ -233,24 +233,28 @@ export function createAppRuntime({ app }) {
     }
   }
 
-  function handleBridgeMessage(event) {
+  async function handleBridgeMessage(event) {
     const payload = event?.data;
     if (payload?.type !== 'dopagaki-bridge-import-v1') {
       return;
     }
     suppressResumeRefreshUntil = Date.now() + 5000;
-    if (event.source && typeof event.source.postMessage === 'function') {
-      event.source.postMessage({
-        type: 'dopagaki-bridge-received-v1',
-        bridgeImportId: String(payload.bridgeImportId ?? '')
-      }, event.origin);
-    }
-    void handleSearchAction('import-bridge-message', {
+    const result = await handleSearchAction('import-bridge-message', {
       bridgePayload: {
         ...payload,
         bridgeSourceWindow: event.source ?? null
       }
     });
+    if (
+      (result === 'ready' || result === 'terminal')
+      && event.source
+      && typeof event.source.postMessage === 'function'
+    ) {
+      event.source.postMessage({
+        type: 'dopagaki-bridge-received-v1',
+        bridgeImportId: String(payload.bridgeImportId ?? '')
+      }, event.origin);
+    }
   }
 
   function focusBridgeImportPreview() {
@@ -283,7 +287,9 @@ export function createAppRuntime({ app }) {
     focusBridgeImportPreview();
   }
 
-  globalThis.addEventListener('message', handleBridgeMessage);
+  globalThis.addEventListener('message', (event) => {
+    void handleBridgeMessage(event);
+  });
   globalThis.addEventListener('pageshow', handlePageShow);
   globalThis.addEventListener('focus', handleWindowFocus);
   document.addEventListener('visibilitychange', handleVisibilityChange);
