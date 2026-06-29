@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629103418';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260629103418';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629111713';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260629111713';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -49,6 +49,8 @@ export function buildImportedWorkSavePlan({
   currentBookmarkRecords = [],
   currentLikeRecords = []
 }) {
+  const receivedBridgeImportIds = new Set();
+
   const workId = existingWork?.id ?? `work-${Date.now()}`;
   const workRecord = {
     id: workId,
@@ -317,6 +319,13 @@ export function createSearchActions({
     if (!text.trim()) {
       throw new Error('PC側から本文を受け取れませんでした。');
     }
+    const bridgeImportId = String(payload.bridgeImportId ?? '');
+    if (bridgeImportId && receivedBridgeImportIds.has(bridgeImportId)) {
+      return;
+    }
+    if (bridgeImportId) {
+      receivedBridgeImportIds.add(bridgeImportId);
+    }
 
     state.importSheetOpen = true;
     state.importWorkNoticeTone = '';
@@ -334,7 +343,8 @@ export function createSearchActions({
           ? payload.bridgeAckPayload
           : null,
         bridgeWindow: payload.bridgeSourceWindow ?? null,
-        bridgeQueueRemaining: Math.max(0, Number(payload.bridgeQueueRemaining) || 0)
+        bridgeQueueRemaining: Math.max(0, Number(payload.bridgeQueueRemaining) || 0),
+        bridgeImportId
       },
       String(payload.sourceLabel ?? '公開TXT'),
       text
@@ -611,6 +621,7 @@ export function createSearchActions({
         : null,
       bridgeWindow: sourceMeta.bridgeWindow ?? null,
       bridgeQueueRemaining: Math.max(0, Number(sourceMeta.bridgeQueueRemaining) || 0),
+      bridgeImportId: String(sourceMeta.bridgeImportId ?? ''),
       aozoraWorkId: String(sourceMeta.aozoraWorkId ?? ''),
       textZipUrl: String(sourceMeta.textZipUrl ?? ''),
       cardUrl: String(sourceMeta.cardUrl ?? ''),
@@ -1114,6 +1125,11 @@ export function createSearchActions({
 
     if (action === 'scroll-search-results-top') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (action === 'focus-import-preview') {
+      scrollSearchPreviewIntoView();
       return;
     }
 

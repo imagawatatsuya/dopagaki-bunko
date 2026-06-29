@@ -1,21 +1,21 @@
 import {
   buildHomeTimelineEvents,
   getReadableFragments
-} from './state.js?v=20260629103418';
+} from './state.js?v=20260629111713';
 import {
   buildFragmentHash,
   buildWorkHash
-} from './router.js?v=20260629103418';
+} from './router.js?v=20260629111713';
 import {
   bindDetailActions,
   focusFragmentCard
-} from './ui-bindings.js?v=20260629103418';
+} from './ui-bindings.js?v=20260629111713';
 import {
   fragmentDetailBodyMarkup,
   homeBodyMarkup,
   readerActionStatusMarkup
-} from './views.js?v=20260629103418';
-import { returnLinkLabel } from './renderer-shared.js?v=20260629103418';
+} from './views.js?v=20260629111713';
+import { returnLinkLabel } from './renderer-shared.js?v=20260629111713';
 
 export function createHomeDetailRenderers({
   app,

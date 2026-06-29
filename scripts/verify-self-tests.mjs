@@ -22,7 +22,13 @@ import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWor
 import { aozoraSearchResultsMarkup, errorBodyMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup, settingsBodyMarkup } from '../src/views.js';
 
 const tests = [];
-globalThis.requestAnimationFrame = () => 0;
+globalThis.requestAnimationFrame = (callback) => {
+  callback();
+  return 0;
+};
+globalThis.document = {
+  querySelector: () => null
+};
 
 function test(name, fn) {
   tests.push({ name, fn });
@@ -439,6 +445,23 @@ test('bridge import does not replace an unsaved pasted draft', async () => {
   await actions.handleSearchAction('save-imported-work');
 
   assert.equal(state.importTextDraft, '未保存の手入力\n作者\n\n消さない本文です。');
+});
+
+test('duplicate bridge delivery does not recreate an import preview', async () => {
+  const state = createInitialAppState();
+  const { actions } = createSearchActionsForTest(state);
+  const bridgePayload = {
+    type: 'dopagaki-bridge-import-v1',
+    bridgeImportId: 'source|generated-at|txt',
+    text: 'PC作品\n作者\n\nPCから受け取った本文です。'
+  };
+
+  await actions.handleSearchAction('import-bridge-message', { bridgePayload });
+  await actions.handleSearchAction('save-imported-work');
+  assert.equal(state.importPreview, null);
+
+  await actions.handleSearchAction('import-bridge-message', { bridgePayload });
+  assert.equal(state.importPreview, null);
 });
 
 test('window name import does not fill the pasted text draft', () => {
