@@ -1,5 +1,5 @@
 const DB_NAME = 'dopagaki-bunko';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const OPEN_TIMEOUT_MS = 15000;
 const TRANSACTION_TIMEOUT_MS = 20000;
 
@@ -9,6 +9,7 @@ export const STORE_NAMES = [
   'likes',
   'bookmarks',
   'readingStates',
+  'importReceipts',
   'settings'
 ];
 

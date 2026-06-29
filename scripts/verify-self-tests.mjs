@@ -380,6 +380,9 @@ function createSearchActionsForTest(state, options = {}) {
     AOZORA_CATALOG_META_ID: 'catalog-meta',
     AOZORA_CATALOG_ASSET_PATH: './data/aozora-catalog.json.gz',
     getAllRecords: async () => [],
+    getRecord: async (storeName, id) => {
+      return options.getRecord ? options.getRecord(storeName, id) : undefined;
+    },
     applyRecordMutations: async ({ putRecords = {} }) => {
       for (const [storeName, records] of Object.entries(putRecords)) {
         for (const record of records) {
@@ -464,6 +467,62 @@ test('duplicate bridge delivery does not recreate an import preview', async () =
   assert.equal(state.importPreview, null);
 });
 
+test('persisted completed delivery does not recreate an import preview after restart', async () => {
+  const state = createInitialAppState();
+  const { actions } = createSearchActionsForTest(state, {
+    getRecord: async (storeName, id) => {
+      if (storeName === 'importReceipts' && id === 'delivery-completed') {
+        return { id, status: 'completed' };
+      }
+      return undefined;
+    }
+  });
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      bridgeImportId: 'delivery-completed',
+      bridgeAckPayload: { deliveryId: 'delivery-completed' },
+      text: '再送作品\n作者\n\n再送された本文です。'
+    }
+  });
+
+  assert.equal(state.importPreview, null);
+});
+
+test('invalid bridge delivery is persisted and acknowledged as failed', async () => {
+  const state = createInitialAppState();
+  const { actions, bridgeAcks, savedRecords } = createSearchActionsForTest(state);
+  const bridgeWindow = { closed: false };
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      bridgeImportId: 'delivery-failed',
+      bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+      bridgeAckPayload: {
+        deliveryId: 'delivery-failed',
+        sourceUrl: 'https://example.com/failed',
+        txtPath: 'works/failed.txt'
+      },
+      bridgeSourceWindow: bridgeWindow,
+      text: ''
+    }
+  });
+
+  assert.equal(state.importPreview, null);
+  assert.equal(
+    savedRecords.some(({ storeName, record }) => (
+      storeName === 'importReceipts'
+      && record.id === 'delivery-failed'
+      && record.status === 'failed'
+    )),
+    true
+  );
+  assert.equal(bridgeAcks[0].ackPayload.outcome, 'failed');
+  assert.match(bridgeAcks[0].ackPayload.error, /本文を受け取れません/u);
+});
+
 test('window name import does not fill the pasted text draft', () => {
   const state = createInitialAppState();
   state.importTextDraft = '未保存の手入力\n作者\n\n保持する本文です。';
@@ -517,7 +576,7 @@ test('successful imported text is kept separate from the visible pasted draft', 
 
 test('bridge import save acknowledges the sender list entry after saving', async () => {
   const state = createInitialAppState();
-  const { actions, bridgeAcks } = createSearchActionsForTest(state);
+  const { actions, bridgeAcks, savedRecords } = createSearchActionsForTest(state);
   const bridgeWindow = { closed: false };
 
   await actions.handleSearchAction('import-bridge-message', {
@@ -526,6 +585,7 @@ test('bridge import save acknowledges the sender list entry after saving', async
       sourceUrl: 'https://example.com/source',
       bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
       bridgeAckPayload: {
+        deliveryId: 'delivery-1',
         sourceUrl: 'https://example.com/source',
         txtPath: 'works/source.txt'
       },
@@ -540,12 +600,21 @@ test('bridge import save acknowledges the sender list entry after saving', async
     {
       ackUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
       ackPayload: {
+        deliveryId: 'delivery-1',
         sourceUrl: 'https://example.com/source',
         txtPath: 'works/source.txt'
       },
       bridgeWindow
     }
   ]);
+  assert.equal(
+    savedRecords.some(({ storeName, record }) => (
+      storeName === 'importReceipts'
+      && record.id === 'delivery-1'
+      && record.status === 'completed'
+    )),
+    true
+  );
 });
 
 test('window name import save acknowledges the sender list entry after saving', async () => {

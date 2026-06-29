@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629111713';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260629111713';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629112900';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260629112900';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -244,6 +244,7 @@ export function createSearchActions({
   AOZORA_CATALOG_META_ID,
   AOZORA_CATALOG_ASSET_PATH,
   getAllRecords,
+  getRecord,
   applyRecordMutations,
   putRecord,
   loadStateFromDb,
@@ -255,8 +256,11 @@ export function createSearchActions({
       throw new Error('PC側の配信タブが閉じています。dopagaki-bunkoの保存データはそのままです。');
     }
     const navigationUrl = new URL(ackUrl);
+    navigationUrl.searchParams.set('deliveryId', String(ackPayload?.deliveryId ?? ''));
     navigationUrl.searchParams.set('sourceUrl', String(ackPayload?.sourceUrl ?? ''));
     navigationUrl.searchParams.set('txtPath', String(ackPayload?.txtPath ?? ''));
+    navigationUrl.searchParams.set('outcome', String(ackPayload?.outcome ?? 'completed'));
+    navigationUrl.searchParams.set('error', String(ackPayload?.error ?? ''));
     navigationUrl.searchParams.set('returnUrl', new URL('/dopagaki-import-works.html', navigationUrl).toString());
     bridgeWindow.location.assign(navigationUrl.toString());
   }
@@ -320,6 +324,13 @@ export function createSearchActions({
       throw new Error('PC側から本文を受け取れませんでした。');
     }
     const bridgeImportId = String(payload.bridgeImportId ?? '');
+    const deliveryId = String(payload.bridgeAckPayload?.deliveryId ?? bridgeImportId);
+    if (deliveryId) {
+      const persistedReceipt = await getRecord('importReceipts', deliveryId);
+      if (persistedReceipt?.status === 'completed' || persistedReceipt?.status === 'failed') {
+        return;
+      }
+    }
     if (bridgeImportId && receivedBridgeImportIds.has(bridgeImportId)) {
       return;
     }
@@ -331,7 +342,7 @@ export function createSearchActions({
     state.importWorkNoticeTone = '';
     state.importWorkStatus = 'PC上のTXTを受け取っています。';
 
-    await handleImportedPreview(
+    const previewReady = await handleImportedPreview(
       derivePreviewFromText(text, 'bridge-import'),
       {
         sourceType: 'bridge-import',
@@ -344,11 +355,46 @@ export function createSearchActions({
           : null,
         bridgeWindow: payload.bridgeSourceWindow ?? null,
         bridgeQueueRemaining: Math.max(0, Number(payload.bridgeQueueRemaining) || 0),
-        bridgeImportId
+        bridgeImportId,
+        deliveryId
       },
       String(payload.sourceLabel ?? '公開TXT'),
       text
     );
+    if (!deliveryId) {
+      return;
+    }
+    if (previewReady) {
+      await putRecord('importReceipts', {
+        id: deliveryId,
+        deliveryId,
+        sourceUrl: String(payload.sourceUrl ?? ''),
+        status: 'candidate',
+        lastError: '',
+        updatedAt: new Date().toISOString()
+      });
+      return;
+    }
+    const errorMessage = state.importWorkStatus || '取り込み候補を作成できませんでした。';
+    await putRecord('importReceipts', {
+      id: deliveryId,
+      deliveryId,
+      sourceUrl: String(payload.sourceUrl ?? ''),
+      status: 'failed',
+      lastError: errorMessage,
+      updatedAt: new Date().toISOString()
+    });
+    if (payload.bridgeAckUrl && payload.bridgeSourceWindow) {
+      await sendBridgeImportAck(
+        payload.bridgeAckUrl,
+        {
+          ...(payload.bridgeAckPayload ?? {}),
+          outcome: 'failed',
+          error: errorMessage
+        },
+        payload.bridgeSourceWindow
+      );
+    }
   }
 
   function buildBridgeImportUrl(txtUrl) {
@@ -622,6 +668,7 @@ export function createSearchActions({
       bridgeWindow: sourceMeta.bridgeWindow ?? null,
       bridgeQueueRemaining: Math.max(0, Number(sourceMeta.bridgeQueueRemaining) || 0),
       bridgeImportId: String(sourceMeta.bridgeImportId ?? ''),
+      deliveryId: String(sourceMeta.deliveryId ?? ''),
       aozoraWorkId: String(sourceMeta.aozoraWorkId ?? ''),
       textZipUrl: String(sourceMeta.textZipUrl ?? ''),
       cardUrl: String(sourceMeta.cardUrl ?? ''),
@@ -666,6 +713,7 @@ export function createSearchActions({
         });
       });
     }
+    return Boolean(state.importPreview);
   }
 
   async function handleAozoraTextArrayBuffer(arrayBuffer, sourceMeta = {}) {
@@ -731,6 +779,12 @@ export function createSearchActions({
       currentLikeRecords: state.likeRecords
     });
 
+    const deliveryId = String(
+      state.importPreview.deliveryId
+      || state.importPreview.bridgeAckPayload?.deliveryId
+      || state.importPreview.bridgeImportId
+      || ''
+    );
     await applyRecordMutations({
       deleteRecords: savePlan.isUpdate ? {
         bookmarks: [savePlan.workRecord.id],
@@ -741,7 +795,16 @@ export function createSearchActions({
         works: [savePlan.workRecord],
         fragments: savePlan.fragmentRecords,
         bookmarks: savePlan.migratedBookmarkRecord ? [savePlan.migratedBookmarkRecord] : [],
-        likes: savePlan.migratedLikeRecords
+        likes: savePlan.migratedLikeRecords,
+        importReceipts: deliveryId ? [{
+          id: deliveryId,
+          deliveryId,
+          sourceUrl: String(state.importPreview.sourceUrl ?? ''),
+          status: 'completed',
+          lastError: '',
+          updatedAt: importedAt,
+          completedAt: importedAt
+        }] : []
       }
     });
     await loadStateFromDb();
@@ -1098,11 +1161,44 @@ export function createSearchActions({
     }
 
     if (action === 'import-bridge-message') {
+      const bridgePayload = payload.bridgePayload ?? {};
       try {
-        await importBridgePayload(payload.bridgePayload ?? {});
+        await importBridgePayload(bridgePayload);
       } catch (error) {
         state.importWorkNoticeTone = '';
-        state.importWorkStatus = `PC側の受け渡しに失敗しました: ${error?.message ?? '不明なエラー'}`;
+        const errorMessage = `PC側の受け渡しに失敗しました: ${error?.message ?? '不明なエラー'}`;
+        state.importWorkStatus = errorMessage;
+        const deliveryId = String(
+          bridgePayload.bridgeAckPayload?.deliveryId
+          || bridgePayload.bridgeImportId
+          || ''
+        );
+        if (deliveryId) {
+          try {
+            await putRecord('importReceipts', {
+              id: deliveryId,
+              deliveryId,
+              sourceUrl: String(bridgePayload.sourceUrl ?? ''),
+              status: 'failed',
+              lastError: errorMessage,
+              updatedAt: new Date().toISOString()
+            });
+            if (bridgePayload.bridgeAckUrl && bridgePayload.bridgeSourceWindow) {
+              await sendBridgeImportAck(
+                bridgePayload.bridgeAckUrl,
+                {
+                  ...(bridgePayload.bridgeAckPayload ?? {}),
+                  outcome: 'failed',
+                  error: errorMessage
+                },
+                bridgePayload.bridgeSourceWindow
+              );
+            }
+          } catch (ackError) {
+            console.error(ackError);
+            state.importWorkStatus = `${errorMessage} 失敗記録をPC側へ通知できませんでした。`;
+          }
+        }
         renderSearch();
       }
       return;
@@ -1147,7 +1243,43 @@ export function createSearchActions({
       } catch (error) {
         console.error(error);
         state.importWorkNoticeTone = '';
-        state.importWorkStatus = `保存に失敗しました: ${error?.message ?? '不明なエラー'}`;
+        const errorMessage = `保存に失敗しました: ${error?.message ?? '不明なエラー'}`;
+        const failedPreview = state.importPreview;
+        const deliveryId = String(
+          failedPreview?.deliveryId
+          || failedPreview?.bridgeAckPayload?.deliveryId
+          || failedPreview?.bridgeImportId
+          || ''
+        );
+        state.importWorkStatus = errorMessage;
+        if (deliveryId) {
+          try {
+            await putRecord('importReceipts', {
+              id: deliveryId,
+              deliveryId,
+              sourceUrl: String(failedPreview?.sourceUrl ?? ''),
+              status: 'failed',
+              lastError: errorMessage,
+              updatedAt: new Date().toISOString()
+            });
+            if (failedPreview?.bridgeAckUrl && failedPreview?.bridgeWindow) {
+              await sendBridgeImportAck(
+                failedPreview.bridgeAckUrl,
+                {
+                  ...(failedPreview.bridgeAckPayload ?? {}),
+                  outcome: 'failed',
+                  error: errorMessage
+                },
+                failedPreview.bridgeWindow
+              );
+            }
+            state.importPreview = null;
+            state.importSheetOpen = false;
+          } catch (ackError) {
+            console.error(ackError);
+            state.importWorkStatus = `${errorMessage} 失敗記録をPC側へ通知できませんでした。`;
+          }
+        }
       } finally {
         state.importSaveInProgress = false;
       }
