@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628192546';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260628192546';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629103418';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260629103418';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -755,9 +755,19 @@ export function createSearchActions({
     }
     resetCatalogSearchSession();
     state.importWorkNoticeTone = 'success';
-    state.importWorkStatus = savePlan.isUpdate
-      ? `${state.importPreview.title} を更新しました。別の作品を探すか、続きの取り込みを進めてください。`
-      : `${state.importPreview.title} を保存しました。別の作品を探すか、別のファイルを追加してください。`;
+    const queueRemaining = Math.max(0, Number(state.importPreview.bridgeQueueRemaining) || 0);
+    const isQueuedBridgeImport = Boolean(state.importPreview.bridgeAckUrl);
+    state.importWorkStatus = isQueuedBridgeImport
+      ? (
+        queueRemaining > 0
+          ? `${state.importPreview.title} を${savePlan.isUpdate ? '更新' : '保存'}しました。次の作品を準備しています。取り込み用タブは閉じないでください。`
+          : `${state.importPreview.title} を${savePlan.isUpdate ? '更新' : '保存'}しました。すべての取り込みが完了しました。取り込み用に開いた別タブへ移動し、そのタブを手動で閉じてください。`
+      )
+      : (
+        savePlan.isUpdate
+          ? `${state.importPreview.title} を更新しました。別の作品を探すか、続きの取り込みを進めてください。`
+          : `${state.importPreview.title} を保存しました。別の作品を探すか、別のファイルを追加してください。`
+      );
     if (state.importPreview.sourceType === 'pasted-text' || state.importTextDraft === state.importTextLastImported) {
       state.importTextDraft = '';
     }
@@ -1108,12 +1118,22 @@ export function createSearchActions({
     }
 
     if (action === 'save-imported-work') {
+      if (state.importSaveInProgress) {
+        return;
+      }
+      state.importSaveInProgress = true;
+      state.importWorkNoticeTone = '';
+      state.importWorkStatus = '';
+      renderSearch();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
       try {
         await saveImportedWork();
       } catch (error) {
         console.error(error);
         state.importWorkNoticeTone = '';
         state.importWorkStatus = `保存に失敗しました: ${error?.message ?? '不明なエラー'}`;
+      } finally {
+        state.importSaveInProgress = false;
       }
       renderSearch();
       if (state.importWorkNoticeTone === 'success') {

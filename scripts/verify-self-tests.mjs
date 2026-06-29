@@ -280,6 +280,30 @@ test('last queued PC import preview labels the final update', () => {
   assert.match(markup, />更新して完了</u);
 });
 
+test('large import disables preview actions while saving', () => {
+  const markup = searchPreviewMarkup({
+    title: '大長編',
+    author: '著者名',
+    textFragmentCount: 8000,
+    encoding: 'UTF-8',
+    bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+    bridgeQueueRemaining: 0,
+    isExistingWorkUpdate: true,
+    importSaveInProgress: true,
+    fragments: [{
+      type: 'fragment',
+      index: 1,
+      displayHtml: '本文'
+    }]
+  }, '');
+
+  assert.match(markup, /aria-busy="true"/u);
+  assert.match(markup, /8000断片を更新しています/u);
+  assert.match(markup, /もう一度押したりしないでください/u);
+  assert.match(markup, /data-search-action="save-imported-work" disabled>更新しています…/u);
+  assert.match(markup, /data-search-action="clear-preview" disabled/u);
+});
+
 test('queued PC import warns when the browser library is empty and uses save wording', () => {
   const markup = searchPreviewMarkup({
     title: '新規作品',

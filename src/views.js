@@ -324,7 +324,10 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
   const queueRemaining = Math.max(0, Number(preview.bridgeQueueRemaining) || 0);
   const isQueuedBridgeImport = Boolean(preview.bridgeAckUrl);
   const isExistingWorkUpdate = Boolean(preview.isExistingWorkUpdate);
-  const saveButtonLabel = isQueuedBridgeImport
+  const isSaving = Boolean(preview.importSaveInProgress);
+  const saveButtonLabel = isSaving
+    ? (isExistingWorkUpdate ? '更新しています…' : '保存しています…')
+    : isQueuedBridgeImport
     ? (
       isExistingWorkUpdate
         ? (queueRemaining > 0 ? '更新して次へ' : '更新して完了')
@@ -351,9 +354,12 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
     : '';
 
   return `
-    <article class="info-panel" data-search-preview tabindex="-1" aria-labelledby="search-preview-title">
+    <article class="info-panel" data-search-preview tabindex="-1" aria-labelledby="search-preview-title" aria-busy="${isSaving ? 'true' : 'false'}">
       <h2 class="section-title" id="search-preview-title">取り込みプレビュー</h2>
       <p class="section-text">作品名: ${preview.title}<br>著者名: ${preview.author}<br>断片数: ${preview.textFragmentCount}件<br>文字コード: ${preview.encoding}</p>
+      ${isSaving
+        ? `<p class="settings-status" role="status" aria-live="assertive">${preview.textFragmentCount}断片を${isExistingWorkUpdate ? '更新' : '保存'}しています。画面を閉じたり、もう一度押したりしないでください。</p>`
+        : ''}
       ${libraryStateHtml}
       ${queueStatusHtml}
       ${updateNoticeHtml}
@@ -373,8 +379,8 @@ export function searchPreviewMarkup(preview, breakCardMarkup) {
         }).join('')}
       </div>
       <div class="settings-button-grid">
-        <button type="button" class="detail-action-button settings-button" data-search-action="save-imported-work">${saveButtonLabel}</button>
-        <button type="button" class="detail-action-button settings-button" data-search-action="clear-preview">プレビューを閉じる</button>
+        <button type="button" class="detail-action-button settings-button" data-search-action="save-imported-work"${isSaving ? ' disabled' : ''}>${saveButtonLabel}</button>
+        <button type="button" class="detail-action-button settings-button" data-search-action="clear-preview"${isSaving ? ' disabled' : ''}>プレビューを閉じる</button>
       </div>
     </article>
   `;

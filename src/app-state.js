@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260628192546';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629103418';
 
 export function createInitialAppState() {
   return {
@@ -16,6 +16,7 @@ export function createInitialAppState() {
     resetConfirmationStep: '',
     resetStatus: '',
     importWorkStatus: '',
+    importSaveInProgress: false,
     importWorkNoticeTone: '',
     importPreview: null,
     importSheetOpen: false,
