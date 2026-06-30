@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260629114223';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260630135044';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,7 +6,7 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260629114223';
+} from './views.js?v=20260630135044';
 
 export function createSearchSettingsRenderers({
   app,
@@ -101,8 +101,15 @@ export function createSearchSettingsRenderers({
     const importNoticeHtml = state.importWorkNoticeTone === 'success' && state.importWorkStatus
       ? `
         <article class="info-panel search-import-notice search-import-notice-success" data-search-import-notice aria-live="polite">
-          <h2 class="section-title">取り込み完了</h2>
+          <h2 class="section-title">${state.pendingBridgeAck ? '作品は更新済みです' : '取り込み完了'}</h2>
           <p class="section-text">${escapeHtml(state.importWorkStatus)}</p>
+          ${state.pendingBridgeAck
+            ? `<div class="settings-button-grid">
+                <button type="button" class="detail-action-button settings-button" data-search-action="retry-bridge-ack">${
+                  state.pendingBridgeAck.queueRemaining > 0 ? '送信リストを更新して次へ' : '送信リストを更新して完了'
+                }</button>
+              </div>`
+            : ''}
         </article>
       `
       : '';

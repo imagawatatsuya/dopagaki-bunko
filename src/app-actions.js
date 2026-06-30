@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629114223';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260629114223';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260630135044';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260630135044';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -250,9 +250,6 @@ export function createSearchActions({
     if (!ackUrl) {
       return;
     }
-    if (!bridgeWindow || bridgeWindow.closed) {
-      throw new Error('PC側の配信タブが閉じています。dopagaki-bunkoの保存データはそのままです。');
-    }
     const navigationUrl = new URL(ackUrl);
     navigationUrl.searchParams.set('deliveryId', String(ackPayload?.deliveryId ?? ''));
     navigationUrl.searchParams.set('sourceUrl', String(ackPayload?.sourceUrl ?? ''));
@@ -260,6 +257,16 @@ export function createSearchActions({
     navigationUrl.searchParams.set('outcome', String(ackPayload?.outcome ?? 'completed'));
     navigationUrl.searchParams.set('error', String(ackPayload?.error ?? ''));
     navigationUrl.searchParams.set('returnUrl', new URL('/dopagaki-import-works.html', navigationUrl).toString());
+    if (!bridgeWindow || bridgeWindow.closed) {
+      const reopenedWindow = globalThis.window?.open?.(
+        navigationUrl.toString(),
+        'dopagaki-delivery'
+      );
+      if (!reopenedWindow) {
+        throw new Error('PC側の送信リストを開けませんでした。もう一度「送信リストを更新」を押してください。');
+      }
+      return;
+    }
     bridgeWindow.location.assign(navigationUrl.toString());
   }
 }) {
@@ -337,7 +344,21 @@ export function createSearchActions({
     const deliveryId = String(payload.bridgeAckPayload?.deliveryId ?? bridgeImportId);
     if (deliveryId) {
       const persistedReceipt = await getRecord('importReceipts', deliveryId);
-      if (persistedReceipt?.status === 'completed' || persistedReceipt?.status === 'failed') {
+      if (persistedReceipt?.status === 'completed') {
+        if (payload.bridgeAckUrl) {
+          await sendBridgeImportAck(
+            payload.bridgeAckUrl,
+            payload.bridgeAckPayload ?? {
+              deliveryId,
+              sourceUrl: payload.sourceUrl ?? '',
+              txtPath: ''
+            },
+            payload.bridgeSourceWindow ?? null
+          );
+        }
+        return 'terminal';
+      }
+      if (persistedReceipt?.status === 'failed') {
         return 'terminal';
       }
     }
@@ -826,6 +847,8 @@ export function createSearchActions({
           deliveryId,
           sourceUrl: String(state.importPreview.sourceUrl ?? ''),
           status: 'completed',
+          ackUrl: String(state.importPreview.bridgeAckUrl ?? ''),
+          ackPayload: state.importPreview.bridgeAckPayload ?? null,
           lastError: '',
           updatedAt: importedAt,
           completedAt: importedAt
@@ -845,13 +868,23 @@ export function createSearchActions({
         );
       } catch (error) {
         console.error(error);
-        state.importWorkNoticeTone = '';
-        state.importWorkStatus = `保存は完了しましたが送信リストの更新に失敗しました: ${error?.message ?? '不明なエラー'}`;
+        state.pendingBridgeAck = {
+          ackUrl: state.importPreview.bridgeAckUrl,
+          ackPayload: state.importPreview.bridgeAckPayload ?? {
+            sourceUrl: state.importPreview.sourceUrl ?? '',
+            txtPath: ''
+          },
+          bridgeWindow: state.importPreview.bridgeWindow ?? null,
+          queueRemaining: Math.max(0, Number(state.importPreview.bridgeQueueRemaining) || 0)
+        };
+        state.importWorkNoticeTone = 'success';
+        state.importWorkStatus = '作品の更新は完了しました。PC側の送信リストにはまだ反映されていません。「送信リストを更新して次へ」を押してください。';
         state.importPreview = null;
         state.importSheetOpen = false;
         return;
       }
     }
+    state.pendingBridgeAck = null;
     resetCatalogSearchSession();
     state.importWorkNoticeTone = 'success';
     const queueRemaining = Math.max(0, Number(state.importPreview.bridgeQueueRemaining) || 0);
@@ -1162,7 +1195,7 @@ export function createSearchActions({
           state.importWorkStatus = 'PC上の作品一覧を別タブで開いています。開きたい作品を選ぶと、この画面にプレビューが戻ります。';
         }
         renderSearch();
-        const openedWindow = globalThis.window.open(targetUrl, '_blank');
+        const openedWindow = globalThis.window.open(targetUrl, 'dopagaki-delivery');
         if (!openedWindow) {
           globalThis.location.assign(targetUrl);
         } else {
@@ -1306,6 +1339,31 @@ export function createSearchActions({
           });
         });
       }
+      return;
+    }
+
+    if (action === 'retry-bridge-ack') {
+      const pendingAck = state.pendingBridgeAck;
+      if (!pendingAck?.ackUrl) {
+        return;
+      }
+      try {
+        await sendBridgeImportAck(
+          pendingAck.ackUrl,
+          pendingAck.ackPayload ?? {},
+          pendingAck.bridgeWindow ?? null
+        );
+        state.pendingBridgeAck = null;
+        state.importWorkNoticeTone = 'success';
+        state.importWorkStatus = pendingAck.queueRemaining > 0
+          ? '送信リストを更新しました。中継タブで次の作品を準備しています。'
+          : '送信リストを更新しました。すべての取り込みが完了しました。';
+      } catch (error) {
+        console.error(error);
+        state.importWorkNoticeTone = 'success';
+        state.importWorkStatus = `作品は更新済みです。送信リストはまだ更新されていません: ${error?.message ?? '不明なエラー'}`;
+      }
+      renderSearch();
       return;
     }
 

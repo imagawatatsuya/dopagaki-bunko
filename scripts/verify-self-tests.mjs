@@ -470,9 +470,9 @@ test('duplicate bridge delivery does not recreate an import preview', async () =
   assert.equal(state.importPreview, null);
 });
 
-test('persisted completed delivery does not recreate an import preview after restart', async () => {
+test('persisted completed delivery replays its ack without recreating an import preview', async () => {
   const state = createInitialAppState();
-  const { actions } = createSearchActionsForTest(state, {
+  const { actions, bridgeAcks } = createSearchActionsForTest(state, {
     getRecord: async (storeName, id) => {
       if (storeName === 'importReceipts' && id === 'delivery-completed') {
         return { id, status: 'completed' };
@@ -485,12 +485,20 @@ test('persisted completed delivery does not recreate an import preview after res
     bridgePayload: {
       type: 'dopagaki-bridge-import-v1',
       bridgeImportId: 'delivery-completed',
-      bridgeAckPayload: { deliveryId: 'delivery-completed' },
+      bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+      bridgeAckPayload: {
+        deliveryId: 'delivery-completed',
+        sourceUrl: 'https://example.com/completed',
+        txtPath: 'works/completed.txt'
+      },
+      bridgeSourceWindow: { closed: false },
       text: '再送作品\n作者\n\n再送された本文です。'
     }
   });
 
   assert.equal(state.importPreview, null);
+  assert.equal(bridgeAcks.length, 1);
+  assert.equal(bridgeAcks[0].ackPayload.deliveryId, 'delivery-completed');
 });
 
 test('invalid bridge delivery is persisted and acknowledged as failed', async () => {
@@ -679,6 +687,61 @@ test('bridge import save acknowledges the sender list entry after saving', async
   );
 });
 
+test('bridge ack failure keeps a clear retry action after the work is saved', async () => {
+  const state = createInitialAppState();
+  const { actions, savedRecords } = createSearchActionsForTest(state, {
+    failBridgeAck: true
+  });
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      bridgeImportId: 'delivery-ack-retry',
+      bridgeAckUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+      bridgeAckPayload: {
+        deliveryId: 'delivery-ack-retry',
+        sourceUrl: 'https://example.com/ack-retry',
+        txtPath: 'works/ack-retry.txt'
+      },
+      bridgeSourceWindow: { closed: true },
+      bridgeQueueRemaining: 2,
+      text: 'ACK再試行作品\n作者\n\n本文です。'
+    }
+  });
+  await actions.handleSearchAction('save-imported-work');
+
+  assert.equal(state.importPreview, null);
+  assert.equal(state.importWorkNoticeTone, 'success');
+  assert.equal(state.pendingBridgeAck?.queueRemaining, 2);
+  assert.match(state.importWorkStatus, /作品の更新は完了しました/u);
+  assert.equal(
+    savedRecords.some(({ storeName, record }) => (
+      storeName === 'importReceipts'
+      && record.id === 'delivery-ack-retry'
+      && record.status === 'completed'
+      && record.ackUrl.includes('__dopagaki_ack__')
+    )),
+    true
+  );
+});
+
+test('manual bridge ack retry clears the pending action after navigation succeeds', async () => {
+  const state = createInitialAppState();
+  state.pendingBridgeAck = {
+    ackUrl: 'http://192.168.0.10:8765/__dopagaki_ack__',
+    ackPayload: { deliveryId: 'delivery-manual-retry' },
+    bridgeWindow: { closed: false },
+    queueRemaining: 1
+  };
+  const { actions, bridgeAcks } = createSearchActionsForTest(state);
+
+  await actions.handleSearchAction('retry-bridge-ack');
+
+  assert.equal(bridgeAcks.length, 1);
+  assert.equal(state.pendingBridgeAck, null);
+  assert.match(state.importWorkStatus, /次の作品を準備しています/u);
+});
+
 test('window name import save acknowledges the sender list entry after saving', async () => {
   const state = createInitialAppState();
   const { actions, bridgeAcks } = createSearchActionsForTest(state);
@@ -761,7 +824,7 @@ test('converter bridge accepts exact works txt urls', async () => {
     });
 
     assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765/works/serial-work.txt');
-    assert.equal(opened?.target, '_blank');
+    assert.equal(opened?.target, 'dopagaki-delivery');
     assert.match(opened?.url ?? '', /txt=http%3A%2F%2F192\.168\.0\.10%3A8765%2Fworks%2Fserial-work\.txt/u);
     assert.match(state.importWorkStatus, /PC上の中継ページを別タブで開いています。/u);
   } finally {
@@ -801,7 +864,7 @@ test('converter bridge opens works list when given only the pc base url', async 
     });
 
     assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765');
-    assert.equal(opened?.target, '_blank');
+    assert.equal(opened?.target, 'dopagaki-delivery');
     assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
     assert.match(state.importWorkStatus, /PC上の作品一覧を別タブで開いています。/u);
   } finally {
@@ -840,7 +903,7 @@ test('converter bridge keeps an exact works page url stable', async () => {
       baseUrl: 'http://192.168.0.10:8765/dopagaki-import-works.html'
     });
 
-    assert.equal(opened?.target, '_blank');
+    assert.equal(opened?.target, 'dopagaki-delivery');
     assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
   } finally {
     if (previousWindow === undefined) {
@@ -878,7 +941,7 @@ test('converter bridge treats latest txt as a works-list entrypoint', async () =
       baseUrl: 'http://192.168.0.10:8765/latest.txt'
     });
 
-    assert.equal(opened?.target, '_blank');
+    assert.equal(opened?.target, 'dopagaki-delivery');
     assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
     assert.match(state.importWorkStatus, /PC上の作品一覧を別タブで開いています。/u);
   } finally {
@@ -917,7 +980,7 @@ test('converter bridge rewrites exact works zip urls to txt', async () => {
       baseUrl: 'http://192.168.0.10:8765/works/serial-work.zip'
     });
 
-    assert.equal(opened?.target, '_blank');
+    assert.equal(opened?.target, 'dopagaki-delivery');
     assert.match(opened?.url ?? '', /txt=http%3A%2F%2F192\.168\.0\.10%3A8765%2Fworks%2Fserial-work\.txt/u);
   } finally {
     if (previousWindow === undefined) {

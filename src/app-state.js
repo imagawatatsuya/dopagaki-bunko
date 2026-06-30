@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260629114223';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260630135044';
 
 export function createInitialAppState() {
   return {
@@ -18,6 +18,7 @@ export function createInitialAppState() {
     importWorkStatus: '',
     importSaveInProgress: false,
     importWorkNoticeTone: '',
+    pendingBridgeAck: null,
     importPreview: null,
     importSheetOpen: false,
     aozoraCatalogQuery: '',
