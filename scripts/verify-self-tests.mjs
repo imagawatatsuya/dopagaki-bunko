@@ -1206,7 +1206,6 @@ test('upward auto-loading waits for an actual upward scroll', async () => {
       edge: 'up',
       requireDirectionalScroll: true,
       directionalActivationDelay: 0,
-      directionalSettleDelay: 0,
       onIntersect: () => {
         triggered += 1;
       }
@@ -1218,7 +1217,6 @@ test('upward auto-loading waits for an actual upward scroll', async () => {
 
     globalThis.window.scrollY = 60;
     listeners.get('scroll')?.();
-    await new Promise((resolve) => globalThis.setTimeout(resolve, 0));
     assert.equal(triggered, 1);
     cleanup?.();
   } finally {
@@ -1257,7 +1255,6 @@ test('downward auto-loading waits for an actual downward scroll', async () => {
       edge: 'down',
       requireDirectionalScroll: true,
       directionalActivationDelay: 0,
-      directionalSettleDelay: 0,
       onIntersect: () => {
         triggered += 1;
       }
@@ -1269,7 +1266,6 @@ test('downward auto-loading waits for an actual downward scroll', async () => {
 
     globalThis.window.scrollY = 140;
     listeners.get('scroll')?.();
-    await new Promise((resolve) => globalThis.setTimeout(resolve, 0));
     assert.equal(triggered, 1);
     cleanup?.();
   } finally {
