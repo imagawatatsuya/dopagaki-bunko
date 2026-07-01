@@ -39,9 +39,6 @@ export function buildWorkHash(workId, options = {}) {
   if (options.focus) {
     params.set('focus', options.focus);
   }
-  if (options.stable) {
-    params.set('stable', '1');
-  }
 
   const query = params.toString();
   return `#/work/${encodeURIComponent(workId)}${query ? `?${query}` : ''}`;
@@ -62,8 +59,7 @@ export function buildWorkFocusHash(workId, fragmentEntry, workPageBatchSize) {
   return buildWorkHash(workId, {
     from,
     visible,
-    focus: fragmentId,
-    stable: true
+    focus: fragmentId
   });
 }
 
@@ -82,8 +78,7 @@ export function buildWorkEndHash(workId, totalTextFragments, workPageBatchSize, 
   return buildWorkHash(workId, {
     from,
     visible: totalCount,
-    focus: endMarkerId,
-    stable: true
+    focus: endMarkerId
   });
 }
 

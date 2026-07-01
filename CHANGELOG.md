@@ -2,7 +2,6 @@
 
 ## Unreleased
 
-- Added stable paging for direct work jumps: outline, bookmark, sticky-note, fragment-number, and ending jumps no longer run automatic loaders, and instead expose explicit previous/next batch controls while ordinary reading from the beginning keeps automatic continuation.
 - Prevented both upper and lower auto-loaders from firing immediately after outline navigation; each edge now waits for an actual scroll toward that edge after focus positioning settles.
 - Added chunked in-memory fragment indexes so distant outline, bookmark, and fragment-number jumps read only the requested range instead of rescanning thousands of earlier fragments on the main thread.
 - Prevented outline and bookmark jumps from immediately triggering upward auto-loading: the upper loader now waits for initial focus positioning to settle and requires an actual upward scroll before it can prepend fragments.

@@ -1,4 +1,4 @@
-import { parseHashRoute, parseSearchRouteIntent } from './router.js?v=20260701184941';
+import { parseHashRoute, parseSearchRouteIntent } from './router.js?v=20260701150208';
 
 export function createAppRouter({
   getRenderers,
@@ -23,8 +23,7 @@ export function createAppRouter({
       renderers.renderWorkPage(decodeURIComponent(routeState.path.replace('#/work/', '')), {
         from: routeState.params.get('from'),
         visible: routeState.params.get('visible'),
-        focus: routeState.params.get('focus') || '',
-        stable: routeState.params.get('stable') === '1'
+        focus: routeState.params.get('focus') || ''
       });
       return;
     }
