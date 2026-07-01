@@ -341,6 +341,7 @@ export function bindWorkAutoLoad(root, {
   fallbackDistance = 320,
   requireDirectionalScroll = false,
   directionalActivationDelay = 240,
+  directionalSettleDelay = 120,
   onIntersect
 }) {
   if (!enabled) {
@@ -355,6 +356,7 @@ export function bindWorkAutoLoad(root, {
   let triggered = false;
   let frameRequested = false;
   let observer = null;
+  let settleTimer = null;
   let directionArmed = !requireDirectionalScroll;
   let directionDetectionReady = !requireDirectionalScroll;
   let lastScrollY = window.scrollY;
@@ -369,6 +371,9 @@ export function bindWorkAutoLoad(root, {
     if (directionTimer !== null) {
       globalThis.clearTimeout(directionTimer);
     }
+    if (settleTimer !== null) {
+      globalThis.clearTimeout(settleTimer);
+    }
     window.removeEventListener('scroll', scheduleFallback);
     window.removeEventListener('resize', scheduleFallback);
     window.removeEventListener('pageshow', scheduleFallback);
@@ -381,6 +386,19 @@ export function bindWorkAutoLoad(root, {
     cleanup();
     onIntersect();
   };
+  const requestTrigger = () => {
+    if (!requireDirectionalScroll) {
+      trigger();
+      return;
+    }
+    if (settleTimer !== null) {
+      globalThis.clearTimeout(settleTimer);
+    }
+    settleTimer = globalThis.setTimeout(() => {
+      settleTimer = null;
+      trigger();
+    }, directionalSettleDelay);
+  };
   const checkFallback = () => {
     frameRequested = false;
     if (triggered || !sentinel.isConnected) {
@@ -392,7 +410,7 @@ export function bindWorkAutoLoad(root, {
       ? rect.top <= fallbackDistance && rect.bottom >= -fallbackDistance
       : rect.top <= viewportHeight + fallbackDistance && rect.bottom >= viewportHeight - fallbackDistance;
     if (isNearViewport && directionArmed) {
-      trigger();
+      requestTrigger();
     }
   };
   function scheduleFallback() {
@@ -427,7 +445,7 @@ export function bindWorkAutoLoad(root, {
       }
 
       if (directionArmed) {
-        trigger();
+        requestTrigger();
       }
     }, {
       root: null,

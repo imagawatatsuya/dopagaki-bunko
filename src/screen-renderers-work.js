@@ -2,18 +2,18 @@ import {
   calculateAdjacentWorkRange,
   getBookmarkForWork,
   getVisibleCountParam
-} from './state.js?v=20260701145613';
+} from './state.js?v=20260701145940';
 import {
   getIndexedTextFragment,
   sliceIndexedWorkFragments
-} from './fragment-index.js?v=20260701145613';
+} from './fragment-index.js?v=20260701145940';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260701145613';
+} from './router.js?v=20260701145940';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -23,19 +23,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260701145613';
+} from './ui-bindings.js?v=20260701145940';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260701145613';
+} from './views.js?v=20260701145940';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260701145613';
+} from './renderer-shared.js?v=20260701145940';
 
 export function createWorkRenderers({
   app,
@@ -525,27 +525,6 @@ export function createWorkRenderers({
       }
     };
 
-    const trimOppositeEdge = (direction) => {
-      if (!timeline) {
-        return;
-      }
-      const batches = [...timeline.querySelectorAll('[data-work-fragment-batch]')];
-      const renderedCount = batches.reduce((sum, batch) => {
-        return sum + Number(batch.dataset.lastIndex) - Number(batch.dataset.firstIndex) + 1;
-      }, 0);
-      if (renderedCount <= workPageMaxRendered || batches.length < 2) {
-        return;
-      }
-      if (direction === 'down') {
-        mutateKeepingAnchor(() => batches[0].remove());
-      } else {
-        batches.at(-1).remove();
-      }
-      const remainingBatches = [...timeline.querySelectorAll('[data-work-fragment-batch]')];
-      firstShownTextIndex = Number(remainingBatches[0].dataset.firstIndex);
-      shownTextCount = Number(remainingBatches.at(-1).dataset.lastIndex);
-    };
-
     const loadDirection = (direction) => {
       if (!timeline || (direction === 'up' ? loadingUp : loadingDown)) {
         return;
@@ -584,7 +563,6 @@ export function createWorkRenderers({
         timeline.append(batch);
         shownTextCount = nextLast;
       }
-      trimOppositeEdge(direction);
       ensureSentinels();
       syncRangeUi();
       if (direction === 'up') {
