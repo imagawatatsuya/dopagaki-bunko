@@ -5,26 +5,27 @@ import {
   getBookmarkForWork,
   getLikeRecordsForWork,
   savedCollectionLabel
-} from './state.js?v=20260701190129';
+} from './state.js?v=20260701190613';
 import {
   buildCollectionHash,
-  buildLibraryHash
-} from './router.js?v=20260701190129';
+  buildLibraryHash,
+  buildWorkResumeHash
+} from './router.js?v=20260701190613';
 import {
   bindCollectionActions,
   bindLibraryWorkActions
-} from './ui-bindings.js?v=20260701190129';
+} from './ui-bindings.js?v=20260701190613';
 import {
   collectionBodyMarkup,
   libraryBodyMarkup,
   libraryTabButtonMarkup
-} from './views.js?v=20260701190129';
+} from './views.js?v=20260701190613';
 import {
   LIBRARY_TAB_ORDER,
   libraryDeleteScopeLabel,
   normalizeLibraryTab,
   readingStatusLabel
-} from './renderer-shared.js?v=20260701190129';
+} from './renderer-shared.js?v=20260701190613';
 
 export function createLibraryRenderers({
   app,
@@ -34,6 +35,7 @@ export function createLibraryRenderers({
   handleCollectionAction,
   loadStateFromDb,
   resetWorkToUnread,
+  workPageBatchSize,
   helpers
 }) {
   const {
@@ -53,6 +55,7 @@ export function createLibraryRenderers({
     const worksHtml = visibleWorks.map((work) => {
       const bookmark = getBookmarkForWork(state.bookmarkRecords, work.id);
       const likeCount = getLikeRecordsForWork(state.likeRecords, state.fragments, work.id).length;
+      const workOpenHash = buildWorkResumeHash(work.id, bookmark, workPageBatchSize);
       const workSummaryHtml = `
         <h2 class="section-title library-work-title">${escapeHtml(work.title)}</h2>
         <p class="section-text library-work-author">${escapeHtml(work.author ?? '')}</p>
@@ -77,7 +80,7 @@ export function createLibraryRenderers({
               : ''}
             <button type="button" class="library-delete-button" data-library-action="delete-work" data-work-id="${escapeHtml(work.id)}" role="menuitem">削除</button>
           </div>
-          <a class="panel-link panel-link-library-work" href="#/work/${encodeURIComponent(work.id)}">
+          <a class="panel-link panel-link-library-work" href="${workOpenHash}">
             ${workSummaryHtml}
           </a>
         </article>

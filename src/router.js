@@ -63,6 +63,11 @@ export function buildWorkFocusHash(workId, fragmentEntry, workPageBatchSize) {
   });
 }
 
+export function buildWorkResumeHash(workId, bookmark, workPageBatchSize) {
+  return buildWorkFocusHash(workId, bookmark, workPageBatchSize)
+    || buildWorkHash(workId, { visible: workPageBatchSize });
+}
+
 export function buildWorkOutlineHash(workId, outlineEntry, workPageBatchSize) {
   return buildWorkFocusHash(workId, outlineEntry, workPageBatchSize);
 }

@@ -1,12 +1,12 @@
 import {
   errorBodyMarkup,
   loadingBodyMarkup
-} from './views.js?v=20260701190129';
-import { createRendererHelpers } from './renderer-shared.js?v=20260701190129';
-import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260701190129';
-import { createLibraryRenderers } from './screen-renderers-library.js?v=20260701190129';
-import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260701190129';
-import { createWorkRenderers } from './screen-renderers-work.js?v=20260701190129';
+} from './views.js?v=20260701190613';
+import { createRendererHelpers } from './renderer-shared.js?v=20260701190613';
+import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260701190613';
+import { createLibraryRenderers } from './screen-renderers-library.js?v=20260701190613';
+import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260701190613';
+import { createWorkRenderers } from './screen-renderers-work.js?v=20260701190613';
 
 export function createScreenRenderers({
   app,
@@ -79,6 +79,7 @@ export function createScreenRenderers({
     handleCollectionAction,
     loadStateFromDb,
     resetWorkToUnread,
+    workPageBatchSize,
     helpers
   });
   const workRenderers = createWorkRenderers({

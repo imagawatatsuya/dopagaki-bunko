@@ -12,7 +12,7 @@ import { SEARCH_SORT_MODES, searchAozoraCatalog, searchWorkRecords } from '../sr
 import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
 import { STORE_NAMES, assertStoreCountsEmpty } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
-import { buildWorkEndHash, buildWorkOutlineHash, parseSearchRouteIntent } from '../src/router.js';
+import { buildWorkEndHash, buildWorkOutlineHash, buildWorkResumeHash, parseSearchRouteIntent } from '../src/router.js';
 import { normalizeConverterBaseUrl } from '../src/remote-import.js';
 import { createAppData } from '../src/app-data.js';
 import {
@@ -1054,6 +1054,18 @@ test('outline jump helper opens a bounded range around the focused fragment', ()
   assert.equal(lateHref, '#/work/work-1?from=6496&visible=6519&focus=work-1-fragment-6500');
 
   assert.equal(buildWorkOutlineHash('work-1', { fragmentIndex: 3 }, 5), '');
+});
+
+test('library work resume helper opens the bookmarked fragment range', () => {
+  const bookmark = {
+    fragmentId: 'work-1-fragment-6500',
+    fragmentIndex: 6500
+  };
+  assert.equal(
+    buildWorkResumeHash('work-1', bookmark, 24),
+    '#/work/work-1?from=6496&visible=6519&focus=work-1-fragment-6500'
+  );
+  assert.equal(buildWorkResumeHash('work-1', null, 24), '#/work/work-1?visible=24');
 });
 
 test('work fragment slicing can open a bounded range without materializing its prefix', () => {

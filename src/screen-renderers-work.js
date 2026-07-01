@@ -5,14 +5,14 @@ import {
   getReadableWorkFragments,
   getVisibleCountParam,
   sliceWorkFragmentsForVisibleCount
-} from './state.js?v=20260701190129';
+} from './state.js?v=20260701190613';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260701190129';
+} from './router.js?v=20260701190613';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -22,19 +22,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260701190129';
+} from './ui-bindings.js?v=20260701190613';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260701190129';
+} from './views.js?v=20260701190613';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260701190129';
+} from './renderer-shared.js?v=20260701190613';
 
 export function createWorkRenderers({
   app,
@@ -146,7 +146,7 @@ export function createWorkRenderers({
       ? buildWorkFocusHash(workId, bookmark, workPageBatchSize)
       : '';
     const bookmarkHtml = bookmark
-      ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${bookmarkJumpHash}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>`
+      ? `<p class="settings-status settings-status-subtle"><a class="text-link" data-work-bookmark-jump="${escapeHtml(bookmark.fragmentId)}" href="${bookmarkJumpHash}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>`
       : '';
     const markerHtml = likeRecords.length > 0
       ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${buildCollectionHash('likes', { workId })}">ふせん ${likeRecords.length}枚を開く</a></p>`
@@ -247,6 +247,15 @@ export function createWorkRenderers({
         focusFragmentCard(app, options.focus);
       });
     }
+    const bookmarkJumpLink = app.querySelector('[data-work-bookmark-jump]');
+    bookmarkJumpLink?.addEventListener('click', (event) => {
+      if (bookmarkJumpLink.getAttribute('href') !== location.hash) {
+        return;
+      }
+
+      event.preventDefault();
+      route();
+    });
 
     bindReaderScaleControls(app, (value) => {
       saveReaderFontScale(value);
