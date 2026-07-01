@@ -25,6 +25,7 @@ import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
 import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
 import { aozoraSearchResultsMarkup, errorBodyMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup, settingsBodyMarkup } from '../src/views.js';
+import { bindWorkAutoLoad } from '../src/ui-bindings.js';
 
 const tests = [];
 globalThis.requestAnimationFrame = (callback) => {
@@ -1069,6 +1070,52 @@ test('work fragment slicing can open a bounded range without materializing its p
   assert.equal(result.fragments.at(-1).id, 'fragment-6519');
   assert.equal(result.shownTextCount, 6519);
   assert.equal(result.firstShownTextIndex, 6496);
+});
+
+test('automatic continuation requires a new downward scroll for each batch', () => {
+  const previousWindow = globalThis.window;
+  const listeners = new Map();
+  let triggered = 0;
+  globalThis.window = {
+    scrollY: 100,
+    innerHeight: 600,
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    removeEventListener(type) {
+      listeners.delete(type);
+    }
+  };
+  const sentinel = {
+    isConnected: true,
+    getBoundingClientRect: () => ({ top: 580, bottom: 581 })
+  };
+
+  try {
+    bindWorkAutoLoad({
+      querySelector: () => sentinel
+    }, {
+      enabled: true,
+      shownTextCount: 24,
+      totalTextFragments: 7000,
+      onIntersect: () => {
+        triggered += 1;
+      }
+    });
+
+    assert.equal(triggered, 0);
+    globalThis.window.scrollY = 140;
+    listeners.get('scroll')?.();
+    assert.equal(triggered, 1);
+    listeners.get('scroll')?.();
+    assert.equal(triggered, 1);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
 });
 
 test('library deletion prompt labels follow the visible reading-status tabs', () => {

@@ -325,28 +325,41 @@ export function bindWorkAutoLoad(root, { enabled, shownTextCount, totalTextFragm
   }
 
   const sentinel = root.querySelector('[data-work-auto-load-sentinel]');
-  if (!sentinel || typeof IntersectionObserver !== 'function') {
+  if (!sentinel) {
     return null;
   }
 
   let triggered = false;
-  const observer = new IntersectionObserver((entries) => {
-    const entry = entries[0];
-    if (!entry?.isIntersecting || triggered) {
+  let frameRequested = false;
+  let lastScrollY = window.scrollY;
+  const cleanup = () => {
+    window.removeEventListener('scroll', handleScroll);
+  };
+  const checkSentinel = () => {
+    frameRequested = false;
+    if (triggered || !sentinel.isConnected) {
       return;
     }
-
+    const rect = sentinel.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (rect.top > viewportHeight + 320 || rect.bottom < 0) {
+      return;
+    }
     triggered = true;
-    observer.disconnect();
+    cleanup();
     onIntersect();
-  }, {
-    root: null,
-    rootMargin: '0px 0px 320px 0px',
-    threshold: 0.01
-  });
-
-  observer.observe(sentinel);
-  return () => {
-    observer.disconnect();
   };
+  const handleScroll = () => {
+    const currentScrollY = window.scrollY;
+    const movingDown = currentScrollY > lastScrollY + 2;
+    lastScrollY = currentScrollY;
+    if (!movingDown || frameRequested || triggered) {
+      return;
+    }
+    frameRequested = true;
+    requestAnimationFrame(checkSentinel);
+  };
+
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  return cleanup;
 }

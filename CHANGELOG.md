@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed automatic continuation chaining through multiple batches without user movement: each batch now requires a real downward scroll near the lower sentinel before another 24 fragments are appended.
 - Rolled the work reader back to the pre-bidirectional baseline from `c9bfc0d`: removed upward virtual loading, opposite-edge batch deletion, custom scroll anchoring, the sticky-title navigation sheet, and runtime fragment indexing after those changes caused position skips and broken bookmark/sticky-note interactions on iPhone 8.
 - Documented the repository publication completion contract in `AGENTS.md`, including when implementation requests must run `publish-pages.bat` and the distinction between Pages preflight verification and an actual push.
 - Improved large-work reading performance by updating bookmark/sticky-note state locally and opening direct jumps with a bounded fragment range instead of rendering every fragment from the beginning.
