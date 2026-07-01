@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed upward automatic loading on iPhone Chrome by supplementing `IntersectionObserver` with a scroll-position fallback and ensuring the upper sentinel has measurable height.
 - Improved large-work reading performance: bookmark/sticky-note taps now update local state without reloading every IndexedDB store; automatic continuation loads in both directions while preserving the current viewport; rendered work cards are capped at 192; and outline/bookmark/sticky-note jumps open a bounded fragment range instead of rendering every fragment from the beginning.
 - Fixed the add-work paste textarea so saved pasted text and PC/URL handoff text no longer reappear the next time the import sheet opens, while still preserving unsaved manual drafts when the sheet is closed.
 - Hardened IndexedDB recovery for iPhone-style app switching by reopening stale DB connections after transaction/request failures and reloading saved state when the page becomes visible again, reducing silent bookmark/save failures after returning from other apps.

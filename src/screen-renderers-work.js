@@ -507,12 +507,14 @@ export function createWorkRenderers({
         enabled: state.workLoadMode === 'auto' && firstShownTextIndex > 1,
         sentinelSelector: '[data-work-auto-load-up-sentinel]',
         rootMargin: '320px 0px 0px 0px',
+        edge: 'up',
         onIntersect: () => loadDirection('up')
       });
       const cleanupDown = bindWorkAutoLoad(app, {
         enabled: state.workLoadMode === 'auto' && shownTextCount < totalTextFragments,
         sentinelSelector: '[data-work-auto-load-sentinel]',
         rootMargin: '0px 0px 320px 0px',
+        edge: 'down',
         onIntersect: () => loadDirection('down')
       });
       state.workAutoLoadCleanup = () => {

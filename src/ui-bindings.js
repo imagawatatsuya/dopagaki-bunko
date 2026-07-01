@@ -323,6 +323,8 @@ export function bindWorkAutoLoad(root, {
   enabled,
   sentinelSelector = '[data-work-auto-load-sentinel]',
   rootMargin = '0px 0px 320px 0px',
+  edge = 'down',
+  fallbackDistance = 320,
   onIntersect
 }) {
   if (!enabled) {
@@ -330,28 +332,68 @@ export function bindWorkAutoLoad(root, {
   }
 
   const sentinel = root.querySelector(sentinelSelector);
-  if (!sentinel || typeof IntersectionObserver !== 'function') {
+  if (!sentinel) {
     return null;
   }
 
   let triggered = false;
-  const observer = new IntersectionObserver((entries) => {
+  let frameRequested = false;
+  let observer = null;
+  const cleanup = () => {
+    observer?.disconnect();
+    window.removeEventListener('scroll', scheduleFallback);
+    window.removeEventListener('resize', scheduleFallback);
+    window.removeEventListener('pageshow', scheduleFallback);
+  };
+  const trigger = () => {
+    if (triggered) {
+      return;
+    }
+    triggered = true;
+    cleanup();
+    onIntersect();
+  };
+  const checkFallback = () => {
+    frameRequested = false;
+    if (triggered || !sentinel.isConnected) {
+      return;
+    }
+    const rect = sentinel.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const isNearViewport = edge === 'up'
+      ? rect.top <= fallbackDistance && rect.bottom >= -fallbackDistance
+      : rect.top <= viewportHeight + fallbackDistance && rect.bottom >= viewportHeight - fallbackDistance;
+    if (isNearViewport) {
+      trigger();
+    }
+  };
+  function scheduleFallback() {
+    if (frameRequested || triggered) {
+      return;
+    }
+    frameRequested = true;
+    requestAnimationFrame(checkFallback);
+  }
+
+  window.addEventListener('scroll', scheduleFallback, { passive: true });
+  window.addEventListener('resize', scheduleFallback);
+  window.addEventListener('pageshow', scheduleFallback);
+
+  if (typeof IntersectionObserver === 'function') {
+    observer = new IntersectionObserver((entries) => {
     const entry = entries[0];
     if (!entry?.isIntersecting || triggered) {
       return;
     }
 
-    triggered = true;
-    observer.disconnect();
-    onIntersect();
-  }, {
-    root: null,
-    rootMargin,
-    threshold: 0.01
-  });
+      trigger();
+    }, {
+      root: null,
+      rootMargin,
+      threshold: 0
+    });
+    observer.observe(sentinel);
+  }
 
-  observer.observe(sentinel);
-  return () => {
-    observer.disconnect();
-  };
+  return cleanup;
 }

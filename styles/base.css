@@ -1025,6 +1025,7 @@ rt {
 }
 
 .work-auto-load-panel {
+  min-height: 1px;
   padding: 4px 0 0;
 }
 
