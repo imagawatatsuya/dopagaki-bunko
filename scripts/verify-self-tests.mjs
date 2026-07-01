@@ -1228,6 +1228,55 @@ test('upward auto-loading waits for an actual upward scroll', async () => {
   }
 });
 
+test('downward auto-loading waits for an actual downward scroll', async () => {
+  const previousWindow = globalThis.window;
+  const listeners = new Map();
+  let triggered = 0;
+  globalThis.window = {
+    scrollY: 100,
+    innerHeight: 600,
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    removeEventListener(type) {
+      listeners.delete(type);
+    }
+  };
+  const sentinel = {
+    isConnected: true,
+    getBoundingClientRect: () => ({ top: 580, bottom: 581 })
+  };
+
+  try {
+    const cleanup = bindWorkAutoLoad({
+      querySelector: () => sentinel
+    }, {
+      enabled: true,
+      edge: 'down',
+      requireDirectionalScroll: true,
+      directionalActivationDelay: 0,
+      onIntersect: () => {
+        triggered += 1;
+      }
+    });
+    await new Promise((resolve) => globalThis.setTimeout(resolve, 0));
+
+    listeners.get('pageshow')?.();
+    assert.equal(triggered, 0);
+
+    globalThis.window.scrollY = 140;
+    listeners.get('scroll')?.();
+    assert.equal(triggered, 1);
+    cleanup?.();
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
+});
+
 test('library deletion prompt labels follow the visible reading-status tabs', () => {
   assert.equal(libraryDeleteScopeLabel('reading'), '読書中一覧');
   assert.equal(libraryDeleteScopeLabel('unread'), '未読一覧');

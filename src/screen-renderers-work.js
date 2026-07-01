@@ -2,18 +2,18 @@ import {
   calculateAdjacentWorkRange,
   getBookmarkForWork,
   getVisibleCountParam
-} from './state.js?v=20260701145143';
+} from './state.js?v=20260701145613';
 import {
   getIndexedTextFragment,
   sliceIndexedWorkFragments
-} from './fragment-index.js?v=20260701145143';
+} from './fragment-index.js?v=20260701145613';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260701145143';
+} from './router.js?v=20260701145613';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -23,19 +23,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260701145143';
+} from './ui-bindings.js?v=20260701145613';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260701145143';
+} from './views.js?v=20260701145613';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260701145143';
+} from './renderer-shared.js?v=20260701145613';
 
 export function createWorkRenderers({
   app,
@@ -611,6 +611,7 @@ export function createWorkRenderers({
         sentinelSelector: '[data-work-auto-load-sentinel]',
         rootMargin: '0px 0px 320px 0px',
         edge: 'down',
+        requireDirectionalScroll: true,
         onIntersect: () => loadDirection('down')
       });
       state.workAutoLoadCleanup = () => {

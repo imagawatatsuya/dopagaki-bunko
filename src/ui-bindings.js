@@ -400,10 +400,13 @@ export function bindWorkAutoLoad(root, {
       return;
     }
     const currentScrollY = window.scrollY;
+    const movedTowardEdge = edge === 'up'
+      ? currentScrollY < lastScrollY - 2
+      : currentScrollY > lastScrollY + 2;
     if (
       requireDirectionalScroll
       && directionDetectionReady
-      && currentScrollY < lastScrollY - 2
+      && movedTowardEdge
     ) {
       directionArmed = true;
     }
