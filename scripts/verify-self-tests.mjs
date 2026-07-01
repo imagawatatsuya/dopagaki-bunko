@@ -24,6 +24,7 @@ import {
 } from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
+import { bindWorkAutoLoad } from '../src/ui-bindings.js';
 import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
 import {
   aozoraSearchResultsMarkup,
@@ -1134,6 +1135,55 @@ test('work ranges expand by one batch in either direction', () => {
     firstIndex: 1,
     lastIndex: 7
   });
+});
+
+test('upward auto-loading waits for an actual upward scroll', async () => {
+  const previousWindow = globalThis.window;
+  const listeners = new Map();
+  let triggered = 0;
+  globalThis.window = {
+    scrollY: 100,
+    innerHeight: 600,
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    removeEventListener(type) {
+      listeners.delete(type);
+    }
+  };
+  const sentinel = {
+    isConnected: true,
+    getBoundingClientRect: () => ({ top: 20, bottom: 21 })
+  };
+
+  try {
+    const cleanup = bindWorkAutoLoad({
+      querySelector: () => sentinel
+    }, {
+      enabled: true,
+      edge: 'up',
+      requireDirectionalScroll: true,
+      directionalActivationDelay: 0,
+      onIntersect: () => {
+        triggered += 1;
+      }
+    });
+    await new Promise((resolve) => globalThis.setTimeout(resolve, 0));
+
+    listeners.get('pageshow')?.();
+    assert.equal(triggered, 0);
+
+    globalThis.window.scrollY = 60;
+    listeners.get('scroll')?.();
+    assert.equal(triggered, 1);
+    cleanup?.();
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
 });
 
 test('library deletion prompt labels follow the visible reading-status tabs', () => {

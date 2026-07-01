@@ -339,6 +339,8 @@ export function bindWorkAutoLoad(root, {
   rootMargin = '0px 0px 320px 0px',
   edge = 'down',
   fallbackDistance = 320,
+  requireDirectionalScroll = false,
+  directionalActivationDelay = 240,
   onIntersect
 }) {
   if (!enabled) {
@@ -353,8 +355,20 @@ export function bindWorkAutoLoad(root, {
   let triggered = false;
   let frameRequested = false;
   let observer = null;
+  let directionArmed = !requireDirectionalScroll;
+  let directionDetectionReady = !requireDirectionalScroll;
+  let lastScrollY = window.scrollY;
+  const directionTimer = requireDirectionalScroll
+    ? globalThis.setTimeout(() => {
+        directionDetectionReady = true;
+        lastScrollY = window.scrollY;
+      }, directionalActivationDelay)
+    : null;
   const cleanup = () => {
     observer?.disconnect();
+    if (directionTimer !== null) {
+      globalThis.clearTimeout(directionTimer);
+    }
     window.removeEventListener('scroll', scheduleFallback);
     window.removeEventListener('resize', scheduleFallback);
     window.removeEventListener('pageshow', scheduleFallback);
@@ -377,7 +391,7 @@ export function bindWorkAutoLoad(root, {
     const isNearViewport = edge === 'up'
       ? rect.top <= fallbackDistance && rect.bottom >= -fallbackDistance
       : rect.top <= viewportHeight + fallbackDistance && rect.bottom >= viewportHeight - fallbackDistance;
-    if (isNearViewport) {
+    if (isNearViewport && directionArmed) {
       trigger();
     }
   };
@@ -385,6 +399,15 @@ export function bindWorkAutoLoad(root, {
     if (frameRequested || triggered) {
       return;
     }
+    const currentScrollY = window.scrollY;
+    if (
+      requireDirectionalScroll
+      && directionDetectionReady
+      && currentScrollY < lastScrollY - 2
+    ) {
+      directionArmed = true;
+    }
+    lastScrollY = currentScrollY;
     frameRequested = true;
     requestAnimationFrame(checkFallback);
   }
@@ -395,12 +418,14 @@ export function bindWorkAutoLoad(root, {
 
   if (typeof IntersectionObserver === 'function') {
     observer = new IntersectionObserver((entries) => {
-    const entry = entries[0];
-    if (!entry?.isIntersecting || triggered) {
-      return;
-    }
+      const entry = entries[0];
+      if (!entry?.isIntersecting || triggered) {
+        return;
+      }
 
-      trigger();
+      if (directionArmed) {
+        trigger();
+      }
     }, {
       root: null,
       rootMargin,

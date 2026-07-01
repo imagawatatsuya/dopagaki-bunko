@@ -6,14 +6,14 @@ import {
   getReadableWorkFragments,
   getVisibleCountParam,
   sliceWorkFragmentsForVisibleCount
-} from './state.js?v=20260701143046';
+} from './state.js?v=20260701143736';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260701143046';
+} from './router.js?v=20260701143736';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -23,19 +23,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260701143046';
+} from './ui-bindings.js?v=20260701143736';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260701143046';
+} from './views.js?v=20260701143736';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260701143046';
+} from './renderer-shared.js?v=20260701143736';
 
 export function createWorkRenderers({
   app,
@@ -602,6 +602,7 @@ export function createWorkRenderers({
         sentinelSelector: '[data-work-auto-load-up-sentinel]',
         rootMargin: '320px 0px 0px 0px',
         edge: 'up',
+        requireDirectionalScroll: true,
         onIntersect: () => loadDirection('up')
       });
       const cleanupDown = bindWorkAutoLoad(app, {
