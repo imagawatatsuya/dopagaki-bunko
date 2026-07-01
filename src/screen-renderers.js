@@ -30,6 +30,7 @@ export function createScreenRenderers({
   saveWorkReadingState,
   toggleBookmark,
   workPageBatchSize,
+  workPageMaxRendered,
   searchResultsBatchSize
 }) {
   const {
@@ -69,6 +70,7 @@ export function createScreenRenderers({
     handleDetailAction,
     ensureWorkMarkedReadingAtIndex,
     workPageBatchSize,
+    workPageMaxRendered,
     helpers
   });
   const libraryRenderers = createLibraryRenderers({

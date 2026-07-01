@@ -1,4 +1,5 @@
 import {
+  calculateAdjacentWorkRange,
   countWorkTextFragments,
   getBookmarkForWork,
   getLikeRecordsForWork,
@@ -51,6 +52,7 @@ export function createWorkRenderers({
   saveWorkReadingState,
   toggleBookmark,
   workPageBatchSize,
+  workPageMaxRendered,
   helpers
 }) {
   const {
@@ -131,13 +133,19 @@ export function createWorkRenderers({
       getVisibleCountParam(options.from, 1),
       Math.max(1, visibleTextCount)
     );
-    const { fragments, shownTextCount: initialShownTextCount, firstShownTextIndex } = sliceWorkFragmentsForVisibleCount(
+    visibleTextCount = Math.min(
+      visibleTextCount,
+      fromTextIndex + workPageMaxRendered - 1
+    );
+    const initialRange = sliceWorkFragmentsForVisibleCount(
       state.fragments,
       workId,
       visibleTextCount,
       fromTextIndex
     );
-    let shownTextCount = initialShownTextCount;
+    const fragments = initialRange.fragments;
+    let firstShownTextIndex = initialRange.firstShownTextIndex;
+    let shownTextCount = initialRange.shownTextCount;
     const remainingTextCount = Math.max(0, totalTextFragments - shownTextCount);
     const returnToHash = buildWorkHash(workId, { from: fromTextIndex, visible: shownTextCount });
     const bookmark = getBookmarkForWork(state.bookmarkRecords, workId);
@@ -194,15 +202,21 @@ export function createWorkRenderers({
     const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break'
       ? (fragment.breakKind === 'heading' ? '' : breakCardMarkup())
       : renderWorkFragmentCard(fragment, returnToHash)).join('');
-    const earlierLinkHtml = firstShownTextIndex > 1
+    const earlierLinkHtml = firstShownTextIndex > 1 && state.workLoadMode === 'manual'
       ? `
         <div class="settings-button-grid">
           <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, {
             from: Math.max(1, firstShownTextIndex - workPageBatchSize),
-            visible: shownTextCount
-          })}">前の断片を読む</a>
+            visible: Math.min(
+              shownTextCount,
+              Math.max(1, firstShownTextIndex - workPageBatchSize) + workPageMaxRendered - 1
+            )
+          })}">前の${Math.min(workPageBatchSize, firstShownTextIndex - 1)}断片を読む</a>
         </div>
       `
+      : '';
+    const topLoadHtml = firstShownTextIndex > 1 && state.workLoadMode === 'auto'
+      ? '<div class="work-auto-load-panel work-auto-load-panel-top" data-work-auto-load-up-sentinel><p class="settings-status settings-status-subtle">前の断片を自動で読み込みます。</p></div>'
       : '';
     const endingCardHtml = shownTextCount >= totalTextFragments && totalTextFragments > 0
       ? workEndingCardMarkup({ isCompleted: getWorkReadingStatus(workId) === 'completed', markerId: WORK_END_MARKER_ID })
@@ -211,7 +225,13 @@ export function createWorkRenderers({
       ? (state.workLoadMode === 'manual'
         ? `
           <div class="settings-button-grid">
-            <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, { visible: shownTextCount + workPageBatchSize })}">もっと読む（残り ${remainingTextCount}断片）</a>
+            <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, {
+              from: Math.max(
+                firstShownTextIndex,
+                Math.min(totalTextFragments, shownTextCount + workPageBatchSize) - workPageMaxRendered + 1
+              ),
+              visible: Math.min(totalTextFragments, shownTextCount + workPageBatchSize)
+            })}">次の${Math.min(workPageBatchSize, remainingTextCount)}断片を読む</a>
           </div>
         `
         : `
@@ -237,6 +257,7 @@ export function createWorkRenderers({
         outlineHtml,
         readerScaleControlsHtml: renderReaderScaleControls(),
         fragmentsHtml,
+        topLoadHtml,
         moreLinkHtml: `${earlierLinkHtml}${moreLinkHtml}`,
         endingCardHtml
       })
@@ -311,68 +332,193 @@ export function createWorkRenderers({
         updateWorkOverlayButton(item, overlayState, overlayButtonAriaLabel(fragmentIndex, overlayState));
       });
     };
-    const bindAutoLoadForCurrentRange = () => {
-      state.workAutoLoadCleanup = bindWorkAutoLoad(app, {
-        enabled: state.workLoadMode === 'auto',
-        shownTextCount,
-        totalTextFragments,
-        onIntersect: () => {
-          const nextVisibleTextCount = Math.min(totalTextFragments, shownTextCount + workPageBatchSize);
-          const nextBatch = sliceWorkFragmentsForVisibleCount(
-            state.fragments,
-            workId,
-            nextVisibleTextCount,
-            shownTextCount + 1
-          );
-          const timeline = app.querySelector('.timeline[aria-label="作品断片一覧"]');
-          if (!timeline || nextBatch.fragments.length === 0) {
-            return;
-          }
+    const timeline = app.querySelector('.timeline[aria-label="作品断片一覧"]');
+    let loadingUp = false;
+    let loadingDown = false;
 
-          const nextReturnToHash = buildWorkHash(workId, {
-            from: fromTextIndex,
-            visible: nextVisibleTextCount
-          });
-          const batchHtml = nextBatch.fragments.map((fragment) => fragment.type === 'break'
-            ? (fragment.breakKind === 'heading' ? '' : breakCardMarkup())
-            : renderWorkFragmentCard(fragment, nextReturnToHash)).join('');
-          const batchContainer = document.createElement('div');
-          batchContainer.innerHTML = batchHtml;
-          bindWorkOverlayActions(batchContainer, handleOverlayCycle);
-          while (batchContainer.firstChild) {
-            timeline.append(batchContainer.firstChild);
-          }
-
-          shownTextCount = nextVisibleTextCount;
-          visibleTextCount = nextVisibleTextCount;
-          const shownCountNode = app.querySelector('[data-work-shown-count]');
-          if (shownCountNode) {
-            shownCountNode.textContent = `${firstShownTextIndex > 1 ? `${firstShownTextIndex}–` : ''}${shownTextCount}`;
-          }
-          const autoLoadPanel = app.querySelector('[data-work-auto-load-sentinel]');
-          const remaining = Math.max(0, totalTextFragments - shownTextCount);
-          if (autoLoadPanel) {
-            if (remaining > 0) {
-              autoLoadPanel.querySelector('p').textContent = `続きを自動で読み込みます。残り ${remaining}断片`;
-            } else {
-              autoLoadPanel.remove();
-            }
-          }
-          if (shownTextCount >= totalTextFragments) {
-            const endingContainer = document.createElement('div');
-            endingContainer.innerHTML = workEndingCardMarkup({
-              isCompleted: getWorkReadingStatus(workId) === 'completed',
-              markerId: WORK_END_MARKER_ID
-            });
-            bindWorkStateActions(endingContainer, handleWorkStateAction);
-            while (endingContainer.firstChild) {
-              timeline.append(endingContainer.firstChild);
-            }
-            return;
-          }
-          bindAutoLoadForCurrentRange();
-        }
+    const createBatchElement = (range, firstIndex, lastIndex) => {
+      const element = document.createElement('div');
+      element.className = 'work-fragment-batch';
+      element.dataset.workFragmentBatch = '';
+      element.dataset.firstIndex = String(firstIndex);
+      element.dataset.lastIndex = String(lastIndex);
+      const batchReturnToHash = buildWorkHash(workId, {
+        from: firstShownTextIndex,
+        visible: shownTextCount
       });
+      element.innerHTML = range.fragments.map((fragment) => fragment.type === 'break'
+        ? (fragment.breakKind === 'heading' ? '' : breakCardMarkup())
+        : renderWorkFragmentCard(fragment, batchReturnToHash)).join('');
+      bindWorkOverlayActions(element, handleOverlayCycle);
+      return element;
+    };
+
+    const findViewportAnchor = () => {
+      const headerBottom = app.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
+      return [...app.querySelectorAll('[data-work-fragment-index]')]
+        .find((card) => card.getBoundingClientRect().bottom > headerBottom + 8) ?? null;
+    };
+
+    const mutateKeepingAnchor = (mutation) => {
+      const anchor = findViewportAnchor();
+      const beforeTop = anchor?.getBoundingClientRect().top ?? null;
+      mutation();
+      if (anchor && beforeTop !== null && anchor.isConnected) {
+        const delta = anchor.getBoundingClientRect().top - beforeTop;
+        if (Math.abs(delta) > 0.5) {
+          window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
+        }
+      }
+    };
+
+    const removeEndingCard = () => {
+      app.querySelector(`[data-work-state-action="mark-complete"]`)?.closest('.fragment-card')?.remove();
+    };
+
+    const appendEndingCard = () => {
+      if (!timeline || app.querySelector(`[data-work-state-action="mark-complete"]`)) {
+        return;
+      }
+      const endingContainer = document.createElement('div');
+      endingContainer.innerHTML = workEndingCardMarkup({
+        isCompleted: getWorkReadingStatus(workId) === 'completed',
+        markerId: WORK_END_MARKER_ID
+      });
+      bindWorkStateActions(endingContainer, handleWorkStateAction);
+      while (endingContainer.firstChild) {
+        timeline.append(endingContainer.firstChild);
+      }
+    };
+
+    const syncRangeUi = () => {
+      const shownCountNode = app.querySelector('[data-work-shown-count]');
+      if (shownCountNode) {
+        shownCountNode.textContent = `${firstShownTextIndex > 1 ? `${firstShownTextIndex}–` : ''}${shownTextCount}`;
+      }
+      if (firstShownTextIndex <= 1) {
+        app.querySelector('[data-work-auto-load-up-sentinel]')?.remove();
+      }
+      if (shownTextCount >= totalTextFragments) {
+        app.querySelector('[data-work-auto-load-sentinel]')?.remove();
+        appendEndingCard();
+      } else {
+        removeEndingCard();
+      }
+      history.replaceState(null, '', buildWorkHash(workId, {
+        from: firstShownTextIndex,
+        visible: shownTextCount
+      }));
+    };
+
+    const ensureSentinels = () => {
+      if (!timeline || state.workLoadMode !== 'auto') {
+        return;
+      }
+      if (firstShownTextIndex > 1 && !app.querySelector('[data-work-auto-load-up-sentinel]')) {
+        const panel = document.createElement('div');
+        panel.className = 'work-auto-load-panel work-auto-load-panel-top';
+        panel.dataset.workAutoLoadUpSentinel = '';
+        panel.innerHTML = '<p class="settings-status settings-status-subtle">前の断片を自動で読み込みます。</p>';
+        timeline.prepend(panel);
+      }
+      if (shownTextCount < totalTextFragments && !app.querySelector('[data-work-auto-load-sentinel]')) {
+        const panel = document.createElement('div');
+        panel.className = 'work-auto-load-panel';
+        panel.dataset.workAutoLoadSentinel = '';
+        panel.innerHTML = `<p class="settings-status settings-status-subtle">続きを自動で読み込みます。残り ${totalTextFragments - shownTextCount}断片</p>`;
+        timeline.insertAdjacentElement('afterend', panel);
+      }
+    };
+
+    const trimOppositeEdge = (direction) => {
+      if (!timeline) {
+        return;
+      }
+      const batches = [...timeline.querySelectorAll('[data-work-fragment-batch]')];
+      const renderedCount = batches.reduce((sum, batch) => {
+        return sum + Number(batch.dataset.lastIndex) - Number(batch.dataset.firstIndex) + 1;
+      }, 0);
+      if (renderedCount <= workPageMaxRendered || batches.length < 2) {
+        return;
+      }
+      if (direction === 'down') {
+        mutateKeepingAnchor(() => batches[0].remove());
+      } else {
+        batches.at(-1).remove();
+      }
+      const remainingBatches = [...timeline.querySelectorAll('[data-work-fragment-batch]')];
+      firstShownTextIndex = Number(remainingBatches[0].dataset.firstIndex);
+      shownTextCount = Number(remainingBatches.at(-1).dataset.lastIndex);
+    };
+
+    const loadDirection = (direction) => {
+      if (!timeline || (direction === 'up' ? loadingUp : loadingDown)) {
+        return;
+      }
+      if (direction === 'up' && firstShownTextIndex <= 1) {
+        return;
+      }
+      if (direction === 'down' && shownTextCount >= totalTextFragments) {
+        return;
+      }
+
+      if (direction === 'up') {
+        loadingUp = true;
+      } else {
+        loadingDown = true;
+      }
+      const adjacentRange = calculateAdjacentWorkRange({
+        direction,
+        firstIndex: firstShownTextIndex,
+        lastIndex: shownTextCount,
+        totalCount: totalTextFragments,
+        batchSize: workPageBatchSize
+      });
+      const nextFirst = adjacentRange.firstIndex;
+      const nextLast = adjacentRange.lastIndex;
+      const range = sliceWorkFragmentsForVisibleCount(state.fragments, workId, nextLast, nextFirst);
+      const batch = createBatchElement(range, nextFirst, nextLast);
+
+      if (direction === 'up') {
+        mutateKeepingAnchor(() => {
+          const sentinel = timeline.querySelector('[data-work-auto-load-up-sentinel]');
+          timeline.insertBefore(batch, sentinel?.nextSibling ?? timeline.firstChild);
+        });
+        firstShownTextIndex = nextFirst;
+      } else {
+        timeline.append(batch);
+        shownTextCount = nextLast;
+      }
+      trimOppositeEdge(direction);
+      ensureSentinels();
+      syncRangeUi();
+      if (direction === 'up') {
+        loadingUp = false;
+      } else {
+        loadingDown = false;
+      }
+      bindAutoLoadForCurrentRange();
+    };
+
+    const bindAutoLoadForCurrentRange = () => {
+      state.workAutoLoadCleanup?.();
+      ensureSentinels();
+      const cleanupUp = bindWorkAutoLoad(app, {
+        enabled: state.workLoadMode === 'auto' && firstShownTextIndex > 1,
+        sentinelSelector: '[data-work-auto-load-up-sentinel]',
+        rootMargin: '320px 0px 0px 0px',
+        onIntersect: () => loadDirection('up')
+      });
+      const cleanupDown = bindWorkAutoLoad(app, {
+        enabled: state.workLoadMode === 'auto' && shownTextCount < totalTextFragments,
+        sentinelSelector: '[data-work-auto-load-sentinel]',
+        rootMargin: '0px 0px 320px 0px',
+        onIntersect: () => loadDirection('down')
+      });
+      state.workAutoLoadCleanup = () => {
+        cleanupUp?.();
+        cleanupDown?.();
+      };
     };
     bindAutoLoadForCurrentRange();
     bindWorkStateActions(app, handleWorkStateAction);

@@ -23,6 +23,7 @@ import {
   SEARCH_RESULTS_BATCH_SIZE,
   WORK_LOAD_MODE_SETTING_ID,
   WORK_PAGE_BATCH_SIZE,
+  WORK_PAGE_MAX_RENDERED,
   CONVERTER_BASE_URL_SETTING_ID
 } from './app-config.js?v=20260701140234';
 import { createAppRouter } from './app-router.js?v=20260701140234';
@@ -169,6 +170,7 @@ export function createAppRuntime({ app }) {
     saveWorkReadingState,
     toggleBookmark,
     workPageBatchSize: WORK_PAGE_BATCH_SIZE,
+    workPageMaxRendered: WORK_PAGE_MAX_RENDERED,
     searchResultsBatchSize: SEARCH_RESULTS_BATCH_SIZE
   });
 

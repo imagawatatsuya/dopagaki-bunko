@@ -522,6 +522,7 @@ export function workBodyMarkup({
   outlineHtml = '',
   readerScaleControlsHtml,
   fragmentsHtml,
+  topLoadHtml = '',
   moreLinkHtml,
   endingCardHtml = ''
 }) {
@@ -544,7 +545,10 @@ export function workBodyMarkup({
       </article>
     </section>
     <section class="timeline" aria-label="作品断片一覧">
-      ${fragmentsHtml}
+      ${topLoadHtml}
+      <div class="work-fragment-batch" data-work-fragment-batch data-first-index="${firstShownTextIndex}" data-last-index="${shownTextCount}">
+        ${fragmentsHtml}
+      </div>
       ${endingCardHtml}
     </section>
     ${moreLinkHtml}

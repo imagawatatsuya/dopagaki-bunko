@@ -319,12 +319,17 @@ export function bindWorkHeaderProgress(root, totalTextFragments, getRemainingPer
   };
 }
 
-export function bindWorkAutoLoad(root, { enabled, shownTextCount, totalTextFragments, onIntersect }) {
-  if (!enabled || shownTextCount >= totalTextFragments) {
+export function bindWorkAutoLoad(root, {
+  enabled,
+  sentinelSelector = '[data-work-auto-load-sentinel]',
+  rootMargin = '0px 0px 320px 0px',
+  onIntersect
+}) {
+  if (!enabled) {
     return null;
   }
 
-  const sentinel = root.querySelector('[data-work-auto-load-sentinel]');
+  const sentinel = root.querySelector(sentinelSelector);
   if (!sentinel || typeof IntersectionObserver !== 'function') {
     return null;
   }
@@ -341,7 +346,7 @@ export function bindWorkAutoLoad(root, { enabled, shownTextCount, totalTextFragm
     onIntersect();
   }, {
     root: null,
-    rootMargin: '0px 0px 320px 0px',
+    rootMargin,
     threshold: 0.01
   });
 

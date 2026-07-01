@@ -16,6 +16,7 @@ import { buildWorkEndHash, buildWorkOutlineHash, parseSearchRouteIntent } from '
 import { normalizeConverterBaseUrl } from '../src/remote-import.js';
 import { createAppData } from '../src/app-data.js';
 import {
+  calculateAdjacentWorkRange,
   canonicalizeBookmarkRecords,
   normalizeHeadingBreakKinds,
   sameBookmarkRecords,
@@ -1069,6 +1070,39 @@ test('work fragment slicing can open a bounded range without materializing its p
   assert.equal(result.fragments.at(-1).id, 'fragment-6519');
   assert.equal(result.shownTextCount, 6519);
   assert.equal(result.firstShownTextIndex, 6496);
+});
+
+test('work ranges expand by one batch in either direction', () => {
+  assert.deepEqual(calculateAdjacentWorkRange({
+    direction: 'up',
+    firstIndex: 6496,
+    lastIndex: 6519,
+    totalCount: 7000,
+    batchSize: 24
+  }), {
+    firstIndex: 6472,
+    lastIndex: 6495
+  });
+  assert.deepEqual(calculateAdjacentWorkRange({
+    direction: 'down',
+    firstIndex: 6496,
+    lastIndex: 6519,
+    totalCount: 7000,
+    batchSize: 24
+  }), {
+    firstIndex: 6520,
+    lastIndex: 6543
+  });
+  assert.deepEqual(calculateAdjacentWorkRange({
+    direction: 'up',
+    firstIndex: 8,
+    lastIndex: 31,
+    totalCount: 7000,
+    batchSize: 24
+  }), {
+    firstIndex: 1,
+    lastIndex: 7
+  });
 });
 
 test('library deletion prompt labels follow the visible reading-status tabs', () => {
