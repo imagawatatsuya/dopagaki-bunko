@@ -1,5 +1,5 @@
-import { parseCsvObjects } from './aozora-csv.js?v=20260701140234';
-import { buildAozoraSearchText } from './aozora-search.js?v=20260701140234';
+import { parseCsvObjects } from './aozora-csv.js?v=20260701141531';
+import { buildAozoraSearchText } from './aozora-search.js?v=20260701141531';
 
 export const AOZORA_CATALOG_SOURCE_URL = 'https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip';
 export const AOZORA_CATALOG_ASSET_PATH = './data/aozora-catalog.json.gz';
