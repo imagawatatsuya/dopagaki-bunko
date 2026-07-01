@@ -1,12 +1,9 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260701185229';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260701185758';
 
 export function createInitialAppState() {
   return {
     works: [],
     fragments: [],
-    workFragmentIndexes: new Map(),
-    fragmentById: new Map(),
-    fragmentIndexStatus: 'empty',
     likes: new Set(),
     bookmarks: new Set(),
     likeRecords: [],
@@ -42,7 +39,6 @@ export function createInitialAppState() {
     readerActionStatusTone: '',
     libraryWorkActionsCleanup: null,
     workHeaderProgressCleanup: null,
-    workHeaderActionsCleanup: null,
     workAutoLoadCleanup: null
   };
 }

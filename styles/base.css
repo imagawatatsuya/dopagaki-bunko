@@ -219,37 +219,6 @@ select {
   outline-offset: 1px;
 }
 
-.page-title-button {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.page-title-button-marker {
-  flex: 0 0 auto;
-  width: 0;
-  height: 0;
-  margin-left: 8px;
-  border-top: 5px solid currentColor;
-  border-right: 4px solid transparent;
-  border-left: 4px solid transparent;
-  opacity: 0.58;
-}
-
-.page-title-button:hover,
-.page-title-button:focus-visible {
-  color: var(--accent);
-  outline: none;
-}
-
 .settings-label {
   display: block;
   margin-top: 4px;
@@ -1056,19 +1025,7 @@ rt {
 }
 
 .work-auto-load-panel {
-  min-height: 1px;
   padding: 4px 0 0;
-}
-
-.timeline[aria-label="作品断片一覧"] {
-  overflow-anchor: none;
-}
-
-.work-auto-load-sentinel {
-  display: block;
-  min-height: 1px;
-  overflow: hidden;
-  pointer-events: none;
 }
 
 .settings-status {
@@ -1151,10 +1108,6 @@ rt {
   max-height: calc(100dvh - 12px);
 }
 
-.work-fragment-batch {
-  display: contents;
-}
-
 .bottom-sheet-body {
   display: grid;
   gap: 14px;
@@ -1186,54 +1139,6 @@ rt {
 
 .bottom-sheet-close {
   min-width: 84px;
-}
-
-.work-navigation-primary,
-.work-navigation-outline {
-  display: grid;
-  gap: 6px;
-}
-
-.work-navigation-outline {
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.work-navigation-link {
-  display: block;
-  width: 100%;
-  min-height: 42px;
-  padding: 10px 12px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  line-height: 1.5;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.work-navigation-link:hover,
-.work-navigation-link:focus-visible {
-  background: rgba(242, 216, 195, 0.48);
-  color: var(--accent);
-  outline: none;
-}
-
-.work-navigation-link.is-level-2 {
-  padding-left: 24px;
-}
-
-.work-navigation-link.is-level-3 {
-  padding-left: 36px;
-}
-
-.work-navigation-link-terminal {
-  border-top: 1px solid var(--border);
-  border-radius: 0;
-  color: var(--muted);
 }
 
 .bottom-nav {

@@ -20,11 +20,11 @@ export function navMarkup(current) {
   `).join('')}</nav>`;
 }
 
-export function layoutMarkup({ current, title, titleHtml = '', subtitle, body, headerMetaHtml = '', headerClassName = '', eyebrowHtml = '' }) {
+export function layoutMarkup({ current, title, subtitle, body, headerMetaHtml = '', headerClassName = '', eyebrowHtml = '' }) {
   return `
     <header class="page-header ${headerClassName}">
       ${eyebrowHtml}
-      <h1 class="page-title">${titleHtml || title}</h1>
+      <h1 class="page-title">${title}</h1>
       <p class="page-subtitle">${subtitle}</p>
       ${headerMetaHtml}
     </header>
@@ -522,14 +522,12 @@ export function workBodyMarkup({
   outlineHtml = '',
   readerScaleControlsHtml,
   fragmentsHtml,
-  topLoadHtml = '',
   moreLinkHtml,
-  endingCardHtml = '',
-  navigationSheetHtml = ''
+  endingCardHtml = ''
 }) {
   return `
     <section class="panel-stack">
-      <article class="info-panel" data-work-summary>
+      <article class="info-panel">
         <div class="work-summary-header">
           <div class="work-summary-copy">
             <h2 class="section-title">${workTitle}</h2>
@@ -546,14 +544,10 @@ export function workBodyMarkup({
       </article>
     </section>
     <section class="timeline" aria-label="作品断片一覧">
-      ${topLoadHtml}
-      <div class="work-fragment-batch" data-work-fragment-batch data-first-index="${firstShownTextIndex}" data-last-index="${shownTextCount}">
-        ${fragmentsHtml}
-      </div>
+      ${fragmentsHtml}
       ${endingCardHtml}
     </section>
     ${moreLinkHtml}
-    ${navigationSheetHtml}
   `;
 }
 

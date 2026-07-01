@@ -2,14 +2,9 @@
 
 ## Unreleased
 
-- Prevented both upper and lower auto-loaders from firing immediately after outline navigation; each edge now waits for an actual scroll toward that edge after focus positioning settles.
-- Added chunked in-memory fragment indexes so distant outline, bookmark, and fragment-number jumps read only the requested range instead of rescanning thousands of earlier fragments on the main thread.
-- Prevented outline and bookmark jumps from immediately triggering upward auto-loading: the upper loader now waits for initial focus positioning to settle and requires an actual upward scroll before it can prepend fragments.
+- Rolled the work reader back to the pre-bidirectional baseline from `c9bfc0d`: removed upward virtual loading, opposite-edge batch deletion, custom scroll anchoring, the sticky-title navigation sheet, and runtime fragment indexing after those changes caused position skips and broken bookmark/sticky-note interactions on iPhone 8.
 - Documented the repository publication completion contract in `AGENTS.md`, including when implementation requests must run `publish-pages.bat` and the distinction between Pages preflight verification and an actual push.
-- Added a work-navigation sheet to the sticky work title, providing direct access to the work summary, current position, latest bookmark, saved outline entries, and the original-text ending from anywhere in a long timeline.
-- Stabilized upward loading on iPhone Chrome by disabling competing browser scroll anchoring for the work timeline, keeping the same visible fragment anchored across layout frames, and replacing the visible upper loading panel with a one-pixel sentinel.
-- Fixed upward automatic loading on iPhone Chrome by supplementing `IntersectionObserver` with a scroll-position fallback and ensuring the upper sentinel has measurable height.
-- Improved large-work reading performance: bookmark/sticky-note taps now update local state without reloading every IndexedDB store; automatic continuation loads in both directions while preserving the current viewport; rendered work cards are capped at 192; and outline/bookmark/sticky-note jumps open a bounded fragment range instead of rendering every fragment from the beginning.
+- Improved large-work reading performance by updating bookmark/sticky-note state locally and opening direct jumps with a bounded fragment range instead of rendering every fragment from the beginning.
 - Fixed the add-work paste textarea so saved pasted text and PC/URL handoff text no longer reappear the next time the import sheet opens, while still preserving unsaved manual drafts when the sheet is closed.
 - Hardened IndexedDB recovery for iPhone-style app switching by reopening stale DB connections after transaction/request failures and reloading saved state when the page becomes visible again, reducing silent bookmark/save failures after returning from other apps.
 - Added reader-visible failure messages on fragment and work pages for bookmark, sticky-note, memo, completion-toggle, and resume reload errors, so naturally occurring iPhone recovery failures now leave the underlying error text on screen instead of failing silently.

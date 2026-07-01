@@ -366,26 +366,3 @@ export function sliceWorkFragmentsForVisibleCount(fragments, workId, visibleText
     firstShownTextIndex: limited.find((fragment) => fragment.type !== 'break')?.index ?? normalizedFrom
   };
 }
-
-export function calculateAdjacentWorkRange({
-  direction,
-  firstIndex,
-  lastIndex,
-  totalCount,
-  batchSize
-}) {
-  const first = Math.max(1, Number(firstIndex) || 1);
-  const last = Math.max(first, Number(lastIndex) || first);
-  const total = Math.max(last, Number(totalCount) || last);
-  const size = Math.max(1, Number(batchSize) || 1);
-  if (direction === 'up') {
-    return {
-      firstIndex: Math.max(1, first - size),
-      lastIndex: first - 1
-    };
-  }
-  return {
-    firstIndex: last + 1,
-    lastIndex: Math.min(total, last + size)
-  };
-}

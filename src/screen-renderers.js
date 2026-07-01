@@ -1,12 +1,12 @@
 import {
   errorBodyMarkup,
   loadingBodyMarkup
-} from './views.js?v=20260701185229';
-import { createRendererHelpers } from './renderer-shared.js?v=20260701185229';
-import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260701185229';
-import { createLibraryRenderers } from './screen-renderers-library.js?v=20260701185229';
-import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260701185229';
-import { createWorkRenderers } from './screen-renderers-work.js?v=20260701185229';
+} from './views.js?v=20260701185758';
+import { createRendererHelpers } from './renderer-shared.js?v=20260701185758';
+import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260701185758';
+import { createLibraryRenderers } from './screen-renderers-library.js?v=20260701185758';
+import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260701185758';
+import { createWorkRenderers } from './screen-renderers-work.js?v=20260701185758';
 
 export function createScreenRenderers({
   app,
@@ -30,7 +30,6 @@ export function createScreenRenderers({
   saveWorkReadingState,
   toggleBookmark,
   workPageBatchSize,
-  workPageMaxRendered,
   searchResultsBatchSize
 }) {
   const {
@@ -70,7 +69,6 @@ export function createScreenRenderers({
     handleDetailAction,
     ensureWorkMarkedReadingAtIndex,
     workPageBatchSize,
-    workPageMaxRendered,
     helpers
   });
   const libraryRenderers = createLibraryRenderers({

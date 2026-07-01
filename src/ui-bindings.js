@@ -33,25 +33,11 @@ export function bindWorkOverlayActions(root, onCycleMarker) {
 }
 
 export function bindWorkHeaderActions(root, onAction) {
-  const handleClick = async (event) => {
-    const control = event.target.closest('[data-work-header-action]');
-    if (!control || !root.contains(control)) {
-      return;
-    }
-    event.preventDefault();
-    await onAction(control.dataset.workHeaderAction);
-  };
-  const handleKeydown = async (event) => {
-    if (event.key === 'Escape') {
-      await onAction('close-navigation');
-    }
-  };
-  root.addEventListener('click', handleClick);
-  window.addEventListener('keydown', handleKeydown);
-  return () => {
-    root.removeEventListener('click', handleClick);
-    window.removeEventListener('keydown', handleKeydown);
-  };
+  root.querySelectorAll('[data-work-header-action]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      await onAction(button.dataset.workHeaderAction);
+    });
+  });
 }
 
 export function bindWorkStateActions(root, onAction) {
@@ -333,109 +319,34 @@ export function bindWorkHeaderProgress(root, totalTextFragments, getRemainingPer
   };
 }
 
-export function bindWorkAutoLoad(root, {
-  enabled,
-  sentinelSelector = '[data-work-auto-load-sentinel]',
-  rootMargin = '0px 0px 320px 0px',
-  edge = 'down',
-  fallbackDistance = 320,
-  requireDirectionalScroll = false,
-  directionalActivationDelay = 240,
-  onIntersect
-}) {
-  if (!enabled) {
+export function bindWorkAutoLoad(root, { enabled, shownTextCount, totalTextFragments, onIntersect }) {
+  if (!enabled || shownTextCount >= totalTextFragments) {
     return null;
   }
 
-  const sentinel = root.querySelector(sentinelSelector);
-  if (!sentinel) {
+  const sentinel = root.querySelector('[data-work-auto-load-sentinel]');
+  if (!sentinel || typeof IntersectionObserver !== 'function') {
     return null;
   }
 
   let triggered = false;
-  let frameRequested = false;
-  let observer = null;
-  let directionArmed = !requireDirectionalScroll;
-  let directionDetectionReady = !requireDirectionalScroll;
-  let lastScrollY = window.scrollY;
-  const directionTimer = requireDirectionalScroll
-    ? globalThis.setTimeout(() => {
-        directionDetectionReady = true;
-        lastScrollY = window.scrollY;
-      }, directionalActivationDelay)
-    : null;
-  const cleanup = () => {
-    observer?.disconnect();
-    if (directionTimer !== null) {
-      globalThis.clearTimeout(directionTimer);
-    }
-    window.removeEventListener('scroll', scheduleFallback);
-    window.removeEventListener('resize', scheduleFallback);
-    window.removeEventListener('pageshow', scheduleFallback);
-  };
-  const trigger = () => {
-    if (triggered) {
+  const observer = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (!entry?.isIntersecting || triggered) {
       return;
     }
+
     triggered = true;
-    cleanup();
+    observer.disconnect();
     onIntersect();
+  }, {
+    root: null,
+    rootMargin: '0px 0px 320px 0px',
+    threshold: 0.01
+  });
+
+  observer.observe(sentinel);
+  return () => {
+    observer.disconnect();
   };
-  const checkFallback = () => {
-    frameRequested = false;
-    if (triggered || !sentinel.isConnected) {
-      return;
-    }
-    const rect = sentinel.getBoundingClientRect();
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    const isNearViewport = edge === 'up'
-      ? rect.top <= fallbackDistance && rect.bottom >= -fallbackDistance
-      : rect.top <= viewportHeight + fallbackDistance && rect.bottom >= viewportHeight - fallbackDistance;
-    if (isNearViewport && directionArmed) {
-      trigger();
-    }
-  };
-  function scheduleFallback() {
-    if (frameRequested || triggered) {
-      return;
-    }
-    const currentScrollY = window.scrollY;
-    const movedTowardEdge = edge === 'up'
-      ? currentScrollY < lastScrollY - 2
-      : currentScrollY > lastScrollY + 2;
-    if (
-      requireDirectionalScroll
-      && directionDetectionReady
-      && movedTowardEdge
-    ) {
-      directionArmed = true;
-    }
-    lastScrollY = currentScrollY;
-    frameRequested = true;
-    requestAnimationFrame(checkFallback);
-  }
-
-  window.addEventListener('scroll', scheduleFallback, { passive: true });
-  window.addEventListener('resize', scheduleFallback);
-  window.addEventListener('pageshow', scheduleFallback);
-
-  if (typeof IntersectionObserver === 'function') {
-    observer = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      if (!entry?.isIntersecting || triggered) {
-        return;
-      }
-
-      if (directionArmed) {
-        trigger();
-      }
-    }, {
-      root: null,
-      rootMargin,
-      threshold: 0
-    });
-    observer.observe(sentinel);
-  }
-
-  return cleanup;
 }
