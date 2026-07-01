@@ -6,8 +6,8 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260701150208';
-import { buildFragmentIndexes } from './fragment-index.js?v=20260701150208';
+} from './state.js?v=20260701184941';
+import { buildFragmentIndexes } from './fragment-index.js?v=20260701184941';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';

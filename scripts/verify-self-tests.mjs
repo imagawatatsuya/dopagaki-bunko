@@ -1054,19 +1054,19 @@ test('outline jump helper opens a bounded range around the focused fragment', ()
     fragmentId: 'work-1-fragment-0007',
     fragmentIndex: 7
   }, 5);
-  assert.equal(href, '#/work/work-1?from=3&visible=7&focus=work-1-fragment-0007');
+  assert.equal(href, '#/work/work-1?from=3&visible=7&focus=work-1-fragment-0007&stable=1');
 
   const earlyHref = buildWorkOutlineHash('work-1', {
     fragmentId: 'work-1-fragment-0002',
     fragmentIndex: 2
   }, 5);
-  assert.equal(earlyHref, '#/work/work-1?visible=5&focus=work-1-fragment-0002');
+  assert.equal(earlyHref, '#/work/work-1?visible=5&focus=work-1-fragment-0002&stable=1');
 
   const lateHref = buildWorkOutlineHash('work-1', {
     fragmentId: 'work-1-fragment-6500',
     fragmentIndex: 6500
   }, 24);
-  assert.equal(lateHref, '#/work/work-1?from=6496&visible=6519&focus=work-1-fragment-6500');
+  assert.equal(lateHref, '#/work/work-1?from=6496&visible=6519&focus=work-1-fragment-6500&stable=1');
 
   assert.equal(buildWorkOutlineHash('work-1', { fragmentIndex: 3 }, 5), '');
 });
@@ -1286,10 +1286,10 @@ test('library deletion prompt labels follow the visible reading-status tabs', ()
 
 test('work end jump helper targets the page-bottom marker', () => {
   const href = buildWorkEndHash('work-1', 12, 5);
-  assert.equal(href, '#/work/work-1?from=8&visible=12&focus=work-end-marker');
+  assert.equal(href, '#/work/work-1?from=8&visible=12&focus=work-end-marker&stable=1');
 
   const shortHref = buildWorkEndHash('work-1', 3, 5);
-  assert.equal(shortHref, '#/work/work-1?visible=3&focus=work-end-marker');
+  assert.equal(shortHref, '#/work/work-1?visible=3&focus=work-end-marker&stable=1');
 
   assert.equal(buildWorkEndHash('work-1', 0, 5), '');
 });

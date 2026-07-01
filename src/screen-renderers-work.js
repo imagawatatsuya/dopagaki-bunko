@@ -2,18 +2,18 @@ import {
   calculateAdjacentWorkRange,
   getBookmarkForWork,
   getVisibleCountParam
-} from './state.js?v=20260701150208';
+} from './state.js?v=20260701184941';
 import {
   getIndexedTextFragment,
   sliceIndexedWorkFragments
-} from './fragment-index.js?v=20260701150208';
+} from './fragment-index.js?v=20260701184941';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260701150208';
+} from './router.js?v=20260701184941';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -23,19 +23,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260701150208';
+} from './ui-bindings.js?v=20260701184941';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260701150208';
+} from './views.js?v=20260701184941';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260701150208';
+} from './renderer-shared.js?v=20260701184941';
 
 export function createWorkRenderers({
   app,
@@ -129,6 +129,8 @@ export function createWorkRenderers({
       return;
     }
     const totalTextFragments = workIndex.textCount;
+    const stablePaging = options.stable === true;
+    const effectiveWorkLoadMode = stablePaging ? 'manual' : state.workLoadMode;
     let visibleTextCount = Math.min(
       getVisibleCountParam(options.visible, workPageBatchSize),
       totalTextFragments || workPageBatchSize
@@ -146,7 +148,11 @@ export function createWorkRenderers({
     let firstShownTextIndex = initialRange.firstShownTextIndex;
     let shownTextCount = initialRange.shownTextCount;
     const remainingTextCount = Math.max(0, totalTextFragments - shownTextCount);
-    const returnToHash = buildWorkHash(workId, { from: fromTextIndex, visible: shownTextCount });
+    const returnToHash = buildWorkHash(workId, {
+      from: fromTextIndex,
+      visible: shownTextCount,
+      stable: stablePaging
+    });
     const bookmark = getBookmarkForWork(state.bookmarkRecords, workId);
     const likeRecords = state.likeRecords.filter((record) => {
       return state.fragmentById.get(record.fragmentId)?.workId === workId;
@@ -203,7 +209,7 @@ export function createWorkRenderers({
     const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break'
       ? (fragment.breakKind === 'heading' ? '' : breakCardMarkup())
       : renderWorkFragmentCard(fragment, returnToHash)).join('');
-    const earlierLinkHtml = firstShownTextIndex > 1 && state.workLoadMode === 'manual'
+    const earlierLinkHtml = firstShownTextIndex > 1 && effectiveWorkLoadMode === 'manual'
       ? `
         <div class="settings-button-grid">
           <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, {
@@ -211,7 +217,8 @@ export function createWorkRenderers({
             visible: Math.min(
               shownTextCount,
               Math.max(1, firstShownTextIndex - workPageBatchSize) + workPageMaxRendered - 1
-            )
+            ),
+            stable: stablePaging
           })}">前の${Math.min(workPageBatchSize, firstShownTextIndex - 1)}断片を読む</a>
         </div>
       `
@@ -244,14 +251,14 @@ export function createWorkRenderers({
         </div>
       </section>
     `;
-    const topLoadHtml = firstShownTextIndex > 1 && state.workLoadMode === 'auto'
+    const topLoadHtml = firstShownTextIndex > 1 && effectiveWorkLoadMode === 'auto'
       ? '<div class="work-auto-load-sentinel work-auto-load-sentinel-top" data-work-auto-load-up-sentinel aria-hidden="true"></div>'
       : '';
     const endingCardHtml = shownTextCount >= totalTextFragments && totalTextFragments > 0
       ? workEndingCardMarkup({ isCompleted: getWorkReadingStatus(workId) === 'completed', markerId: WORK_END_MARKER_ID })
       : '';
     const moreLinkHtml = remainingTextCount > 0
-      ? (state.workLoadMode === 'manual'
+      ? (effectiveWorkLoadMode === 'manual'
         ? `
           <div class="settings-button-grid">
             <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, {
@@ -259,7 +266,8 @@ export function createWorkRenderers({
                 firstShownTextIndex,
                 Math.min(totalTextFragments, shownTextCount + workPageBatchSize) - workPageMaxRendered + 1
               ),
-              visible: Math.min(totalTextFragments, shownTextCount + workPageBatchSize)
+              visible: Math.min(totalTextFragments, shownTextCount + workPageBatchSize),
+              stable: stablePaging
             })}">次の${Math.min(workPageBatchSize, remainingTextCount)}断片を読む</a>
           </div>
         `
@@ -427,7 +435,8 @@ export function createWorkRenderers({
       element.dataset.lastIndex = String(lastIndex);
       const batchReturnToHash = buildWorkHash(workId, {
         from: firstShownTextIndex,
-        visible: shownTextCount
+        visible: shownTextCount,
+        stable: stablePaging
       });
       element.innerHTML = range.fragments.map((fragment) => fragment.type === 'break'
         ? (fragment.breakKind === 'heading' ? '' : breakCardMarkup())
@@ -501,12 +510,13 @@ export function createWorkRenderers({
       }
       history.replaceState(null, '', buildWorkHash(workId, {
         from: firstShownTextIndex,
-        visible: shownTextCount
+        visible: shownTextCount,
+        stable: stablePaging
       }));
     };
 
     const ensureSentinels = () => {
-      if (!timeline || state.workLoadMode !== 'auto') {
+      if (!timeline || effectiveWorkLoadMode !== 'auto') {
         return;
       }
       if (firstShownTextIndex > 1 && !app.querySelector('[data-work-auto-load-up-sentinel]')) {
@@ -599,7 +609,7 @@ export function createWorkRenderers({
       state.workAutoLoadCleanup?.();
       ensureSentinels();
       const cleanupUp = bindWorkAutoLoad(app, {
-        enabled: state.workLoadMode === 'auto' && firstShownTextIndex > 1,
+        enabled: effectiveWorkLoadMode === 'auto' && firstShownTextIndex > 1,
         sentinelSelector: '[data-work-auto-load-up-sentinel]',
         rootMargin: '320px 0px 0px 0px',
         edge: 'up',
@@ -607,7 +617,7 @@ export function createWorkRenderers({
         onIntersect: () => loadDirection('up')
       });
       const cleanupDown = bindWorkAutoLoad(app, {
-        enabled: state.workLoadMode === 'auto' && shownTextCount < totalTextFragments,
+        enabled: effectiveWorkLoadMode === 'auto' && shownTextCount < totalTextFragments,
         sentinelSelector: '[data-work-auto-load-sentinel]',
         rootMargin: '0px 0px 320px 0px',
         edge: 'down',
