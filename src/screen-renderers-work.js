@@ -1,19 +1,19 @@
 import {
   calculateAdjacentWorkRange,
-  countWorkTextFragments,
   getBookmarkForWork,
-  getLikeRecordsForWork,
-  getReadableWorkFragments,
-  getVisibleCountParam,
-  sliceWorkFragmentsForVisibleCount
-} from './state.js?v=20260701143736';
+  getVisibleCountParam
+} from './state.js?v=20260701145143';
+import {
+  getIndexedTextFragment,
+  sliceIndexedWorkFragments
+} from './fragment-index.js?v=20260701145143';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260701143736';
+} from './router.js?v=20260701145143';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -23,19 +23,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260701143736';
+} from './ui-bindings.js?v=20260701145143';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260701143736';
+} from './views.js?v=20260701145143';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260701143736';
+} from './renderer-shared.js?v=20260701145143';
 
 export function createWorkRenderers({
   app,
@@ -75,7 +75,7 @@ export function createWorkRenderers({
   }
 
   async function cycleWorkOverlayState(fragmentId) {
-    const fragment = state.fragments.find((item) => item.id === fragmentId) ?? null;
+    const fragment = state.fragmentById.get(fragmentId) ?? null;
     if (!fragment || fragment.type === 'break') {
       return;
     }
@@ -123,8 +123,12 @@ export function createWorkRenderers({
       return;
     }
 
-    const totalTextFragments = countWorkTextFragments(state.fragments, workId);
-    const readableWorkFragments = getReadableWorkFragments(state.fragments, workId);
+    const workIndex = state.workFragmentIndexes.get(workId);
+    if (!workIndex) {
+      renderError(new Error('作品内移動の準備が完了していません。再読み込みしてから、もう一度お試しください。'));
+      return;
+    }
+    const totalTextFragments = workIndex.textCount;
     let visibleTextCount = Math.min(
       getVisibleCountParam(options.visible, workPageBatchSize),
       totalTextFragments || workPageBatchSize
@@ -137,19 +141,16 @@ export function createWorkRenderers({
       visibleTextCount,
       fromTextIndex + workPageMaxRendered - 1
     );
-    const initialRange = sliceWorkFragmentsForVisibleCount(
-      state.fragments,
-      workId,
-      visibleTextCount,
-      fromTextIndex
-    );
+    const initialRange = sliceIndexedWorkFragments(workIndex, fromTextIndex, visibleTextCount);
     const fragments = initialRange.fragments;
     let firstShownTextIndex = initialRange.firstShownTextIndex;
     let shownTextCount = initialRange.shownTextCount;
     const remainingTextCount = Math.max(0, totalTextFragments - shownTextCount);
     const returnToHash = buildWorkHash(workId, { from: fromTextIndex, visible: shownTextCount });
     const bookmark = getBookmarkForWork(state.bookmarkRecords, workId);
-    const likeRecords = getLikeRecordsForWork(state.likeRecords, state.fragments, workId);
+    const likeRecords = state.likeRecords.filter((record) => {
+      return state.fragmentById.get(record.fragmentId)?.workId === workId;
+    });
     const bookmarkJumpHash = bookmark
       ? buildWorkFocusHash(workId, bookmark, workPageBatchSize)
       : '';
@@ -371,7 +372,7 @@ export function createWorkRenderers({
         return;
       }
 
-      const targetFragment = readableWorkFragments[targetIndex - 1];
+      const targetFragment = getIndexedTextFragment(workIndex, targetIndex);
       if (!targetFragment) {
         window.alert('指定した断片が見つかりませんでした。');
         return;
@@ -570,7 +571,7 @@ export function createWorkRenderers({
       });
       const nextFirst = adjacentRange.firstIndex;
       const nextLast = adjacentRange.lastIndex;
-      const range = sliceWorkFragmentsForVisibleCount(state.fragments, workId, nextLast, nextFirst);
+      const range = sliceIndexedWorkFragments(workIndex, nextFirst, nextLast);
       const batch = createBatchElement(range, nextFirst, nextLast);
 
       if (direction === 'up') {

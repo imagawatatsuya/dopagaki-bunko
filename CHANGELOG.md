@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added chunked in-memory fragment indexes so distant outline, bookmark, and fragment-number jumps read only the requested range instead of rescanning thousands of earlier fragments on the main thread.
 - Prevented outline and bookmark jumps from immediately triggering upward auto-loading: the upper loader now waits for initial focus positioning to settle and requires an actual upward scroll before it can prepend fragments.
 - Documented the repository publication completion contract in `AGENTS.md`, including when implementation requests must run `publish-pages.bat` and the distinction between Pages preflight verification and an actual push.
 - Added a work-navigation sheet to the sticky work title, providing direct access to the work summary, current position, latest bookmark, saved outline entries, and the original-text ending from anywhere in a long timeline.

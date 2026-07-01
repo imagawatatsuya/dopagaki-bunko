@@ -1,9 +1,12 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260701143736';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260701145143';
 
 export function createInitialAppState() {
   return {
     works: [],
     fragments: [],
+    workFragmentIndexes: new Map(),
+    fragmentById: new Map(),
+    fragmentIndexStatus: 'empty',
     likes: new Set(),
     bookmarks: new Set(),
     likeRecords: [],

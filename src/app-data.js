@@ -6,7 +6,8 @@ import {
   sortSavedRecords,
   sortUpdatedRecords,
   sortFragments
-} from './state.js?v=20260701143736';
+} from './state.js?v=20260701145143';
+import { buildFragmentIndexes } from './fragment-index.js?v=20260701145143';
 
 function normalizeWorkLoadMode(value) {
   return value === 'manual' ? 'manual' : 'auto';
@@ -91,6 +92,14 @@ export function createAppData({
       getRecord('settings', converterBaseUrlSettingId)
     ]);
     const fragments = normalizeHeadingBreakKinds(fragmentRecords);
+    state.fragmentIndexStatus = 'building';
+    let fragmentIndexes;
+    try {
+      fragmentIndexes = await buildFragmentIndexes(fragments);
+    } catch (error) {
+      state.fragmentIndexStatus = 'failed';
+      throw error;
+    }
     const canonicalBookmarks = canonicalizeBookmarkRecords(bookmarkRecords, fragments);
     const sortedBookmarkRecords = sortSavedRecords(bookmarkRecords);
     if (!sameBookmarkRecords(sortedBookmarkRecords, canonicalBookmarks)) {
@@ -102,6 +111,9 @@ export function createAppData({
 
     state.works = works;
     state.fragments = fragments;
+    state.workFragmentIndexes = fragmentIndexes.workIndexes;
+    state.fragmentById = fragmentIndexes.fragmentById;
+    state.fragmentIndexStatus = 'ready';
     state.likeRecords = sortSavedRecords(likeRecords);
     state.bookmarkRecords = canonicalBookmarks;
     state.readingStateRecords = sortUpdatedRecords(readingStateRecords);

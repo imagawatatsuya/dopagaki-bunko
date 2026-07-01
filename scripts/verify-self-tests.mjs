@@ -25,6 +25,11 @@ import {
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
 import { bindWorkAutoLoad } from '../src/ui-bindings.js';
+import {
+  buildFragmentIndexes,
+  getIndexedTextFragment,
+  sliceIndexedWorkFragments
+} from '../src/fragment-index.js';
 import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
 import {
   aozoraSearchResultsMarkup,
@@ -1080,6 +1085,43 @@ test('work fragment slicing can open a bounded range without materializing its p
   assert.equal(result.fragments.at(-1).id, 'fragment-6519');
   assert.equal(result.shownTextCount, 6519);
   assert.equal(result.firstShownTextIndex, 6496);
+});
+
+test('fragment indexes yield during construction and jump directly to a distant range', async () => {
+  const fragments = [];
+  for (let index = 1; index <= 7000; index += 1) {
+    fragments.push({
+      id: `fragment-${index}`,
+      workId: 'work-large',
+      index,
+      type: 'fragment'
+    });
+    if (index === 6498) {
+      fragments.push({
+        id: 'break-6498',
+        workId: 'work-large',
+        type: 'break'
+      });
+    }
+  }
+  let yieldCount = 0;
+  const indexes = await buildFragmentIndexes(fragments, {
+    chunkSize: 300,
+    yieldControl: async () => {
+      yieldCount += 1;
+    }
+  });
+  const workIndex = indexes.workIndexes.get('work-large');
+  const range = sliceIndexedWorkFragments(workIndex, 6496, 6519);
+
+  assert.equal(yieldCount, 23);
+  assert.equal(workIndex.textCount, 7000);
+  assert.equal(getIndexedTextFragment(workIndex, 6500).id, 'fragment-6500');
+  assert.equal(indexes.fragmentById.get('fragment-6500').index, 6500);
+  assert.equal(range.fragments.length, 25);
+  assert.equal(range.fragments[0].id, 'fragment-6496');
+  assert.equal(range.fragments.at(-1).id, 'fragment-6519');
+  assert.ok(range.fragments.some((fragment) => fragment.id === 'break-6498'));
 });
 
 test('work layout supports a title navigation button and navigation sheet', () => {

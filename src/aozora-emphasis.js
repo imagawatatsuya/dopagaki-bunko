@@ -1,5 +1,5 @@
-import { replaceAozoraGaijiNotation } from './aozora-gaiji.js?v=20260701143736';
-import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260701143736';
+import { replaceAozoraGaijiNotation } from './aozora-gaiji.js?v=20260701145143';
+import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260701145143';
 
 function emphasisStyleFromNote(note) {
   if (note.includes('白丸傍点')) {
