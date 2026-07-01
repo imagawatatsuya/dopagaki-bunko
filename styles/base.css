@@ -1029,6 +1029,17 @@ rt {
   padding: 4px 0 0;
 }
 
+.timeline[aria-label="作品断片一覧"] {
+  overflow-anchor: none;
+}
+
+.work-auto-load-sentinel {
+  display: block;
+  min-height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .settings-status {
   margin: 14px 0 0;
   color: var(--accent);

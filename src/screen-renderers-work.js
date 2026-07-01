@@ -6,14 +6,14 @@ import {
   getReadableWorkFragments,
   getVisibleCountParam,
   sliceWorkFragmentsForVisibleCount
-} from './state.js?v=20260701141531';
+} from './state.js?v=20260701141942';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260701141531';
+} from './router.js?v=20260701141942';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -23,19 +23,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260701141531';
+} from './ui-bindings.js?v=20260701141942';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260701141531';
+} from './views.js?v=20260701141942';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260701141531';
+} from './renderer-shared.js?v=20260701141942';
 
 export function createWorkRenderers({
   app,
@@ -216,7 +216,7 @@ export function createWorkRenderers({
       `
       : '';
     const topLoadHtml = firstShownTextIndex > 1 && state.workLoadMode === 'auto'
-      ? '<div class="work-auto-load-panel work-auto-load-panel-top" data-work-auto-load-up-sentinel><p class="settings-status settings-status-subtle">前の断片を自動で読み込みます。</p></div>'
+      ? '<div class="work-auto-load-sentinel work-auto-load-sentinel-top" data-work-auto-load-up-sentinel aria-hidden="true"></div>'
       : '';
     const endingCardHtml = shownTextCount >= totalTextFragments && totalTextFragments > 0
       ? workEndingCardMarkup({ isCompleted: getWorkReadingStatus(workId) === 'completed', markerId: WORK_END_MARKER_ID })
@@ -364,10 +364,22 @@ export function createWorkRenderers({
       const beforeTop = anchor?.getBoundingClientRect().top ?? null;
       mutation();
       if (anchor && beforeTop !== null && anchor.isConnected) {
-        const delta = anchor.getBoundingClientRect().top - beforeTop;
-        if (Math.abs(delta) > 0.5) {
-          window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
-        }
+        const restoreAnchor = () => {
+          if (!anchor.isConnected) {
+            return;
+          }
+          const delta = anchor.getBoundingClientRect().top - beforeTop;
+          if (Math.abs(delta) > 0.5) {
+            window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
+          }
+        };
+        restoreAnchor();
+        const correctedScrollY = window.scrollY;
+        requestAnimationFrame(() => {
+          if (Math.abs(window.scrollY - correctedScrollY) < 1) {
+            restoreAnchor();
+          }
+        });
       }
     };
 
@@ -416,9 +428,9 @@ export function createWorkRenderers({
       }
       if (firstShownTextIndex > 1 && !app.querySelector('[data-work-auto-load-up-sentinel]')) {
         const panel = document.createElement('div');
-        panel.className = 'work-auto-load-panel work-auto-load-panel-top';
+        panel.className = 'work-auto-load-sentinel work-auto-load-sentinel-top';
         panel.dataset.workAutoLoadUpSentinel = '';
-        panel.innerHTML = '<p class="settings-status settings-status-subtle">前の断片を自動で読み込みます。</p>';
+        panel.setAttribute('aria-hidden', 'true');
         timeline.prepend(panel);
       }
       if (shownTextCount < totalTextFragments && !app.querySelector('[data-work-auto-load-sentinel]')) {
