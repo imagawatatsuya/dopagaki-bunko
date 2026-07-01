@@ -30,6 +30,9 @@ export function parseSearchRouteIntent(hash) {
 
 export function buildWorkHash(workId, options = {}) {
   const params = new URLSearchParams();
+  if (options.from && Number.isFinite(options.from) && options.from > 1) {
+    params.set('from', String(options.from));
+  }
   if (options.visible && Number.isFinite(options.visible)) {
     params.set('visible', String(options.visible));
   }
@@ -41,20 +44,27 @@ export function buildWorkHash(workId, options = {}) {
   return `#/work/${encodeURIComponent(workId)}${query ? `?${query}` : ''}`;
 }
 
-export function buildWorkOutlineHash(workId, outlineEntry, workPageBatchSize) {
-  const fragmentId = typeof outlineEntry?.fragmentId === 'string' ? outlineEntry.fragmentId : '';
-  const fragmentIndex = Number(outlineEntry?.fragmentIndex);
+export function buildWorkFocusHash(workId, fragmentEntry, workPageBatchSize) {
+  const fragmentId = typeof fragmentEntry?.fragmentId === 'string'
+    ? fragmentEntry.fragmentId
+    : (typeof fragmentEntry?.id === 'string' ? fragmentEntry.id : '');
+  const fragmentIndex = Number(fragmentEntry?.fragmentIndex ?? fragmentEntry?.index);
   if (!workId || !fragmentId || !Number.isFinite(fragmentIndex) || fragmentIndex < 1) {
     return '';
   }
 
-  const visible = Number.isFinite(workPageBatchSize)
-    ? Math.max(workPageBatchSize, fragmentIndex)
-    : fragmentIndex;
+  const batchSize = Number.isFinite(workPageBatchSize) ? Math.max(1, workPageBatchSize) : 1;
+  const from = Math.max(1, fragmentIndex - Math.min(4, batchSize - 1));
+  const visible = from + batchSize - 1;
   return buildWorkHash(workId, {
+    from,
     visible,
     focus: fragmentId
   });
+}
+
+export function buildWorkOutlineHash(workId, outlineEntry, workPageBatchSize) {
+  return buildWorkFocusHash(workId, outlineEntry, workPageBatchSize);
 }
 
 export function buildWorkEndHash(workId, totalTextFragments, workPageBatchSize, endMarkerId = 'work-end-marker') {
@@ -63,11 +73,11 @@ export function buildWorkEndHash(workId, totalTextFragments, workPageBatchSize, 
     return '';
   }
 
-  const visible = Number.isFinite(workPageBatchSize)
-    ? Math.max(workPageBatchSize, totalCount)
-    : totalCount;
+  const batchSize = Number.isFinite(workPageBatchSize) ? Math.max(1, workPageBatchSize) : totalCount;
+  const from = Math.max(1, totalCount - batchSize + 1);
   return buildWorkHash(workId, {
-    visible,
+    from,
+    visible: totalCount,
     focus: endMarkerId
   });
 }

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Improved large-work reading performance: bookmark/sticky-note taps now update local state without reloading every IndexedDB store, automatic continuation appends only the next batch instead of rebuilding all visible cards, and outline/bookmark/sticky-note jumps open a bounded fragment range around the destination instead of rendering every fragment from the beginning.
 - Fixed the add-work paste textarea so saved pasted text and PC/URL handoff text no longer reappear the next time the import sheet opens, while still preserving unsaved manual drafts when the sheet is closed.
 - Hardened IndexedDB recovery for iPhone-style app switching by reopening stale DB connections after transaction/request failures and reloading saved state when the page becomes visible again, reducing silent bookmark/save failures after returning from other apps.
 - Added reader-visible failure messages on fragment and work pages for bookmark, sticky-note, memo, completion-toggle, and resume reload errors, so naturally occurring iPhone recovery failures now leave the underlying error text on screen instead of failing silently.

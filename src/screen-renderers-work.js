@@ -9,6 +9,7 @@ import {
 import {
   buildCollectionHash,
   buildWorkEndHash,
+  buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
 } from './router.js?v=20260630135044';
@@ -43,7 +44,6 @@ export function createWorkRenderers({
   renderWorkLayout,
   renderReaderScaleControls,
   ensureWorkMarkedReadingAtIndex,
-  loadStateFromDb,
   removeBookmark,
   removeLike,
   saveLike,
@@ -80,23 +80,37 @@ export function createWorkRenderers({
 
     try {
       const overlayState = getWorkOverlayState(fragmentId);
+      const previousBookmarkId = getBookmarkForWork(state.bookmarkRecords, fragment.workId)?.fragmentId ?? '';
       if (overlayState === 'bookmark') {
         await removeBookmark(fragment.workId);
+        state.bookmarkRecords = state.bookmarkRecords.filter((item) => item.workId !== fragment.workId);
+        state.bookmarks.delete(fragmentId);
         if (!state.likes.has(fragmentId)) {
           await saveLike(fragmentId);
+          const record = {
+            id: fragmentId,
+            fragmentId,
+            savedAt: new Date().toISOString(),
+            note: ''
+          };
+          state.likeRecords = [record, ...state.likeRecords.filter((item) => item.fragmentId !== fragmentId)];
+          state.likes.add(fragmentId);
         }
       } else if (overlayState === 'like') {
         await removeLike(fragmentId);
+        state.likeRecords = state.likeRecords.filter((item) => item.fragmentId !== fragmentId);
+        state.likes.delete(fragmentId);
       } else {
         await toggleBookmark(fragmentId, { rerender: false });
       }
 
       clearReaderActionStatus();
-      await loadStateFromDb();
+      return [...new Set([fragmentId, previousBookmarkId].filter(Boolean))];
     } catch (error) {
       console.error(error);
       setReaderActionError('しおり/ふせん更新', error);
       route();
+      return [];
     }
   }
 
@@ -109,20 +123,27 @@ export function createWorkRenderers({
 
     const totalTextFragments = countWorkTextFragments(state.fragments, workId);
     const readableWorkFragments = getReadableWorkFragments(state.fragments, workId);
-    const visibleTextCount = Math.min(
+    let visibleTextCount = Math.min(
       getVisibleCountParam(options.visible, workPageBatchSize),
       totalTextFragments || workPageBatchSize
     );
-    const { fragments, shownTextCount } = sliceWorkFragmentsForVisibleCount(state.fragments, workId, visibleTextCount);
+    const fromTextIndex = Math.min(
+      getVisibleCountParam(options.from, 1),
+      Math.max(1, visibleTextCount)
+    );
+    const { fragments, shownTextCount: initialShownTextCount, firstShownTextIndex } = sliceWorkFragmentsForVisibleCount(
+      state.fragments,
+      workId,
+      visibleTextCount,
+      fromTextIndex
+    );
+    let shownTextCount = initialShownTextCount;
     const remainingTextCount = Math.max(0, totalTextFragments - shownTextCount);
-    const returnToHash = buildWorkHash(workId, { visible: shownTextCount });
+    const returnToHash = buildWorkHash(workId, { from: fromTextIndex, visible: shownTextCount });
     const bookmark = getBookmarkForWork(state.bookmarkRecords, workId);
     const likeRecords = getLikeRecordsForWork(state.likeRecords, state.fragments, workId);
     const bookmarkJumpHash = bookmark
-      ? buildWorkHash(workId, {
-          visible: Math.max(workPageBatchSize, Number(bookmark.fragmentIndex) || workPageBatchSize),
-          focus: bookmark.fragmentId
-        })
+      ? buildWorkFocusHash(workId, bookmark, workPageBatchSize)
       : '';
     const bookmarkHtml = bookmark
       ? `<p class="settings-status settings-status-subtle"><a class="text-link" href="${bookmarkJumpHash}">しおりの断片 ${bookmark.fragmentIndex} を開く</a></p>`
@@ -173,6 +194,16 @@ export function createWorkRenderers({
     const fragmentsHtml = fragments.map((fragment) => fragment.type === 'break'
       ? (fragment.breakKind === 'heading' ? '' : breakCardMarkup())
       : renderWorkFragmentCard(fragment, returnToHash)).join('');
+    const earlierLinkHtml = firstShownTextIndex > 1
+      ? `
+        <div class="settings-button-grid">
+          <a class="detail-action-button detail-action-link" href="${buildWorkHash(workId, {
+            from: Math.max(1, firstShownTextIndex - workPageBatchSize),
+            visible: shownTextCount
+          })}">前の断片を読む</a>
+        </div>
+      `
+      : '';
     const endingCardHtml = shownTextCount >= totalTextFragments && totalTextFragments > 0
       ? workEndingCardMarkup({ isCompleted: getWorkReadingStatus(workId) === 'completed', markerId: WORK_END_MARKER_ID })
       : '';
@@ -199,13 +230,14 @@ export function createWorkRenderers({
         workAuthor: escapeHtml(work.author ?? ''),
         totalTextFragments,
         shownTextCount,
+        firstShownTextIndex,
         actionStatusHtml: readerActionStatusMarkup(state.readerActionStatus, state.readerActionStatusTone),
         bookmarkHtml,
         markerHtml,
         outlineHtml,
         readerScaleControlsHtml: renderReaderScaleControls(),
         fragmentsHtml,
-        moreLinkHtml,
+        moreLinkHtml: `${earlierLinkHtml}${moreLinkHtml}`,
         endingCardHtml
       })
     });
@@ -242,10 +274,7 @@ export function createWorkRenderers({
         return;
       }
 
-      location.hash = buildWorkHash(workId, {
-        visible: Math.max(workPageBatchSize, targetIndex),
-        focus: targetFragment.id
-      });
+      location.hash = buildWorkFocusHash(workId, targetFragment, workPageBatchSize);
     });
     state.workHeaderProgressCleanup = bindWorkHeaderProgress(
       app,
@@ -255,17 +284,7 @@ export function createWorkRenderers({
         ensureWorkMarkedReadingAtIndex(workId, activeIndex);
       }
     );
-    state.workAutoLoadCleanup = bindWorkAutoLoad(app, {
-      enabled: state.workLoadMode === 'auto',
-      shownTextCount,
-      totalTextFragments,
-      onIntersect: () => {
-        location.replace(buildWorkHash(workId, {
-          visible: shownTextCount + workPageBatchSize
-        }));
-      }
-    });
-    bindWorkStateActions(app, async (action) => {
+    const handleWorkStateAction = async (action) => {
       if (action !== 'mark-complete') {
         return;
       }
@@ -279,15 +298,85 @@ export function createWorkRenderers({
         setReaderActionError('読了切替', error);
         route();
       }
-    });
-    bindWorkOverlayActions(app, async (fragmentId) => {
-      await cycleWorkOverlayState(fragmentId);
-      app.querySelectorAll('[data-work-action="cycle-marker"]').forEach((item) => {
+    };
+    const handleOverlayCycle = async (fragmentId) => {
+      const changedFragmentIds = await cycleWorkOverlayState(fragmentId);
+      changedFragmentIds.forEach((changedFragmentId) => {
+        const item = app.querySelector(`[data-work-action="cycle-marker"][data-fragment-id="${CSS.escape(changedFragmentId)}"]`);
+        if (!item) {
+          return;
+        }
         const overlayState = getWorkOverlayState(item.dataset.fragmentId);
         const fragmentIndex = Number(item.dataset.fragmentIndex || 0);
         updateWorkOverlayButton(item, overlayState, overlayButtonAriaLabel(fragmentIndex, overlayState));
       });
-    });
+    };
+    const bindAutoLoadForCurrentRange = () => {
+      state.workAutoLoadCleanup = bindWorkAutoLoad(app, {
+        enabled: state.workLoadMode === 'auto',
+        shownTextCount,
+        totalTextFragments,
+        onIntersect: () => {
+          const nextVisibleTextCount = Math.min(totalTextFragments, shownTextCount + workPageBatchSize);
+          const nextBatch = sliceWorkFragmentsForVisibleCount(
+            state.fragments,
+            workId,
+            nextVisibleTextCount,
+            shownTextCount + 1
+          );
+          const timeline = app.querySelector('.timeline[aria-label="作品断片一覧"]');
+          if (!timeline || nextBatch.fragments.length === 0) {
+            return;
+          }
+
+          const nextReturnToHash = buildWorkHash(workId, {
+            from: fromTextIndex,
+            visible: nextVisibleTextCount
+          });
+          const batchHtml = nextBatch.fragments.map((fragment) => fragment.type === 'break'
+            ? (fragment.breakKind === 'heading' ? '' : breakCardMarkup())
+            : renderWorkFragmentCard(fragment, nextReturnToHash)).join('');
+          const batchContainer = document.createElement('div');
+          batchContainer.innerHTML = batchHtml;
+          bindWorkOverlayActions(batchContainer, handleOverlayCycle);
+          while (batchContainer.firstChild) {
+            timeline.append(batchContainer.firstChild);
+          }
+
+          shownTextCount = nextVisibleTextCount;
+          visibleTextCount = nextVisibleTextCount;
+          const shownCountNode = app.querySelector('[data-work-shown-count]');
+          if (shownCountNode) {
+            shownCountNode.textContent = `${firstShownTextIndex > 1 ? `${firstShownTextIndex}–` : ''}${shownTextCount}`;
+          }
+          const autoLoadPanel = app.querySelector('[data-work-auto-load-sentinel]');
+          const remaining = Math.max(0, totalTextFragments - shownTextCount);
+          if (autoLoadPanel) {
+            if (remaining > 0) {
+              autoLoadPanel.querySelector('p').textContent = `続きを自動で読み込みます。残り ${remaining}断片`;
+            } else {
+              autoLoadPanel.remove();
+            }
+          }
+          if (shownTextCount >= totalTextFragments) {
+            const endingContainer = document.createElement('div');
+            endingContainer.innerHTML = workEndingCardMarkup({
+              isCompleted: getWorkReadingStatus(workId) === 'completed',
+              markerId: WORK_END_MARKER_ID
+            });
+            bindWorkStateActions(endingContainer, handleWorkStateAction);
+            while (endingContainer.firstChild) {
+              timeline.append(endingContainer.firstChild);
+            }
+            return;
+          }
+          bindAutoLoadForCurrentRange();
+        }
+      });
+    };
+    bindAutoLoadForCurrentRange();
+    bindWorkStateActions(app, handleWorkStateAction);
+    bindWorkOverlayActions(app, handleOverlayCycle);
   }
 
   return { renderWorkPage };

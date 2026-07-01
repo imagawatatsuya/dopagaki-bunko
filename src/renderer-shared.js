@@ -1,6 +1,7 @@
 import {
   buildCollectionHash,
   buildFragmentHash,
+  buildWorkFocusHash,
   buildWorkHash,
   parseHashRoute
 } from './router.js?v=20260630135044';
@@ -178,10 +179,7 @@ export function createRendererHelpers({ state, appShell, workPageBatchSize }) {
       ? buildFragmentHash(item.fragment.id, { returnTo: collectionHash })
       : '';
     const timelineLink = item.fragment
-      ? buildWorkHash(item.fragment.workId, {
-          visible: Math.max(workPageBatchSize, item.fragment.index ?? workPageBatchSize),
-          focus: item.fragment.id
-        })
+      ? buildWorkFocusHash(item.fragment.workId, item.fragment, workPageBatchSize)
       : '';
     const savedDate = item.record.savedAt ? new Date(item.record.savedAt).toLocaleString('ja-JP') : '';
 

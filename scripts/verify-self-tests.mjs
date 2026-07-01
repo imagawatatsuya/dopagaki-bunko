@@ -15,7 +15,12 @@ import { fragmentText } from '../src/fragmenter.js';
 import { buildWorkEndHash, buildWorkOutlineHash, parseSearchRouteIntent } from '../src/router.js';
 import { normalizeConverterBaseUrl } from '../src/remote-import.js';
 import { createAppData } from '../src/app-data.js';
-import { canonicalizeBookmarkRecords, normalizeHeadingBreakKinds, sameBookmarkRecords } from '../src/state.js';
+import {
+  canonicalizeBookmarkRecords,
+  normalizeHeadingBreakKinds,
+  sameBookmarkRecords,
+  sliceWorkFragmentsForVisibleCount
+} from '../src/state.js';
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
 import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
@@ -1028,12 +1033,12 @@ test('search route intent opens the import sheet and carries remoteImportUrl', (
   assert.equal(plainSearchIntent.shouldConsumeWindowNameImport, false);
 });
 
-test('outline jump helper reuses work visible/focus routing', () => {
+test('outline jump helper opens a bounded range around the focused fragment', () => {
   const href = buildWorkOutlineHash('work-1', {
     fragmentId: 'work-1-fragment-0007',
     fragmentIndex: 7
   }, 5);
-  assert.equal(href, '#/work/work-1?visible=7&focus=work-1-fragment-0007');
+  assert.equal(href, '#/work/work-1?from=3&visible=7&focus=work-1-fragment-0007');
 
   const earlyHref = buildWorkOutlineHash('work-1', {
     fragmentId: 'work-1-fragment-0002',
@@ -1041,7 +1046,29 @@ test('outline jump helper reuses work visible/focus routing', () => {
   }, 5);
   assert.equal(earlyHref, '#/work/work-1?visible=5&focus=work-1-fragment-0002');
 
+  const lateHref = buildWorkOutlineHash('work-1', {
+    fragmentId: 'work-1-fragment-6500',
+    fragmentIndex: 6500
+  }, 24);
+  assert.equal(lateHref, '#/work/work-1?from=6496&visible=6519&focus=work-1-fragment-6500');
+
   assert.equal(buildWorkOutlineHash('work-1', { fragmentIndex: 3 }, 5), '');
+});
+
+test('work fragment slicing can open a bounded range without materializing its prefix', () => {
+  const fragments = Array.from({ length: 7000 }, (_, offset) => ({
+    id: `fragment-${offset + 1}`,
+    workId: 'work-1',
+    index: offset + 1,
+    type: 'fragment'
+  }));
+  const result = sliceWorkFragmentsForVisibleCount(fragments, 'work-1', 6519, 6496);
+
+  assert.equal(result.fragments.length, 24);
+  assert.equal(result.fragments[0].id, 'fragment-6496');
+  assert.equal(result.fragments.at(-1).id, 'fragment-6519');
+  assert.equal(result.shownTextCount, 6519);
+  assert.equal(result.firstShownTextIndex, 6496);
 });
 
 test('library deletion prompt labels follow the visible reading-status tabs', () => {
@@ -1053,10 +1080,10 @@ test('library deletion prompt labels follow the visible reading-status tabs', ()
 
 test('work end jump helper targets the page-bottom marker', () => {
   const href = buildWorkEndHash('work-1', 12, 5);
-  assert.equal(href, '#/work/work-1?visible=12&focus=work-end-marker');
+  assert.equal(href, '#/work/work-1?from=8&visible=12&focus=work-end-marker');
 
   const shortHref = buildWorkEndHash('work-1', 3, 5);
-  assert.equal(shortHref, '#/work/work-1?visible=5&focus=work-end-marker');
+  assert.equal(shortHref, '#/work/work-1?visible=3&focus=work-end-marker');
 
   assert.equal(buildWorkEndHash('work-1', 0, 5), '');
 });

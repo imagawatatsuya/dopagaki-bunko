@@ -331,10 +331,11 @@ export function getVisibleCountParam(value, fallback) {
   return parsed;
 }
 
-export function sliceWorkFragmentsForVisibleCount(fragments, workId, visibleTextCount) {
+export function sliceWorkFragmentsForVisibleCount(fragments, workId, visibleTextCount, fromTextIndex = 1) {
   const workFragments = fragments.filter((fragment) => fragment.workId === workId);
   const limited = [];
   let textCount = 0;
+  const normalizedFrom = Math.max(1, Number.parseInt(String(fromTextIndex), 10) || 1);
 
   for (const fragment of workFragments) {
     if (fragment.type === 'break') {
@@ -344,12 +345,15 @@ export function sliceWorkFragmentsForVisibleCount(fragments, workId, visibleText
       continue;
     }
 
-    if (textCount >= visibleTextCount) {
+    textCount += 1;
+    if (textCount < normalizedFrom) {
+      continue;
+    }
+    if (textCount > visibleTextCount) {
       break;
     }
 
     limited.push(fragment);
-    textCount += 1;
   }
 
   while (limited.at(-1)?.type === 'break') {
@@ -358,6 +362,7 @@ export function sliceWorkFragmentsForVisibleCount(fragments, workId, visibleText
 
   return {
     fragments: limited,
-    shownTextCount: textCount
+    shownTextCount: Math.min(textCount, visibleTextCount),
+    firstShownTextIndex: limited.find((fragment) => fragment.type !== 'break')?.index ?? normalizedFrom
   };
 }

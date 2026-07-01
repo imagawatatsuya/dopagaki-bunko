@@ -260,15 +260,19 @@ export function bindWorkHeaderProgress(root, totalTextFragments, getRemainingPer
   const currentNode = root.querySelector('[data-work-progress-current]');
   const totalNode = root.querySelector('[data-work-progress-total]');
   const remainingNode = root.querySelector('[data-work-progress-remaining]');
-  const cards = [...root.querySelectorAll('[data-work-fragment-index]')];
+  const initialCards = root.querySelectorAll('[data-work-fragment-index]');
 
-  if (!currentNode || !totalNode || !remainingNode || cards.length === 0) {
+  if (!currentNode || !totalNode || !remainingNode || initialCards.length === 0) {
     return null;
   }
 
   totalNode.textContent = String(totalTextFragments);
 
   const readCurrentIndex = () => {
+    const cards = root.querySelectorAll('[data-work-fragment-index]');
+    if (cards.length === 0) {
+      return;
+    }
     const headerBottom = root.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
     let activeIndex = Number(cards[0].dataset.workFragmentIndex || 1);
 

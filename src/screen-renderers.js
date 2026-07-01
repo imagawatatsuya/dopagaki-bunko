@@ -89,7 +89,6 @@ export function createScreenRenderers({
     renderWorkLayout,
     renderReaderScaleControls: appShell.renderReaderScaleControls,
     ensureWorkMarkedReadingAtIndex,
-    loadStateFromDb,
     removeBookmark,
     removeLike,
     saveLike,

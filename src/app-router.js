@@ -21,6 +21,7 @@ export function createAppRouter({
 
     if (routeState.path.startsWith('#/work/')) {
       renderers.renderWorkPage(decodeURIComponent(routeState.path.replace('#/work/', '')), {
+        from: routeState.params.get('from'),
         visible: routeState.params.get('visible'),
         focus: routeState.params.get('focus') || ''
       });

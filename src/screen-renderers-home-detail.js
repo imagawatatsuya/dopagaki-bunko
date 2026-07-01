@@ -4,6 +4,7 @@ import {
 } from './state.js?v=20260630135044';
 import {
   buildFragmentHash,
+  buildWorkFocusHash,
   buildWorkHash
 } from './router.js?v=20260630135044';
 import {
@@ -47,10 +48,7 @@ export function createHomeDetailRenderers({
     const timelineCardsHtml = timelineEvents.map((event) => {
       const eventTargetsWorkPosition = event.id.startsWith('bookmark:') || event.id.startsWith('like:');
       const detailHref = eventTargetsWorkPosition
-        ? buildWorkHash(event.fragment.workId, {
-            visible: Math.max(workPageBatchSize, Number(event.fragment.index) || workPageBatchSize),
-            focus: event.fragment.id
-          })
+        ? buildWorkFocusHash(event.fragment.workId, event.fragment, workPageBatchSize)
         : buildWorkHash(event.fragment.workId, {
             visible: workPageBatchSize
           });
@@ -97,10 +95,7 @@ export function createHomeDetailRenderers({
     const likeRecord = state.likeRecords.find((item) => item.fragmentId === fragment.id) ?? null;
     const noteText = typeof likeRecord?.note === 'string' ? likeRecord.note.trim() : '';
     const safeDisplayHtml = normalizeFragmentDisplayHtml(fragment.displayHtml);
-    const workHash = buildWorkHash(fragment.workId, {
-      visible: Math.max(workPageBatchSize, fragment.index ?? workPageBatchSize),
-      focus: fragment.id
-    });
+    const workHash = buildWorkFocusHash(fragment.workId, fragment, workPageBatchSize);
     const backToHash = options.returnTo || workHash;
     const showBackLink = Boolean(options.returnTo && options.returnTo !== workHash);
     const noteButtonLabel = noteText ? `メモ: ${escapeHtml(noteText)}` : 'メモを追加';

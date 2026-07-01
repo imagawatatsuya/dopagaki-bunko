@@ -515,6 +515,7 @@ export function workBodyMarkup({
   workAuthor,
   totalTextFragments,
   shownTextCount,
+  firstShownTextIndex = 1,
   actionStatusHtml = '',
   bookmarkHtml,
   markerHtml,
@@ -532,7 +533,7 @@ export function workBodyMarkup({
             <h2 class="section-title">${workTitle}</h2>
             <p class="section-text">${workAuthor}</p>
             <p class="settings-status settings-status-subtle">${totalTextFragments}断片</p>
-            <p class="settings-status settings-status-subtle">表示中: ${shownTextCount}断片</p>
+            <p class="settings-status settings-status-subtle">表示中: <span data-work-shown-count>${firstShownTextIndex > 1 ? `${firstShownTextIndex}–` : ''}${shownTextCount}</span>断片</p>
             ${actionStatusHtml}
             ${bookmarkHtml}
             ${markerHtml}
