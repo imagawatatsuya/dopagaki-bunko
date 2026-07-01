@@ -6,14 +6,14 @@ import {
   getReadableWorkFragments,
   getVisibleCountParam,
   sliceWorkFragmentsForVisibleCount
-} from './state.js?v=20260701141942';
+} from './state.js?v=20260701143046';
 import {
   buildCollectionHash,
   buildWorkEndHash,
   buildWorkFocusHash,
   buildWorkHash,
   buildWorkOutlineHash
-} from './router.js?v=20260701141942';
+} from './router.js?v=20260701143046';
 import {
   bindReaderScaleControls,
   bindWorkAutoLoad,
@@ -23,19 +23,19 @@ import {
   bindWorkStateActions,
   focusFragmentCard,
   updateWorkOverlayButton
-} from './ui-bindings.js?v=20260701141942';
+} from './ui-bindings.js?v=20260701143046';
 import {
   breakCardMarkup,
   readerActionStatusMarkup,
   workBodyMarkup,
   workEndingCardMarkup
-} from './views.js?v=20260701141942';
+} from './views.js?v=20260701143046';
 import {
   WORK_END_MARKER_ID,
   calculateRemainingPercent,
   outlineLevelClassName,
   renderWorkHeaderMeta
-} from './renderer-shared.js?v=20260701141942';
+} from './renderer-shared.js?v=20260701143046';
 
 export function createWorkRenderers({
   app,
@@ -215,6 +215,34 @@ export function createWorkRenderers({
         </div>
       `
       : '';
+    const navigationSheetHtml = `
+      <div class="sheet-backdrop" data-work-navigation-backdrop data-work-header-action="close-navigation" aria-hidden="true" hidden></div>
+      <section class="bottom-sheet work-navigation-sheet" data-work-navigation-sheet role="dialog" aria-modal="true" aria-label="作品内を移動" hidden>
+        <div class="bottom-sheet-handle" aria-hidden="true"></div>
+        <div class="bottom-sheet-body">
+          <div class="bottom-sheet-header">
+            <div>
+              <h2 class="section-title">作品内を移動</h2>
+              <p class="section-text">${escapeHtml(work.title ?? '無題')}</p>
+            </div>
+            <button type="button" class="detail-action-button bottom-sheet-close" data-work-header-action="close-navigation">閉じる</button>
+          </div>
+          <div class="work-navigation-primary">
+            <button type="button" class="work-navigation-link" data-work-header-action="jump-work-summary">作品情報へ戻る</button>
+            <button type="button" class="work-navigation-link" data-work-header-action="return-current">現在位置へ戻る</button>
+            ${bookmarkJumpHash ? `<a class="work-navigation-link" href="${bookmarkJumpHash}">しおりの断片 ${bookmark.fragmentIndex}</a>` : ''}
+          </div>
+          ${outlineEntries.length > 0 ? `
+            <div class="work-navigation-outline" aria-label="目次">
+              ${outlineEntries.map((entry) => `
+                <a class="work-navigation-link ${outlineLevelClassName(entry.level)}" href="${entry.href}">${escapeHtml(entry.title)}</a>
+              `).join('')}
+            </div>
+          ` : '<p class="settings-status settings-status-subtle">目次情報はありません。</p>'}
+          ${workEndHash ? `<a class="work-navigation-link work-navigation-link-terminal" href="${workEndHash}">原文終端</a>` : ''}
+        </div>
+      </section>
+    `;
     const topLoadHtml = firstShownTextIndex > 1 && state.workLoadMode === 'auto'
       ? '<div class="work-auto-load-sentinel work-auto-load-sentinel-top" data-work-auto-load-up-sentinel aria-hidden="true"></div>'
       : '';
@@ -243,6 +271,7 @@ export function createWorkRenderers({
 
     renderWorkLayout({
       title: work.title ?? '作品ページ',
+      titleHtml: `<button type="button" class="page-title-button" data-work-header-action="open-navigation" aria-expanded="false">${escapeHtml(work.title ?? '作品ページ')}<span class="page-title-button-marker" aria-hidden="true"></span></button>`,
       subtitle: work.author ?? '著者不明',
       headerMetaHtml: renderWorkHeaderMeta(shownTextCount, totalTextFragments),
       body: workBodyMarkup({
@@ -259,7 +288,8 @@ export function createWorkRenderers({
         fragmentsHtml,
         topLoadHtml,
         moreLinkHtml: `${earlierLinkHtml}${moreLinkHtml}`,
-        endingCardHtml
+        endingCardHtml,
+        navigationSheetHtml
       })
     });
 
@@ -273,7 +303,59 @@ export function createWorkRenderers({
       saveReaderFontScale(value);
       route();
     });
-    bindWorkHeaderActions(app, async (action) => {
+    let navigationReturnFragmentId = '';
+    const setNavigationOpen = (isOpen) => {
+      const sheet = app.querySelector('[data-work-navigation-sheet]');
+      const backdrop = app.querySelector('[data-work-navigation-backdrop]');
+      const titleButton = app.querySelector('[data-work-header-action="open-navigation"]');
+      if (!sheet || !backdrop || !titleButton) {
+        return;
+      }
+      const wasOpen = !sheet.hidden;
+      if (!isOpen && !wasOpen) {
+        return;
+      }
+      sheet.hidden = !isOpen;
+      backdrop.hidden = !isOpen;
+      titleButton.setAttribute('aria-expanded', String(isOpen));
+      if (isOpen) {
+        const headerBottom = app.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
+        navigationReturnFragmentId = [...app.querySelectorAll('[data-work-fragment-index]')]
+          .find((card) => card.getBoundingClientRect().bottom > headerBottom + 8)?.dataset.fragmentId ?? '';
+        sheet.querySelector('[data-work-header-action="close-navigation"]')?.focus();
+      } else {
+        titleButton.focus();
+      }
+    };
+    const scrollElementBelowHeader = (element) => {
+      if (!element) {
+        return;
+      }
+      const headerBottom = app.querySelector('.page-header')?.getBoundingClientRect().bottom ?? 0;
+      const top = window.scrollY + element.getBoundingClientRect().top - headerBottom - 8;
+      window.scrollTo({ top: Math.max(0, top), left: 0, behavior: 'auto' });
+    };
+    state.workHeaderActionsCleanup = bindWorkHeaderActions(app, async (action) => {
+      if (action === 'open-navigation') {
+        setNavigationOpen(true);
+        return;
+      }
+      if (action === 'close-navigation') {
+        setNavigationOpen(false);
+        return;
+      }
+      if (action === 'jump-work-summary') {
+        setNavigationOpen(false);
+        scrollElementBelowHeader(app.querySelector('[data-work-summary]'));
+        return;
+      }
+      if (action === 'return-current') {
+        setNavigationOpen(false);
+        if (navigationReturnFragmentId) {
+          focusFragmentCard(app, navigationReturnFragmentId);
+        }
+        return;
+      }
       if (action !== 'jump-to-fragment' || totalTextFragments <= 0) {
         return;
       }

@@ -20,11 +20,11 @@ export function navMarkup(current) {
   `).join('')}</nav>`;
 }
 
-export function layoutMarkup({ current, title, subtitle, body, headerMetaHtml = '', headerClassName = '', eyebrowHtml = '' }) {
+export function layoutMarkup({ current, title, titleHtml = '', subtitle, body, headerMetaHtml = '', headerClassName = '', eyebrowHtml = '' }) {
   return `
     <header class="page-header ${headerClassName}">
       ${eyebrowHtml}
-      <h1 class="page-title">${title}</h1>
+      <h1 class="page-title">${titleHtml || title}</h1>
       <p class="page-subtitle">${subtitle}</p>
       ${headerMetaHtml}
     </header>
@@ -524,11 +524,12 @@ export function workBodyMarkup({
   fragmentsHtml,
   topLoadHtml = '',
   moreLinkHtml,
-  endingCardHtml = ''
+  endingCardHtml = '',
+  navigationSheetHtml = ''
 }) {
   return `
     <section class="panel-stack">
-      <article class="info-panel">
+      <article class="info-panel" data-work-summary>
         <div class="work-summary-header">
           <div class="work-summary-copy">
             <h2 class="section-title">${workTitle}</h2>
@@ -552,6 +553,7 @@ export function workBodyMarkup({
       ${endingCardHtml}
     </section>
     ${moreLinkHtml}
+    ${navigationSheetHtml}
   `;
 }
 

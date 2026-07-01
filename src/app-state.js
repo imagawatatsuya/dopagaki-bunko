@@ -1,4 +1,4 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260701141942';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260701143046';
 
 export function createInitialAppState() {
   return {
@@ -39,6 +39,7 @@ export function createInitialAppState() {
     readerActionStatusTone: '',
     libraryWorkActionsCleanup: null,
     workHeaderProgressCleanup: null,
+    workHeaderActionsCleanup: null,
     workAutoLoadCleanup: null
   };
 }

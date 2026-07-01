@@ -25,7 +25,16 @@ import {
 import { createInitialAppState } from '../src/app-state.js';
 import { libraryDeleteScopeLabel, returnLinkLabel } from '../src/renderer-shared.js';
 import { buildImportedWorkSavePlan, createSearchActions, findMatchingImportedWork, shouldTreatOpenedWindowAsStalled } from '../src/app-actions.js';
-import { aozoraSearchResultsMarkup, errorBodyMarkup, readerActionStatusMarkup, searchImportSheetMarkup, searchPreviewMarkup, settingsBodyMarkup } from '../src/views.js';
+import {
+  aozoraSearchResultsMarkup,
+  errorBodyMarkup,
+  layoutMarkup,
+  readerActionStatusMarkup,
+  searchImportSheetMarkup,
+  searchPreviewMarkup,
+  settingsBodyMarkup,
+  workBodyMarkup
+} from '../src/views.js';
 
 const tests = [];
 globalThis.requestAnimationFrame = (callback) => {
@@ -1070,6 +1079,28 @@ test('work fragment slicing can open a bounded range without materializing its p
   assert.equal(result.fragments.at(-1).id, 'fragment-6519');
   assert.equal(result.shownTextCount, 6519);
   assert.equal(result.firstShownTextIndex, 6496);
+});
+
+test('work layout supports a title navigation button and navigation sheet', () => {
+  const layout = layoutMarkup({
+    current: 'library',
+    title: '作品名',
+    titleHtml: '<button class="page-title-button">作品名</button>',
+    subtitle: '作者',
+    body: workBodyMarkup({
+      workTitle: '作品名',
+      workAuthor: '作者',
+      totalTextFragments: 7000,
+      shownTextCount: 6519,
+      firstShownTextIndex: 6496,
+      fragmentsHtml: '<article>本文</article>',
+      navigationSheetHtml: '<section data-work-navigation-sheet hidden>作品内を移動</section>'
+    })
+  });
+
+  assert.match(layout, /class="page-title-button"/);
+  assert.match(layout, /data-work-summary/);
+  assert.match(layout, /data-work-navigation-sheet hidden/);
 });
 
 test('work ranges expand by one batch in either direction', () => {

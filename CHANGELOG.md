@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a work-navigation sheet to the sticky work title, providing direct access to the work summary, current position, latest bookmark, saved outline entries, and the original-text ending from anywhere in a long timeline.
 - Stabilized upward loading on iPhone Chrome by disabling competing browser scroll anchoring for the work timeline, keeping the same visible fragment anchored across layout frames, and replacing the visible upper loading panel with a one-pixel sentinel.
 - Fixed upward automatic loading on iPhone Chrome by supplementing `IntersectionObserver` with a scroll-position fallback and ensuring the upper sentinel has measurable height.
 - Improved large-work reading performance: bookmark/sticky-note taps now update local state without reloading every IndexedDB store; automatic continuation loads in both directions while preserving the current viewport; rendered work cards are capped at 192; and outline/bookmark/sticky-note jumps open a bounded fragment range instead of rendering every fragment from the beginning.

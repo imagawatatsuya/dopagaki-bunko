@@ -33,11 +33,25 @@ export function bindWorkOverlayActions(root, onCycleMarker) {
 }
 
 export function bindWorkHeaderActions(root, onAction) {
-  root.querySelectorAll('[data-work-header-action]').forEach((button) => {
-    button.addEventListener('click', async () => {
-      await onAction(button.dataset.workHeaderAction);
-    });
-  });
+  const handleClick = async (event) => {
+    const control = event.target.closest('[data-work-header-action]');
+    if (!control || !root.contains(control)) {
+      return;
+    }
+    event.preventDefault();
+    await onAction(control.dataset.workHeaderAction);
+  };
+  const handleKeydown = async (event) => {
+    if (event.key === 'Escape') {
+      await onAction('close-navigation');
+    }
+  };
+  root.addEventListener('click', handleClick);
+  window.addEventListener('keydown', handleKeydown);
+  return () => {
+    root.removeEventListener('click', handleClick);
+    window.removeEventListener('keydown', handleKeydown);
+  };
 }
 
 export function bindWorkStateActions(root, onAction) {

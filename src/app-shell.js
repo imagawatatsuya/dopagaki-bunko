@@ -1,7 +1,7 @@
-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260701141942';
-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260701141942';
-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260701141942';
-import { layoutMarkup } from './views.js?v=20260701141942';
+import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260701143046';
+import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260701143046';
+import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260701143046';
+import { layoutMarkup } from './views.js?v=20260701143046';
 
 const READER_FONT_SCALE_STORAGE_KEY = 'dopagaki-reader-font-scale';
 const READER_FONT_SCALES = [
@@ -36,6 +36,10 @@ function cleanupRenderState(state) {
   if (typeof state.workHeaderProgressCleanup === 'function') {
     state.workHeaderProgressCleanup();
     state.workHeaderProgressCleanup = null;
+  }
+  if (typeof state.workHeaderActionsCleanup === 'function') {
+    state.workHeaderActionsCleanup();
+    state.workHeaderActionsCleanup = null;
   }
   if (typeof state.workAutoLoadCleanup === 'function') {
     state.workAutoLoadCleanup();
@@ -105,11 +109,12 @@ export function createAppShell({ app, state }) {
     });
   }
 
-  function renderWorkLayout({ title, subtitle, body, headerMetaHtml = '' }) {
+  function renderWorkLayout({ title, titleHtml = '', subtitle, body, headerMetaHtml = '' }) {
     cleanupRenderState(state);
     app.innerHTML = layoutMarkup({
       current: 'library',
       title: escapeHtml(title),
+      titleHtml,
       subtitle: escapeHtml(subtitle),
       body,
       headerMetaHtml,
