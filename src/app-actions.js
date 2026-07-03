@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260703180600';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260703180600';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260703182120';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260703182120';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -257,6 +257,13 @@ export function createSearchActions({
     navigationUrl.searchParams.set('outcome', String(ackPayload?.outcome ?? 'completed'));
     navigationUrl.searchParams.set('error', String(ackPayload?.error ?? ''));
     navigationUrl.searchParams.set('returnUrl', new URL('/dopagaki-import-works.html', navigationUrl).toString());
+    if (bridgeWindow && typeof bridgeWindow.postMessage === 'function') {
+      bridgeWindow.postMessage({
+        type: 'dopagaki-bridge-ack-navigation-v1',
+        url: navigationUrl.toString()
+      }, navigationUrl.origin);
+      return;
+    }
     if (!bridgeWindow || bridgeWindow.closed) {
       const reopenedWindow = globalThis.window?.open?.(
         navigationUrl.toString(),

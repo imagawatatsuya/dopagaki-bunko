@@ -576,6 +576,12 @@ test('bridge receipt ack is sent only after import processing finishes', () => {
   assert.equal(receiptAck > importAwait, true);
 });
 
+test('bridge completion asks the cross-origin bridge to navigate itself', () => {
+  const source = readFileSync(new URL('../src/app-actions.js', import.meta.url), 'utf8');
+  assert.match(source, /type: 'dopagaki-bridge-ack-navigation-v1'/u);
+  assert.match(source, /bridgeWindow\.postMessage\([\s\S]*navigationUrl\.origin/u);
+});
+
 test('save database failure keeps the preview retryable and does not send a failed ack', async () => {
   const state = createInitialAppState();
   const { actions, bridgeAcks } = createSearchActionsForTest(state, {
