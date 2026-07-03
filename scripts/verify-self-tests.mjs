@@ -1334,6 +1334,7 @@ test('database transactions subscribe to completion before running requests', ()
   assert.notEqual(callbackIndex, -1);
   assert.ok(completionIndex < callbackIndex);
   assert.match(source, /IndexedDB transaction timed out/u);
+  assert.match(source, /connection to indexed database server lost/u);
 });
 
 test('reset verification rejects any remaining user-store records', () => {

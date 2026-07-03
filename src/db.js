@@ -115,13 +115,15 @@ function rememberDatabase(database) {
 function isRecoverableDbError(error) {
   const name = String(error?.name ?? '');
   const message = String(error?.message ?? '');
+  const normalizedMessage = message.toLowerCase();
 
   if (name === 'InvalidStateError' || name === 'AbortError' || name === 'TransactionInactiveError' || name === 'UnknownError') {
     return true;
   }
 
   return (
-    message.includes('IndexedDB request failed')
+    normalizedMessage.includes('connection to indexed database server lost')
+    || message.includes('IndexedDB request failed')
     || message.includes('IndexedDB transaction aborted')
     || message.includes('IndexedDB transaction failed')
     || message.includes('IndexedDB transaction timed out')
