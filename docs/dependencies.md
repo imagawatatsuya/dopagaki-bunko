@@ -8,6 +8,13 @@
 
 なし。
 
+## 任意の実行時連携
+
+`aozora-converter-for-dopagaki` とは、パッケージやビルド依存を持たず、利用時だけ
+LAN HTTPとブラウザ `postMessage` で連携する。`dopagaki-bunko` 単体の動作には
+不要であり、外部コードを本アプリへ読み込まない。契約は
+[converter-integration.md](converter-integration.md) に記載する。
+
 ## 禁止
 
 - npm dependencies

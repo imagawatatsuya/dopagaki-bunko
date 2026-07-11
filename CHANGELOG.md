@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `aozora-converter-for-dopagaki` との任意の実行時依存、作品一覧・中継タブ・保存後ACKの連携契約を文書化した。
+- READMEから廃止済みの `PCの最新作を読む` 主導線を削除し、現在の `PCのURL` 導線へ統一した。
 - Fixed bookmark reopening from library work cards so a bookmarked work opens the bounded fragment range containing the saved position instead of starting at the top; clicking the same bookmark jump URL again now reruns the focus jump.
 - Fixed automatic continuation chaining through multiple batches without user movement: each batch now requires a real downward scroll near the lower sentinel before another 24 fragments are appended.
 - Rolled the work reader back to the pre-bidirectional baseline from `c9bfc0d`: removed upward virtual loading, opposite-edge batch deletion, custom scroll anchoring, the sticky-title navigation sheet, and runtime fragment indexing after those changes caused position skips and broken bookmark/sticky-note interactions on iPhone 8.
