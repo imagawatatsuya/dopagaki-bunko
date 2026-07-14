@@ -10,6 +10,8 @@ const ZIP_CENTRAL_DIRECTORY_SIGNATURE = 0x02014b50;
 const ZIP_END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06054b50;
 const ZIP_MAX_UINT32 = 0xffffffff;
 const ZIP_MAX_UINT16 = 0xffff;
+const ZIP_DOS_TIME_MIDNIGHT = 0;
+const ZIP_DOS_DATE_1980_01_01 = 0x0021;
 const ZIP_CRC_TABLE = buildCrc32Table();
 
 export function createExportPayload(data) {
@@ -240,8 +242,8 @@ export function buildStoredZipBlob(entries) {
     writeUint16(localHeader, 4, ZIP_VERSION_NEEDED);
     writeUint16(localHeader, 6, ZIP_UTF8_FLAG);
     writeUint16(localHeader, 8, ZIP_STORE_METHOD);
-    writeUint16(localHeader, 10, 0);
-    writeUint16(localHeader, 12, 0);
+    writeUint16(localHeader, 10, ZIP_DOS_TIME_MIDNIGHT);
+    writeUint16(localHeader, 12, ZIP_DOS_DATE_1980_01_01);
     writeUint32(localHeader, 14, checksum);
     writeUint32(localHeader, 18, dataBytes.byteLength);
     writeUint32(localHeader, 22, dataBytes.byteLength);
@@ -255,8 +257,8 @@ export function buildStoredZipBlob(entries) {
     writeUint16(centralHeader, 6, ZIP_VERSION_NEEDED);
     writeUint16(centralHeader, 8, ZIP_UTF8_FLAG);
     writeUint16(centralHeader, 10, ZIP_STORE_METHOD);
-    writeUint16(centralHeader, 12, 0);
-    writeUint16(centralHeader, 14, 0);
+    writeUint16(centralHeader, 12, ZIP_DOS_TIME_MIDNIGHT);
+    writeUint16(centralHeader, 14, ZIP_DOS_DATE_1980_01_01);
     writeUint32(centralHeader, 16, checksum);
     writeUint32(centralHeader, 20, dataBytes.byteLength);
     writeUint32(centralHeader, 24, dataBytes.byteLength);

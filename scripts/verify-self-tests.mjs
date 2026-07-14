@@ -145,6 +145,8 @@ async function readStoredZipEntries(blob) {
     const path = decoder.decode(bytes.slice(centralOffset + 46, centralOffset + 46 + fileNameLength));
 
     assert.equal(view.getUint32(localOffset, true), 0x04034b50);
+    assert.equal(view.getUint16(localOffset + 10, true), 0);
+    assert.equal(view.getUint16(localOffset + 12, true), 0x0021);
     const localFileNameLength = view.getUint16(localOffset + 26, true);
     const localExtraLength = view.getUint16(localOffset + 28, true);
     const dataOffset = localOffset + 30 + localFileNameLength + localExtraLength;
