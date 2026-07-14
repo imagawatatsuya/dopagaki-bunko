@@ -20,6 +20,7 @@ export function createScreenRenderers({
   handleDetailAction,
   handleImportFileSelection,
   handleTextExportFileSelection,
+  handleTextDriveExportFileSelection,
   handleSearchAction,
   handleSettingsAction,
   loadStateFromDb,
@@ -109,6 +110,7 @@ export function createScreenRenderers({
     handleSettingsAction,
     handleImportFileSelection,
     handleTextExportFileSelection,
+    handleTextDriveExportFileSelection,
     searchResultsBatchSize,
     helpers
   });

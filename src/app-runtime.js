@@ -9,7 +9,7 @@ import {
   createSearchActions,
   createSettingsActions
 } from './app-actions.js?v=20260714223036';
-import { downloadExportJson, downloadTextZipFromExportJsonFile, importJsonData, readImportFile } from './export-import.js?v=20260714223036';
+import { downloadExportJson, downloadTextZipFromExportJsonFile, importJsonData, readImportFile, shareTextZipToGoogleDriveFromExportJsonFile } from './export-import.js?v=20260714223036';
 import { readFileAsArrayBuffer } from './file-reader.js?v=20260714223036';
 import { derivePreviewFromText } from './import-preview.js?v=20260714223036';
 import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260714223036';
@@ -125,11 +125,12 @@ export function createAppRuntime({ app }) {
     confirmLikeRemovalIfNeeded
   });
 
-  const { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection } = createSettingsActions({
+  const { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection, handleTextDriveExportFileSelection } = createSettingsActions({
     state,
     renderSettings: () => renderers.renderSettings(),
     downloadExportJson,
     downloadTextZipFromExportJsonFile,
+    shareTextZipToGoogleDriveFromExportJsonFile,
     readImportFile,
     importJsonData,
     buildImportSummary,
@@ -148,6 +149,9 @@ export function createAppRuntime({ app }) {
     },
     pickTextExportInput: () => {
       app.querySelector('[data-settings-input="export-texts-json"]')?.click();
+    },
+    pickTextDriveExportInput: () => {
+      app.querySelector('[data-settings-input="export-texts-drive-json"]')?.click();
     }
   });
 
@@ -166,6 +170,7 @@ export function createAppRuntime({ app }) {
     handleSettingsAction,
     loadStateFromDb,
     handleTextExportFileSelection,
+    handleTextDriveExportFileSelection,
     removeBookmark,
     removeLike,
     resetWorkToUnread,

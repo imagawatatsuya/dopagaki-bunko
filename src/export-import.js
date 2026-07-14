@@ -303,7 +303,7 @@ function downloadBlob(blob, downloadName) {
   }, 0);
 }
 
-export async function downloadTextZipFromExportJsonFile(file) {
+async function buildTextZipFromExportJsonFile(file) {
   const jsonText = await file.text();
   const stores = parseImportJson(jsonText);
   const entries = buildWorkTextEntriesFromStores(stores);
@@ -313,11 +313,47 @@ export async function downloadTextZipFromExportJsonFile(file) {
 
   const exportedAt = new Date().toISOString();
   const downloadName = buildTextZipDownloadName(exportedAt);
-  downloadBlob(buildStoredZipBlob(entries), downloadName);
+  const blob = buildStoredZipBlob(entries);
   return {
+    blob,
     downloadName,
     exportedAt,
     workCount: entries.length
+  };
+}
+
+export async function downloadTextZipFromExportJsonFile(file) {
+  const result = await buildTextZipFromExportJsonFile(file);
+  downloadBlob(result.blob, result.downloadName);
+  return {
+    downloadName: result.downloadName,
+    exportedAt: result.exportedAt,
+    workCount: result.workCount
+  };
+}
+
+export async function shareTextZipToGoogleDriveFromExportJsonFile(file) {
+  const result = await buildTextZipFromExportJsonFile(file);
+  const shareNavigator = globalThis.navigator;
+  if (typeof File !== 'function' || !shareNavigator?.share || !shareNavigator?.canShare) {
+    throw new Error('このブラウザではGoogle Drive保存に使う共有機能が使えません。TXT ZIPを書き出してからGoogle Driveへ保存してください。');
+  }
+
+  const shareFile = new File([result.blob], result.downloadName, { type: 'application/zip' });
+  const shareData = {
+    title: result.downloadName,
+    text: 'dopagaki-bunko の作品別統合TXT ZIPです。共有先でGoogle Driveを選んで保存してください。',
+    files: [shareFile]
+  };
+  if (!shareNavigator.canShare(shareData)) {
+    throw new Error('このブラウザではZIPファイルをGoogle Driveへ共有できません。TXT ZIPを書き出してからGoogle Driveへ保存してください。');
+  }
+
+  await shareNavigator.share(shareData);
+  return {
+    downloadName: result.downloadName,
+    exportedAt: result.exportedAt,
+    workCount: result.workCount
   };
 }
 

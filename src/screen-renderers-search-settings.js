@@ -17,6 +17,7 @@ export function createSearchSettingsRenderers({
   handleSettingsAction,
   handleImportFileSelection,
   handleTextExportFileSelection,
+  handleTextDriveExportFileSelection,
   searchResultsBatchSize,
   helpers
 }) {
@@ -174,7 +175,8 @@ export function createSearchSettingsRenderers({
         await handleSettingsAction(action);
       },
       onImportFile: handleImportFileSelection,
-      onTextExportFile: handleTextExportFileSelection
+      onTextExportFile: handleTextExportFileSelection,
+      onTextDriveExportFile: handleTextDriveExportFileSelection
     });
   }
 

@@ -15,7 +15,8 @@ import {
   buildTextZipDownloadName,
   buildWorkTextEntriesFromStores,
   createExportPayload,
-  parseImportJson
+  parseImportJson,
+  shareTextZipToGoogleDriveFromExportJsonFile
 } from '../src/export-import.js';
 import { STORE_NAMES, assertStoreCountsEmpty } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
@@ -1263,6 +1264,41 @@ test('stored ZIP writer exposes UTF-8 work text files through central directory'
   assert.equal(entries.size, 2);
   assert.equal(entries.get('works/001_猫_著者.txt'), '猫\n著者\n\n本文です。\n');
   assert.equal(entries.get('works/002_雨_著者.txt'), '雨\n著者\n\n二作目です。\n');
+});
+
+test('Google Drive text ZIP sharing reports unsupported browsers clearly', async () => {
+  const originalFile = globalThis.File;
+  const originalNavigator = globalThis.navigator;
+  try {
+    Object.defineProperty(globalThis, 'File', {
+      configurable: true,
+      value: undefined
+    });
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: {}
+    });
+    await assert.rejects(
+      () => shareTextZipToGoogleDriveFromExportJsonFile({
+        text: async () => JSON.stringify({
+          data: {
+            works: [{ id: 'work-1', title: '作品', author: '著者' }],
+            fragments: [{ workId: 'work-1', type: 'fragment', sequence: 1, plainText: '本文' }]
+          }
+        })
+      }),
+      /Google Drive保存に使う共有機能が使えません/u
+    );
+  } finally {
+    Object.defineProperty(globalThis, 'File', {
+      configurable: true,
+      value: originalFile
+    });
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: originalNavigator
+    });
+  }
 });
 
 test('import parser fills missing stores and ignores unknown stores', () => {

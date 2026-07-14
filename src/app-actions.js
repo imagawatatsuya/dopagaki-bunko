@@ -1586,6 +1586,7 @@ export function createSettingsActions({
   renderSettings,
   downloadExportJson,
   downloadTextZipFromExportJsonFile,
+  shareTextZipToGoogleDriveFromExportJsonFile,
   readImportFile,
   importJsonData,
   buildImportSummary,
@@ -1594,6 +1595,7 @@ export function createSettingsActions({
   verifyUserStoresEmpty,
   pickImportInput,
   pickTextExportInput,
+  pickTextDriveExportInput,
   saveWorkLoadMode
 }) {
   function focusResetConfirmationPanel() {
@@ -1714,6 +1716,25 @@ export function createSettingsActions({
     renderSettings();
   }
 
+  async function handleTextDriveExportFileSelection(file) {
+    if (!file) {
+      return;
+    }
+
+    state.textExportStatus = 'JSON からGoogle Drive保存用のTXT ZIPを準備しています。';
+    renderSettings();
+
+    try {
+      const result = await shareTextZipToGoogleDriveFromExportJsonFile(file);
+      state.textExportStatus = `${result.downloadName} を共有しました（${result.workCount}作品）。共有先でGoogle Driveを選んで保存してください。`;
+    } catch (error) {
+      console.error(error);
+      state.textExportStatus = `Google Drive保存に失敗しました: ${error?.message ?? '不明なエラー'}`;
+    }
+
+    renderSettings();
+  }
+
   async function executeImport(mode) {
     if (!state.pendingImport) {
       return;
@@ -1772,6 +1793,11 @@ export function createSettingsActions({
 
     if (action === 'pick-text-export-json') {
       pickTextExportInput();
+      return;
+    }
+
+    if (action === 'pick-text-export-drive-json') {
+      pickTextDriveExportInput();
       return;
     }
 
@@ -1845,5 +1871,5 @@ export function createSettingsActions({
     }
   }
 
-  return { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection };
+  return { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection, handleTextDriveExportFileSelection };
 }
