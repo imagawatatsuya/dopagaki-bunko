@@ -9,7 +9,7 @@ import {
   createSearchActions,
   createSettingsActions
 } from './app-actions.js?v=20260711144845';
-import { downloadExportJson, importJsonData, readImportFile } from './export-import.js?v=20260711144845';
+import { downloadExportJson, downloadTextZipFromExportJsonFile, importJsonData, readImportFile } from './export-import.js?v=20260711144845';
 import { readFileAsArrayBuffer } from './file-reader.js?v=20260711144845';
 import { derivePreviewFromText } from './import-preview.js?v=20260711144845';
 import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260711144845';
@@ -125,10 +125,11 @@ export function createAppRuntime({ app }) {
     confirmLikeRemovalIfNeeded
   });
 
-  const { handleImportFileSelection, handleSettingsAction } = createSettingsActions({
+  const { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection } = createSettingsActions({
     state,
     renderSettings: () => renderers.renderSettings(),
     downloadExportJson,
+    downloadTextZipFromExportJsonFile,
     readImportFile,
     importJsonData,
     buildImportSummary,
@@ -144,6 +145,9 @@ export function createAppRuntime({ app }) {
     },
     pickImportInput: () => {
       app.querySelector('[data-settings-input="import-json"]')?.click();
+    },
+    pickTextExportInput: () => {
+      app.querySelector('[data-settings-input="export-texts-json"]')?.click();
     }
   });
 
@@ -161,6 +165,7 @@ export function createAppRuntime({ app }) {
     handleSearchAction,
     handleSettingsAction,
     loadStateFromDb,
+    handleTextExportFileSelection,
     removeBookmark,
     removeLike,
     resetWorkToUnread,

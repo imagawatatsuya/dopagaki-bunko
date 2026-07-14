@@ -10,6 +10,7 @@ export function createInitialAppState() {
     bookmarkRecords: [],
     readingStateRecords: [],
     exportStatus: '',
+    textExportStatus: '',
     importStatus: '',
     releaseStatus: '',
     pendingImport: null,

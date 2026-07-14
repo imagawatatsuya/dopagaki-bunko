@@ -16,6 +16,7 @@ export function createSearchSettingsRenderers({
   handleSearchAction,
   handleSettingsAction,
   handleImportFileSelection,
+  handleTextExportFileSelection,
   searchResultsBatchSize,
   helpers
 }) {
@@ -157,6 +158,7 @@ export function createSearchSettingsRenderers({
       subtitle: 'バックアップや読み込みはここで扱えます。',
       body: settingsBodyMarkup({
         exportStatusHtml: state.exportStatus ? `<p class="settings-status">${escapeHtml(state.exportStatus)}</p>` : '',
+        textExportStatusHtml: state.textExportStatus ? `<p class="settings-status">${escapeHtml(state.textExportStatus)}</p>` : '',
         importStatusHtml: state.importStatus ? `<p class="settings-status">${escapeHtml(state.importStatus)}</p>` : '',
         readingStatusHtml: `<p class="settings-status settings-status-subtle">現在: ${escapeHtml(state.workLoadMode === 'auto' ? '自動で続ける' : '手動で続ける')}</p>`,
         workLoadMode: state.workLoadMode,
@@ -171,7 +173,8 @@ export function createSearchSettingsRenderers({
       onAction: async (action) => {
         await handleSettingsAction(action);
       },
-      onImportFile: handleImportFileSelection
+      onImportFile: handleImportFileSelection,
+      onTextExportFile: handleTextExportFileSelection
     });
   }
 

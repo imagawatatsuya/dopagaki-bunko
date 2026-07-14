@@ -1585,6 +1585,7 @@ export function createSettingsActions({
   state,
   renderSettings,
   downloadExportJson,
+  downloadTextZipFromExportJsonFile,
   readImportFile,
   importJsonData,
   buildImportSummary,
@@ -1592,6 +1593,7 @@ export function createSettingsActions({
   clearAllStores,
   verifyUserStoresEmpty,
   pickImportInput,
+  pickTextExportInput,
   saveWorkLoadMode
 }) {
   function focusResetConfirmationPanel() {
@@ -1693,6 +1695,25 @@ export function createSettingsActions({
     renderSettings();
   }
 
+  async function handleTextExportFileSelection(file) {
+    if (!file) {
+      return;
+    }
+
+    state.textExportStatus = 'JSON からTXT ZIPを準備しています。';
+    renderSettings();
+
+    try {
+      const result = await downloadTextZipFromExportJsonFile(file);
+      state.textExportStatus = `${result.downloadName} を書き出しました（${result.workCount}作品）。`;
+    } catch (error) {
+      console.error(error);
+      state.textExportStatus = `TXT ZIPの書き出しに失敗しました: ${error?.message ?? '不明なエラー'}`;
+    }
+
+    renderSettings();
+  }
+
   async function executeImport(mode) {
     if (!state.pendingImport) {
       return;
@@ -1716,6 +1737,7 @@ export function createSettingsActions({
 
   async function resetAppData() {
     state.exportStatus = '';
+    state.textExportStatus = '';
     state.resetStatus = 'アプリを初期化しています。';
     state.pendingImport = null;
     state.resetConfirmationStep = '';
@@ -1745,6 +1767,11 @@ export function createSettingsActions({
 
     if (action === 'pick-import') {
       pickImportInput();
+      return;
+    }
+
+    if (action === 'pick-text-export-json') {
+      pickTextExportInput();
       return;
     }
 
@@ -1818,5 +1845,5 @@ export function createSettingsActions({
     }
   }
 
-  return { handleImportFileSelection, handleSettingsAction };
+  return { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection };
 }

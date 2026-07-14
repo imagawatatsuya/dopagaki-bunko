@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a settings-screen TXT output flow that reads an exported JSON backup and writes a dependency-free ZIP containing one integrated `.txt` per work.
 - `aozora-converter-for-dopagaki` との任意の実行時依存、作品一覧・中継タブ・保存後ACKの連携契約を文書化した。
 - READMEから廃止済みの `PCの最新作を読む` 主導線を削除し、現在の `PCのURL` 導線へ統一した。
 - Fixed bookmark reopening from library work cards so a bookmarked work opens the bounded fragment range containing the saved position instead of starting at the top; clicking the same bookmark jump URL again now reruns the focus jump.

@@ -405,7 +405,7 @@ export function settingsPendingImportMarkup(pendingImport, statusHtml) {
   `;
 }
 
-export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, releaseStatusHtml, readingStatusHtml = '', workLoadMode = 'auto', resetConfirmationStep = '', resetStatusHtml = '', pendingImportMarkup }) {
+export function settingsBodyMarkup({ exportStatusHtml, textExportStatusHtml = '', importStatusHtml, releaseStatusHtml, readingStatusHtml = '', workLoadMode = 'auto', resetConfirmationStep = '', resetStatusHtml = '', pendingImportMarkup }) {
   const resetConfirmationMarkup = resetConfirmationStep === 'backup'
     ? `
       <article class="info-panel settings-confirm-panel" data-settings-reset-confirmation tabindex="-1">
@@ -447,6 +447,15 @@ export function settingsBodyMarkup({ exportStatusHtml, importStatusHtml, release
           <button type="button" class="detail-action-button settings-button" data-settings-action="export-json">JSONを書き出す</button>
         </div>
         ${exportStatusHtml}
+      </article>
+      <article class="info-panel">
+        <h2 class="section-title">TXT出力</h2>
+        <p class="section-text">エクスポートJSONから、作品ごとの統合TXTをZIPで書き出します。</p>
+        <div class="settings-actions">
+          <button type="button" class="detail-action-button settings-button" data-settings-action="pick-text-export-json">JSONからTXT ZIPを書き出す</button>
+          <input type="file" class="settings-file-input" accept="application/json,.json" data-settings-input="export-texts-json">
+        </div>
+        ${textExportStatusHtml}
       </article>
       <article class="info-panel">
         <h2 class="section-title">JSONインポート</h2>

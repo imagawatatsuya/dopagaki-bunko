@@ -9,7 +9,14 @@ import { derivePreviewFromText } from '../src/import-preview.js';
 import { extractAozoraTxtFromZip } from '../src/aozora-zip-importer.js';
 import { buildAozoraCatalogPayload, normalizeAozoraCatalogPayload, normalizeAozoraTextZipUrl } from '../src/aozora-catalog.js';
 import { SEARCH_SORT_MODES, searchAozoraCatalog, searchWorkRecords } from '../src/aozora-search.js';
-import { createExportPayload, buildDownloadName, parseImportJson } from '../src/export-import.js';
+import {
+  buildDownloadName,
+  buildStoredZipBlob,
+  buildTextZipDownloadName,
+  buildWorkTextEntriesFromStores,
+  createExportPayload,
+  parseImportJson
+} from '../src/export-import.js';
 import { STORE_NAMES, assertStoreCountsEmpty } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
 import { buildWorkEndHash, buildWorkOutlineHash, buildWorkResumeHash, parseSearchRouteIntent } from '../src/router.js';
@@ -109,6 +116,44 @@ function buildSingleFileStoreZip(fileName, text, options = {}) {
     ...fileNameBytes,
     ...eocd
   ]).buffer;
+}
+
+async function readStoredZipEntries(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let eocdOffset = -1;
+  for (let index = bytes.length - 22; index >= 0; index -= 1) {
+    if (view.getUint32(index, true) === 0x06054b50) {
+      eocdOffset = index;
+      break;
+    }
+  }
+  assert.notEqual(eocdOffset, -1);
+
+  const entryCount = view.getUint16(eocdOffset + 10, true);
+  let centralOffset = view.getUint32(eocdOffset + 16, true);
+  const decoder = new TextDecoder();
+  const entries = new Map();
+
+  for (let entryIndex = 0; entryIndex < entryCount; entryIndex += 1) {
+    assert.equal(view.getUint32(centralOffset, true), 0x02014b50);
+    const compressedSize = view.getUint32(centralOffset + 20, true);
+    const fileNameLength = view.getUint16(centralOffset + 28, true);
+    const extraLength = view.getUint16(centralOffset + 30, true);
+    const commentLength = view.getUint16(centralOffset + 32, true);
+    const localOffset = view.getUint32(centralOffset + 42, true);
+    const path = decoder.decode(bytes.slice(centralOffset + 46, centralOffset + 46 + fileNameLength));
+
+    assert.equal(view.getUint32(localOffset, true), 0x04034b50);
+    const localFileNameLength = view.getUint16(localOffset + 26, true);
+    const localExtraLength = view.getUint16(localOffset + 28, true);
+    const dataOffset = localOffset + 30 + localFileNameLength + localExtraLength;
+    entries.set(path, decoder.decode(bytes.slice(dataOffset, dataOffset + compressedSize)));
+
+    centralOffset += 46 + fileNameLength + extraLength + commentLength;
+  }
+
+  return entries;
 }
 
 test('ruby converts explicit notation and escapes html', () => {
@@ -1174,6 +1219,50 @@ test('export helpers build current payload shape and download name', () => {
   assert.equal(Number.isNaN(Date.parse(payload.exportedAt)), false);
   assert.deepEqual(payload.data, { works: [{ id: 'work-1' }] });
   assert.equal(buildDownloadName('2026-06-17T09:19:28.000Z'), 'dopagaki-bunko-export-2026-06-17T09-19-28-000Z.json');
+  assert.equal(buildTextZipDownloadName('2026-06-17T09:19:28.000Z'), 'dopagaki-bunko-texts-2026-06-17T09-19-28-000Z.zip');
+});
+
+test('exported JSON stores build per-work integrated text entries', () => {
+  const entries = buildWorkTextEntriesFromStores({
+    works: [
+      { id: 'work-1', title: '猫:一/二', author: '著*者' },
+      { id: 'work-2', title: '同じ題', author: '著者' },
+      { id: 'work-3', title: '同じ題', author: '著者' }
+    ],
+    fragments: [
+      { id: 'work-1-fragment-0002', workId: 'work-1', type: 'fragment', sequence: 2, displayHtml: '猫である<br>名前は' },
+      { id: 'work-1-fragment-0001', workId: 'work-1', type: 'fragment', sequence: 1, displayHtml: '吾輩は' },
+      { id: 'work-1-break-0003', workId: 'work-1', type: 'break', sequence: 3, breakKind: 'heading' },
+      { id: 'work-1-fragment-0004', workId: 'work-1', type: 'fragment', sequence: 4, displayHtml: '<ruby>未<rt>み</rt></ruby>だない' },
+      { id: 'work-1-break-0005', workId: 'work-1', type: 'break', sequence: 5, breakKind: '' },
+      { id: 'work-1-fragment-0006', workId: 'work-1', type: 'fragment', sequence: 6, displayHtml: 'どこで&amp;生れたか' },
+      { id: 'work-2-fragment-0001', workId: 'work-2', type: 'fragment', sequence: 1, plainText: '二作目です。' }
+    ]
+  });
+
+  assert.deepEqual(entries.map((entry) => entry.path), [
+    'works/001_猫_一_二_著_者.txt',
+    'works/002_同じ題_著者.txt',
+    'works/003_同じ題_著者.txt'
+  ]);
+  assert.equal(
+    entries[0].text,
+    '猫:一/二\n著*者\n\n吾輩は猫である\n名前は\n未だない\n\nどこで&生れたか\n'
+  );
+  assert.equal(entries[1].text, '同じ題\n著者\n\n二作目です。\n');
+  assert.equal(entries[2].text, '同じ題\n著者\n\n\n');
+});
+
+test('stored ZIP writer exposes UTF-8 work text files through central directory', async () => {
+  const blob = buildStoredZipBlob([
+    { path: 'works/001_猫_著者.txt', text: '猫\n著者\n\n本文です。\n' },
+    { path: 'works/002_雨_著者.txt', text: '雨\n著者\n\n二作目です。\n' }
+  ]);
+  const entries = await readStoredZipEntries(blob);
+
+  assert.equal(entries.size, 2);
+  assert.equal(entries.get('works/001_猫_著者.txt'), '猫\n著者\n\n本文です。\n');
+  assert.equal(entries.get('works/002_雨_著者.txt'), '雨\n著者\n\n二作目です。\n');
 });
 
 test('import parser fills missing stores and ignores unknown stores', () => {

@@ -212,7 +212,7 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
   });
 }
 
-export function bindSettingsInteractions(root, { onAction, onImportFile }) {
+export function bindSettingsInteractions(root, { onAction, onImportFile, onTextExportFile = async () => {} }) {
   root.querySelectorAll('[data-settings-action]').forEach((button) => {
     button.addEventListener('click', async () => {
       await onAction(button.dataset.settingsAction);
@@ -223,6 +223,14 @@ export function bindSettingsInteractions(root, { onAction, onImportFile }) {
   if (importInput) {
     importInput.addEventListener('change', async (event) => {
       await onImportFile(event.target.files?.[0] ?? null);
+      event.target.value = '';
+    });
+  }
+
+  const textExportInput = root.querySelector('[data-settings-input="export-texts-json"]');
+  if (textExportInput) {
+    textExportInput.addEventListener('change', async (event) => {
+      await onTextExportFile(event.target.files?.[0] ?? null);
       event.target.value = '';
     });
   }
