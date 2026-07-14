@@ -1,12 +1,12 @@
 import {
   errorBodyMarkup,
   loadingBodyMarkup
-} from './views.js?v=20260714224715';
-import { createRendererHelpers } from './renderer-shared.js?v=20260714224715';
-import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260714224715';
-import { createLibraryRenderers } from './screen-renderers-library.js?v=20260714224715';
-import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260714224715';
-import { createWorkRenderers } from './screen-renderers-work.js?v=20260714224715';
+} from './views.js?v=20260714225646';
+import { createRendererHelpers } from './renderer-shared.js?v=20260714225646';
+import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260714225646';
+import { createLibraryRenderers } from './screen-renderers-library.js?v=20260714225646';
+import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260714225646';
+import { createWorkRenderers } from './screen-renderers-work.js?v=20260714225646';
 
 export function createScreenRenderers({
   app,
@@ -19,8 +19,6 @@ export function createScreenRenderers({
   handleCollectionAction,
   handleDetailAction,
   handleImportFileSelection,
-  handleTextExportFileSelection,
-  handleTextDriveExportFileSelection,
   handleSearchAction,
   handleSettingsAction,
   loadStateFromDb,
@@ -109,8 +107,6 @@ export function createScreenRenderers({
     handleSearchAction,
     handleSettingsAction,
     handleImportFileSelection,
-    handleTextExportFileSelection,
-    handleTextDriveExportFileSelection,
     searchResultsBatchSize,
     helpers
   });

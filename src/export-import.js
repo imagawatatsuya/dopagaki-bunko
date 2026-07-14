@@ -1,4 +1,4 @@
-import { STORE_NAMES, applyRecordMutations, exportStores } from './db.js?v=20260714224715';
+import { STORE_NAMES, applyRecordMutations, exportStores } from './db.js?v=20260714225646';
 
 const ZIP_TEXT_ENCODER = new TextEncoder();
 const ZIP_UTF8_FLAG = 0x0800;
@@ -303,9 +303,8 @@ function downloadBlob(blob, downloadName) {
   }, 0);
 }
 
-async function buildTextZipFromExportJsonFile(file) {
-  const jsonText = await file.text();
-  const stores = parseImportJson(jsonText);
+async function buildExportTextZip() {
+  const stores = await exportStores();
   const entries = buildWorkTextEntriesFromStores(stores);
   if (entries.length === 0) {
     throw new Error('TXT に書き出せる作品がありません。');
@@ -322,34 +321,9 @@ async function buildTextZipFromExportJsonFile(file) {
   };
 }
 
-export async function downloadTextZipFromExportJsonFile(file) {
-  const result = await buildTextZipFromExportJsonFile(file);
+export async function downloadExportTextZip() {
+  const result = await buildExportTextZip();
   downloadBlob(result.blob, result.downloadName);
-  return {
-    downloadName: result.downloadName,
-    exportedAt: result.exportedAt,
-    workCount: result.workCount
-  };
-}
-
-export async function shareTextZipToGoogleDriveFromExportJsonFile(file) {
-  const result = await buildTextZipFromExportJsonFile(file);
-  const shareNavigator = globalThis.navigator;
-  if (typeof File !== 'function' || !shareNavigator?.share || !shareNavigator?.canShare) {
-    throw new Error('このブラウザではGoogle Drive保存に使う共有機能が使えません。TXT ZIPを書き出してからGoogle Driveへ保存してください。');
-  }
-
-  const shareFile = new File([result.blob], result.downloadName, { type: 'application/zip' });
-  const shareData = {
-    title: result.downloadName,
-    text: 'dopagaki-bunko の作品別統合TXT ZIPです。共有先でGoogle Driveを選んで保存してください。',
-    files: [shareFile]
-  };
-  if (!shareNavigator.canShare(shareData)) {
-    throw new Error('このブラウザではZIPファイルをGoogle Driveへ共有できません。TXT ZIPを書き出してからGoogle Driveへ保存してください。');
-  }
-
-  await shareNavigator.share(shareData);
   return {
     downloadName: result.downloadName,
     exportedAt: result.exportedAt,

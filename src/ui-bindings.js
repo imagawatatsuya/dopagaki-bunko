@@ -212,7 +212,7 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
   });
 }
 
-export function bindSettingsInteractions(root, { onAction, onImportFile, onTextExportFile = async () => {}, onTextDriveExportFile = async () => {} }) {
+export function bindSettingsInteractions(root, { onAction, onImportFile }) {
   root.querySelectorAll('[data-settings-action]').forEach((button) => {
     button.addEventListener('click', async () => {
       await onAction(button.dataset.settingsAction);
@@ -227,21 +227,6 @@ export function bindSettingsInteractions(root, { onAction, onImportFile, onTextE
     });
   }
 
-  const textExportInput = root.querySelector('[data-settings-input="export-texts-json"]');
-  if (textExportInput) {
-    textExportInput.addEventListener('change', async (event) => {
-      await onTextExportFile(event.target.files?.[0] ?? null);
-      event.target.value = '';
-    });
-  }
-
-  const textDriveExportInput = root.querySelector('[data-settings-input="export-texts-drive-json"]');
-  if (textDriveExportInput) {
-    textDriveExportInput.addEventListener('change', async (event) => {
-      await onTextDriveExportFile(event.target.files?.[0] ?? null);
-      event.target.value = '';
-    });
-  }
 }
 
 export function focusFragmentCard(root, fragmentId) {

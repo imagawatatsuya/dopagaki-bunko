@@ -1,4 +1,4 @@
-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260714224715';
+import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260714225646';
 import {
   aozoraSearchResultsMarkup,
   searchBodyMarkup,
@@ -6,7 +6,7 @@ import {
   searchPreviewMarkup,
   settingsBodyMarkup,
   settingsPendingImportMarkup
-} from './views.js?v=20260714224715';
+} from './views.js?v=20260714225646';
 
 export function createSearchSettingsRenderers({
   app,
@@ -16,8 +16,6 @@ export function createSearchSettingsRenderers({
   handleSearchAction,
   handleSettingsAction,
   handleImportFileSelection,
-  handleTextExportFileSelection,
-  handleTextDriveExportFileSelection,
   searchResultsBatchSize,
   helpers
 }) {
@@ -174,9 +172,7 @@ export function createSearchSettingsRenderers({
       onAction: async (action) => {
         await handleSettingsAction(action);
       },
-      onImportFile: handleImportFileSelection,
-      onTextExportFile: handleTextExportFileSelection,
-      onTextDriveExportFile: handleTextDriveExportFileSelection
+      onImportFile: handleImportFileSelection
     });
   }
 

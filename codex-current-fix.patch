@@ -1,0 +1,785 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 33b0e7d..6e364b2 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,8 +2,7 @@
+ 
+ ## Unreleased
+ 
+-- Added a settings-screen TXT output flow that reads an exported JSON backup and writes a dependency-free ZIP containing one integrated `.txt` per work.
+-- Added a Google Drive save path for TXT ZIP output through the browser's file sharing API, with a fallback message for unsupported browsers.
++- Added a settings-screen TXT output flow that matches the current JSON export behavior and writes a dependency-free ZIP containing one integrated `.txt` per work.
+ - `aozora-converter-for-dopagaki` との任意の実行時依存、作品一覧・中継タブ・保存後ACKの連携契約を文書化した。
+ - READMEから廃止済みの `PCの最新作を読む` 主導線を削除し、現在の `PCのURL` 導線へ統一した。
+ - Fixed bookmark reopening from library work cards so a bookmarked work opens the bounded fragment range containing the saved position instead of starting at the top; clicking the same bookmark jump URL again now reruns the focus jump.
+diff --git a/README.md b/README.md
+index 5dcbf9c..b442120 100644
+--- a/README.md
++++ b/README.md
+@@ -77,8 +77,7 @@ GitHub Pages の `https://` 版から `http://<PCのIP>:8765/latest.txt` のよ
+ `#/settings` から JSON バックアップを扱えます。
+ 
+ - `JSONを書き出す` で読書データ一式を保存する
+-- `JSONからTXT ZIPを書き出す` で、バックアップJSONから作品ごとの統合TXTをまとめて保存する
+-- `Google Driveに保存` で、対応ブラウザの共有画面からTXT ZIPの保存先にGoogle Driveを選べる
++- `TXT ZIPを書き出す` で、作品ごとの統合TXTをまとめて保存する
+ - `JSONを選ぶ` でバックアップを読み込む
+ - 読み込み後に `上書きする` または `追加する` を選ぶ
+ 
+diff --git a/index.html b/index.html
+index 5ef1775..b95e94c 100644
+--- a/index.html
++++ b/index.html
+@@ -1,10 +1,10 @@
+ <!doctype html>
+-<html lang="ja" data-release-version="20260714224715">
++<html lang="ja" data-release-version="20260714225646">
+ <head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <title>ドバガキ文庫</title>
+-  <link id="app-stylesheet" rel="stylesheet" href="./styles/base.css?v=20260714224715">
++  <link id="app-stylesheet" rel="stylesheet" href="./styles/base.css?v=20260714225646">
+   <link rel="manifest" href="./manifest.webmanifest">
+   <script type="module">
+     const fallbackVersion = document.documentElement.dataset.releaseVersion || '';
+diff --git a/release.json b/release.json
+index e3b3513..a7f14ee 100644
+--- a/release.json
++++ b/release.json
+@@ -1,5 +1,5 @@
+ {
+-  "version": "20260714224715",
+-  "publishedAt": "2026-07-14T13:47:15.2713567Z",
++  "version": "20260714225646",
++  "publishedAt": "2026-07-14T13:56:46.4004585Z",
+   "notes": "github-pages release"
+ }
+\ No newline at end of file
+diff --git a/scripts/verify-self-tests.mjs b/scripts/verify-self-tests.mjs
+index ebb8488..fbb014e 100644
+--- a/scripts/verify-self-tests.mjs
++++ b/scripts/verify-self-tests.mjs
+@@ -15,8 +15,7 @@ import {
+   buildTextZipDownloadName,
+   buildWorkTextEntriesFromStores,
+   createExportPayload,
+-  parseImportJson,
+-  shareTextZipToGoogleDriveFromExportJsonFile
++  parseImportJson
+ } from '../src/export-import.js';
+ import { STORE_NAMES, assertStoreCountsEmpty } from '../src/db.js';
+ import { fragmentText } from '../src/fragmenter.js';
+@@ -1266,41 +1265,6 @@ test('stored ZIP writer exposes UTF-8 work text files through central directory'
+   assert.equal(entries.get('works/002_雨_著者.txt'), '雨\n著者\n\n二作目です。\n');
+ });
+ 
+-test('Google Drive text ZIP sharing reports unsupported browsers clearly', async () => {
+-  const originalFile = globalThis.File;
+-  const originalNavigator = globalThis.navigator;
+-  try {
+-    Object.defineProperty(globalThis, 'File', {
+-      configurable: true,
+-      value: undefined
+-    });
+-    Object.defineProperty(globalThis, 'navigator', {
+-      configurable: true,
+-      value: {}
+-    });
+-    await assert.rejects(
+-      () => shareTextZipToGoogleDriveFromExportJsonFile({
+-        text: async () => JSON.stringify({
+-          data: {
+-            works: [{ id: 'work-1', title: '作品', author: '著者' }],
+-            fragments: [{ workId: 'work-1', type: 'fragment', sequence: 1, plainText: '本文' }]
+-          }
+-        })
+-      }),
+-      /Google Drive保存に使う共有機能が使えません/u
+-    );
+-  } finally {
+-    Object.defineProperty(globalThis, 'File', {
+-      configurable: true,
+-      value: originalFile
+-    });
+-    Object.defineProperty(globalThis, 'navigator', {
+-      configurable: true,
+-      value: originalNavigator
+-    });
+-  }
+-});
+-
+ test('import parser fills missing stores and ignores unknown stores', () => {
+   const stores = parseImportJson(JSON.stringify({
+     data: {
+diff --git a/src/aozora-catalog.js b/src/aozora-catalog.js
+index 8a21684..9ab4861 100644
+--- a/src/aozora-catalog.js
++++ b/src/aozora-catalog.js
+@@ -1,5 +1,5 @@
+-import { parseCsvObjects } from './aozora-csv.js?v=20260714224715';
+-import { buildAozoraSearchText } from './aozora-search.js?v=20260714224715';
++import { parseCsvObjects } from './aozora-csv.js?v=20260714225646';
++import { buildAozoraSearchText } from './aozora-search.js?v=20260714225646';
+ 
+ export const AOZORA_CATALOG_SOURCE_URL = 'https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip';
+ export const AOZORA_CATALOG_ASSET_PATH = './data/aozora-catalog.json.gz';
+diff --git a/src/aozora-emphasis.js b/src/aozora-emphasis.js
+index cc91041..e6d0255 100644
+--- a/src/aozora-emphasis.js
++++ b/src/aozora-emphasis.js
+@@ -1,5 +1,5 @@
+-import { replaceAozoraGaijiNotation } from './aozora-gaiji.js?v=20260714224715';
+-import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260714224715';
++import { replaceAozoraGaijiNotation } from './aozora-gaiji.js?v=20260714225646';
++import { convertAozoraRubyToHtml } from './aozora-ruby.js?v=20260714225646';
+ 
+ function emphasisStyleFromNote(note) {
+   if (note.includes('白丸傍点')) {
+diff --git a/src/aozora-gaiji.js b/src/aozora-gaiji.js
+index 8e56ffd..3816616 100644
+--- a/src/aozora-gaiji.js
++++ b/src/aozora-gaiji.js
+@@ -1,4 +1,4 @@
+-import { AOZORA_GAIJI_MAP } from './aozora-gaiji-map.js?v=20260714224715';
++import { AOZORA_GAIJI_MAP } from './aozora-gaiji-map.js?v=20260714225646';
+ 
+ const AOZORA_GAIJI_NOTE_PATTERN = /※[［\[]＃([^］\]]+)[］\]]/gu;
+ const UNICODE_REFERENCE_PATTERN = /U\+([0-9A-Fa-f]{4,6})/u;
+diff --git a/src/aozora-headings.js b/src/aozora-headings.js
+index 3a64fae..55c6cb4 100644
+--- a/src/aozora-headings.js
++++ b/src/aozora-headings.js
+@@ -1,4 +1,4 @@
+-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260714224715';
++import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260714225646';
+ 
+ const AOZORA_NUMBER_PATTERN = '[0-9０-９]+';
+ const HEADING_INLINE_PATTERN = /^(.*?)[［\[]＃「([^」]+)」は([^］\]]*見出し)[］\]]\s*$/u;
+diff --git a/src/app-actions.js b/src/app-actions.js
+index 99423bb..9df6096 100644
+--- a/src/app-actions.js
++++ b/src/app-actions.js
+@@ -1,5 +1,5 @@
+-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260714224715';
+-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260714224715';
++import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260714225646';
++import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260714225646';
+ 
+ function normalizeImportedWorkIdentityUrl(value) {
+   const source = String(value ?? '').trim();
+@@ -1585,8 +1585,7 @@ export function createSettingsActions({
+   state,
+   renderSettings,
+   downloadExportJson,
+-  downloadTextZipFromExportJsonFile,
+-  shareTextZipToGoogleDriveFromExportJsonFile,
++  downloadExportTextZip,
+   readImportFile,
+   importJsonData,
+   buildImportSummary,
+@@ -1594,8 +1593,6 @@ export function createSettingsActions({
+   clearAllStores,
+   verifyUserStoresEmpty,
+   pickImportInput,
+-  pickTextExportInput,
+-  pickTextDriveExportInput,
+   saveWorkLoadMode
+ }) {
+   function focusResetConfirmationPanel() {
+@@ -1697,16 +1694,12 @@ export function createSettingsActions({
+     renderSettings();
+   }
+ 
+-  async function handleTextExportFileSelection(file) {
+-    if (!file) {
+-      return;
+-    }
+-
+-    state.textExportStatus = 'JSON からTXT ZIPを準備しています。';
++  async function handleExportTextZip() {
++    state.textExportStatus = 'TXT ZIPを書き出しています。';
+     renderSettings();
+ 
+     try {
+-      const result = await downloadTextZipFromExportJsonFile(file);
++      const result = await downloadExportTextZip();
+       state.textExportStatus = `${result.downloadName} を書き出しました（${result.workCount}作品）。`;
+     } catch (error) {
+       console.error(error);
+@@ -1716,25 +1709,6 @@ export function createSettingsActions({
+     renderSettings();
+   }
+ 
+-  async function handleTextDriveExportFileSelection(file) {
+-    if (!file) {
+-      return;
+-    }
+-
+-    state.textExportStatus = 'JSON からGoogle Drive保存用のTXT ZIPを準備しています。';
+-    renderSettings();
+-
+-    try {
+-      const result = await shareTextZipToGoogleDriveFromExportJsonFile(file);
+-      state.textExportStatus = `${result.downloadName} を共有しました（${result.workCount}作品）。共有先でGoogle Driveを選んで保存してください。`;
+-    } catch (error) {
+-      console.error(error);
+-      state.textExportStatus = `Google Drive保存に失敗しました: ${error?.message ?? '不明なエラー'}`;
+-    }
+-
+-    renderSettings();
+-  }
+-
+   async function executeImport(mode) {
+     if (!state.pendingImport) {
+       return;
+@@ -1791,13 +1765,8 @@ export function createSettingsActions({
+       return;
+     }
+ 
+-    if (action === 'pick-text-export-json') {
+-      pickTextExportInput();
+-      return;
+-    }
+-
+-    if (action === 'pick-text-export-drive-json') {
+-      pickTextDriveExportInput();
++    if (action === 'export-text-zip') {
++      await handleExportTextZip();
+       return;
+     }
+ 
+@@ -1871,5 +1840,5 @@ export function createSettingsActions({
+     }
+   }
+ 
+-  return { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection, handleTextDriveExportFileSelection };
++  return { handleImportFileSelection, handleSettingsAction };
+ }
+diff --git a/src/app-data.js b/src/app-data.js
+index 73e4708..b2eb223 100644
+--- a/src/app-data.js
++++ b/src/app-data.js
+@@ -6,7 +6,7 @@ import {
+   sortSavedRecords,
+   sortUpdatedRecords,
+   sortFragments
+-} from './state.js?v=20260714224715';
++} from './state.js?v=20260714225646';
+ 
+ function normalizeWorkLoadMode(value) {
+   return value === 'manual' ? 'manual' : 'auto';
+diff --git a/src/app-router.js b/src/app-router.js
+index be806f9..511a9b0 100644
+--- a/src/app-router.js
++++ b/src/app-router.js
+@@ -1,4 +1,4 @@
+-import { parseHashRoute, parseSearchRouteIntent } from './router.js?v=20260714224715';
++import { parseHashRoute, parseSearchRouteIntent } from './router.js?v=20260714225646';
+ 
+ export function createAppRouter({
+   getRenderers,
+diff --git a/src/app-runtime.js b/src/app-runtime.js
+index 41e3835..c1d70b5 100644
+--- a/src/app-runtime.js
++++ b/src/app-runtime.js
+@@ -1,33 +1,33 @@
+-import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260714224715';
+-import { STORE_NAMES, applyRecordMutations, getAllRecords, getRecord, putRecord, verifyStoresEmpty } from './db.js?v=20260714224715';
+-import { listLikes, removeLike, saveLike } from './likes.js?v=20260714224715';
+-import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260714224715';
++import { canonicalizeBookmarkRecords, getBookmarkForWork, getFragmentById } from './state.js?v=20260714225646';
++import { STORE_NAMES, applyRecordMutations, getAllRecords, getRecord, putRecord, verifyStoresEmpty } from './db.js?v=20260714225646';
++import { listLikes, removeLike, saveLike } from './likes.js?v=20260714225646';
++import { listBookmarks, removeBookmark, saveBookmark } from './bookmarks.js?v=20260714225646';
+ import {
+   createBookmarkActions,
+   createCollectionActions,
+   createDetailActions,
+   createSearchActions,
+   createSettingsActions
+-} from './app-actions.js?v=20260714224715';
+-import { downloadExportJson, downloadTextZipFromExportJsonFile, importJsonData, readImportFile, shareTextZipToGoogleDriveFromExportJsonFile } from './export-import.js?v=20260714224715';
+-import { readFileAsArrayBuffer } from './file-reader.js?v=20260714224715';
+-import { derivePreviewFromText } from './import-preview.js?v=20260714224715';
+-import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260714224715';
+-import { decodeAozoraText } from './aozora-text-decoder.js?v=20260714224715';
+-import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260714224715';
+-import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260714224715';
+-import { buildImportSummary, createAppShell } from './app-shell.js?v=20260714224715';
+-import { createAppData } from './app-data.js?v=20260714224715';
+-import { createScreenRenderers } from './screen-renderers.js?v=20260714224715';
++} from './app-actions.js?v=20260714225646';
++import { downloadExportJson, downloadExportTextZip, importJsonData, readImportFile } from './export-import.js?v=20260714225646';
++import { readFileAsArrayBuffer } from './file-reader.js?v=20260714225646';
++import { derivePreviewFromText } from './import-preview.js?v=20260714225646';
++import { extractAozoraTxtFromZip } from './aozora-zip-importer.js?v=20260714225646';
++import { decodeAozoraText } from './aozora-text-decoder.js?v=20260714225646';
++import { AOZORA_CATALOG_ASSET_PATH, AOZORA_CATALOG_META_ID, buildAozoraCatalogMeta, normalizeAozoraCatalogPayload } from './aozora-catalog.js?v=20260714225646';
++import { searchAozoraCatalog, searchWorkRecords } from './aozora-search.js?v=20260714225646';
++import { buildImportSummary, createAppShell } from './app-shell.js?v=20260714225646';
++import { createAppData } from './app-data.js?v=20260714225646';
++import { createScreenRenderers } from './screen-renderers.js?v=20260714225646';
+ import {
+   SEARCH_RESULTS_BATCH_SIZE,
+   WORK_LOAD_MODE_SETTING_ID,
+   WORK_PAGE_BATCH_SIZE,
+   CONVERTER_BASE_URL_SETTING_ID
+-} from './app-config.js?v=20260714224715';
+-import { createAppRouter } from './app-router.js?v=20260714224715';
+-import { createInitialAppState } from './app-state.js?v=20260714224715';
+-import { normalizeConverterBaseUrl } from './remote-import.js?v=20260714224715';
++} from './app-config.js?v=20260714225646';
++import { createAppRouter } from './app-router.js?v=20260714225646';
++import { createInitialAppState } from './app-state.js?v=20260714225646';
++import { normalizeConverterBaseUrl } from './remote-import.js?v=20260714225646';
+ 
+ export function createAppRuntime({ app }) {
+   const state = createInitialAppState();
+@@ -125,12 +125,11 @@ export function createAppRuntime({ app }) {
+     confirmLikeRemovalIfNeeded
+   });
+ 
+-  const { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection, handleTextDriveExportFileSelection } = createSettingsActions({
++  const { handleImportFileSelection, handleSettingsAction } = createSettingsActions({
+     state,
+     renderSettings: () => renderers.renderSettings(),
+     downloadExportJson,
+-    downloadTextZipFromExportJsonFile,
+-    shareTextZipToGoogleDriveFromExportJsonFile,
++    downloadExportTextZip,
+     readImportFile,
+     importJsonData,
+     buildImportSummary,
+@@ -146,12 +145,6 @@ export function createAppRuntime({ app }) {
+     },
+     pickImportInput: () => {
+       app.querySelector('[data-settings-input="import-json"]')?.click();
+-    },
+-    pickTextExportInput: () => {
+-      app.querySelector('[data-settings-input="export-texts-json"]')?.click();
+-    },
+-    pickTextDriveExportInput: () => {
+-      app.querySelector('[data-settings-input="export-texts-drive-json"]')?.click();
+     }
+   });
+ 
+@@ -169,8 +162,6 @@ export function createAppRuntime({ app }) {
+     handleSearchAction,
+     handleSettingsAction,
+     loadStateFromDb,
+-    handleTextExportFileSelection,
+-    handleTextDriveExportFileSelection,
+     removeBookmark,
+     removeLike,
+     resetWorkToUnread,
+diff --git a/src/app-shell.js b/src/app-shell.js
+index 4467f12..e752f73 100644
+--- a/src/app-shell.js
++++ b/src/app-shell.js
+@@ -1,7 +1,7 @@
+-import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260714224715';
+-import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260714224715';
+-import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260714224715';
+-import { layoutMarkup } from './views.js?v=20260714224715';
++import { repairAozoraHeadingNotesInHtml, repairAozoraLayoutNotesInHtml } from './aozora-headings.js?v=20260714225646';
++import { convertAozoraEmphasisToHtml } from './aozora-emphasis.js?v=20260714225646';
++import { repairAozoraLegacyRubyHtml } from './aozora-ruby.js?v=20260714225646';
++import { layoutMarkup } from './views.js?v=20260714225646';
+ 
+ const READER_FONT_SCALE_STORAGE_KEY = 'dopagaki-reader-font-scale';
+ const READER_FONT_SCALES = [
+diff --git a/src/app-state.js b/src/app-state.js
+index 8d47078..2c41d3b 100644
+--- a/src/app-state.js
++++ b/src/app-state.js
+@@ -1,4 +1,4 @@
+-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260714224715';
++import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260714225646';
+ 
+ export function createInitialAppState() {
+   return {
+diff --git a/src/bookmarks.js b/src/bookmarks.js
+index c7851ac..7706269 100644
+--- a/src/bookmarks.js
++++ b/src/bookmarks.js
+@@ -1,4 +1,4 @@
+-import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260714224715';
++import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260714225646';
+ 
+ const STORE_NAME = 'bookmarks';
+ 
+diff --git a/src/export-import.js b/src/export-import.js
+index 8bf4104..2fb7229 100644
+--- a/src/export-import.js
++++ b/src/export-import.js
+@@ -1,4 +1,4 @@
+-import { STORE_NAMES, applyRecordMutations, exportStores } from './db.js?v=20260714224715';
++import { STORE_NAMES, applyRecordMutations, exportStores } from './db.js?v=20260714225646';
+ 
+ const ZIP_TEXT_ENCODER = new TextEncoder();
+ const ZIP_UTF8_FLAG = 0x0800;
+@@ -303,9 +303,8 @@ function downloadBlob(blob, downloadName) {
+   }, 0);
+ }
+ 
+-async function buildTextZipFromExportJsonFile(file) {
+-  const jsonText = await file.text();
+-  const stores = parseImportJson(jsonText);
++async function buildExportTextZip() {
++  const stores = await exportStores();
+   const entries = buildWorkTextEntriesFromStores(stores);
+   if (entries.length === 0) {
+     throw new Error('TXT に書き出せる作品がありません。');
+@@ -322,8 +321,8 @@ async function buildTextZipFromExportJsonFile(file) {
+   };
+ }
+ 
+-export async function downloadTextZipFromExportJsonFile(file) {
+-  const result = await buildTextZipFromExportJsonFile(file);
++export async function downloadExportTextZip() {
++  const result = await buildExportTextZip();
+   downloadBlob(result.blob, result.downloadName);
+   return {
+     downloadName: result.downloadName,
+@@ -332,31 +331,6 @@ export async function downloadTextZipFromExportJsonFile(file) {
+   };
+ }
+ 
+-export async function shareTextZipToGoogleDriveFromExportJsonFile(file) {
+-  const result = await buildTextZipFromExportJsonFile(file);
+-  const shareNavigator = globalThis.navigator;
+-  if (typeof File !== 'function' || !shareNavigator?.share || !shareNavigator?.canShare) {
+-    throw new Error('このブラウザではGoogle Drive保存に使う共有機能が使えません。TXT ZIPを書き出してからGoogle Driveへ保存してください。');
+-  }
+-
+-  const shareFile = new File([result.blob], result.downloadName, { type: 'application/zip' });
+-  const shareData = {
+-    title: result.downloadName,
+-    text: 'dopagaki-bunko の作品別統合TXT ZIPです。共有先でGoogle Driveを選んで保存してください。',
+-    files: [shareFile]
+-  };
+-  if (!shareNavigator.canShare(shareData)) {
+-    throw new Error('このブラウザではZIPファイルをGoogle Driveへ共有できません。TXT ZIPを書き出してからGoogle Driveへ保存してください。');
+-  }
+-
+-  await shareNavigator.share(shareData);
+-  return {
+-    downloadName: result.downloadName,
+-    exportedAt: result.exportedAt,
+-    workCount: result.workCount
+-  };
+-}
+-
+ export function parseImportJson(jsonText) {
+   const parsed = JSON.parse(jsonText);
+   const sourceData = parsed && typeof parsed === 'object' && parsed.data ? parsed.data : parsed;
+diff --git a/src/import-preview.js b/src/import-preview.js
+index 4c26bc6..c6cf31c 100644
+--- a/src/import-preview.js
++++ b/src/import-preview.js
+@@ -1,7 +1,7 @@
+-import { cleanAozoraText } from './aozora-cleaner.js?v=20260714224715';
+-import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260714224715';
+-import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260714224715';
+-import { fragmentText } from './fragmenter.js?v=20260714224715';
++import { cleanAozoraText } from './aozora-cleaner.js?v=20260714225646';
++import { convertAozoraRubyAndEmphasisToHtml } from './aozora-emphasis.js?v=20260714225646';
++import { renderAozoraBodyWithHeadings } from './aozora-headings.js?v=20260714225646';
++import { fragmentText } from './fragmenter.js?v=20260714225646';
+ 
+ function stripInlineAozoraNotation(text) {
+   return String(text)
+diff --git a/src/likes.js b/src/likes.js
+index adee3bc..7df5696 100644
+--- a/src/likes.js
++++ b/src/likes.js
+@@ -1,4 +1,4 @@
+-import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260714224715';
++import { deleteRecord, getAllRecords, putRecord } from './db.js?v=20260714225646';
+ 
+ const STORE_NAME = 'likes';
+ 
+diff --git a/src/main.js b/src/main.js
+index 56d5018..ab65025 100644
+--- a/src/main.js
++++ b/src/main.js
+@@ -1,4 +1,4 @@
+-import { createAppRuntime } from './app-runtime.js?v=20260714224715';
++import { createAppRuntime } from './app-runtime.js?v=20260714225646';
+ 
+ const app = document.querySelector('#app');
+ const runtime = createAppRuntime({ app });
+diff --git a/src/renderer-shared.js b/src/renderer-shared.js
+index 1db08d3..87dcc8d 100644
+--- a/src/renderer-shared.js
++++ b/src/renderer-shared.js
+@@ -4,17 +4,17 @@ import {
+   buildWorkFocusHash,
+   buildWorkHash,
+   parseHashRoute
+-} from './router.js?v=20260714224715';
++} from './router.js?v=20260714225646';
+ import {
+   savedCollectionLabel,
+   deriveWorkReadingStatus
+-} from './state.js?v=20260714224715';
++} from './state.js?v=20260714225646';
+ import {
+   timelineCardMarkup,
+   savedItemCardMarkup,
+   workFragmentCardMarkup
+-} from './views.js?v=20260714224715';
+-import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260714224715';
++} from './views.js?v=20260714225646';
++import { estimateFragmentOverlayRisk } from './fragmenter.js?v=20260714225646';
+ 
+ export const LIBRARY_TAB_ORDER = ['reading', 'unread', 'completed'];
+ const LIBRARY_TAB_LABELS = {
+diff --git a/src/screen-renderers-home-detail.js b/src/screen-renderers-home-detail.js
+index 30e5675..be057a8 100644
+--- a/src/screen-renderers-home-detail.js
++++ b/src/screen-renderers-home-detail.js
+@@ -1,22 +1,22 @@
+ import {
+   buildHomeTimelineEvents,
+   getReadableFragments
+-} from './state.js?v=20260714224715';
++} from './state.js?v=20260714225646';
+ import {
+   buildFragmentHash,
+   buildWorkFocusHash,
+   buildWorkHash
+-} from './router.js?v=20260714224715';
++} from './router.js?v=20260714225646';
+ import {
+   bindDetailActions,
+   focusFragmentCard
+-} from './ui-bindings.js?v=20260714224715';
++} from './ui-bindings.js?v=20260714225646';
+ import {
+   fragmentDetailBodyMarkup,
+   homeBodyMarkup,
+   readerActionStatusMarkup
+-} from './views.js?v=20260714224715';
+-import { returnLinkLabel } from './renderer-shared.js?v=20260714224715';
++} from './views.js?v=20260714225646';
++import { returnLinkLabel } from './renderer-shared.js?v=20260714225646';
+ 
+ export function createHomeDetailRenderers({
+   app,
+diff --git a/src/screen-renderers-library.js b/src/screen-renderers-library.js
+index c1c693b..bd836cf 100644
+--- a/src/screen-renderers-library.js
++++ b/src/screen-renderers-library.js
+@@ -5,27 +5,27 @@ import {
+   getBookmarkForWork,
+   getLikeRecordsForWork,
+   savedCollectionLabel
+-} from './state.js?v=20260714224715';
++} from './state.js?v=20260714225646';
+ import {
+   buildCollectionHash,
+   buildLibraryHash,
+   buildWorkResumeHash
+-} from './router.js?v=20260714224715';
++} from './router.js?v=20260714225646';
+ import {
+   bindCollectionActions,
+   bindLibraryWorkActions
+-} from './ui-bindings.js?v=20260714224715';
++} from './ui-bindings.js?v=20260714225646';
+ import {
+   collectionBodyMarkup,
+   libraryBodyMarkup,
+   libraryTabButtonMarkup
+-} from './views.js?v=20260714224715';
++} from './views.js?v=20260714225646';
+ import {
+   LIBRARY_TAB_ORDER,
+   libraryDeleteScopeLabel,
+   normalizeLibraryTab,
+   readingStatusLabel
+-} from './renderer-shared.js?v=20260714224715';
++} from './renderer-shared.js?v=20260714225646';
+ 
+ export function createLibraryRenderers({
+   app,
+diff --git a/src/screen-renderers-search-settings.js b/src/screen-renderers-search-settings.js
+index 8f4bf9c..d3bf014 100644
+--- a/src/screen-renderers-search-settings.js
++++ b/src/screen-renderers-search-settings.js
+@@ -1,4 +1,4 @@
+-import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260714224715';
++import { bindSearchInteractions, bindSettingsInteractions } from './ui-bindings.js?v=20260714225646';
+ import {
+   aozoraSearchResultsMarkup,
+   searchBodyMarkup,
+@@ -6,7 +6,7 @@ import {
+   searchPreviewMarkup,
+   settingsBodyMarkup,
+   settingsPendingImportMarkup
+-} from './views.js?v=20260714224715';
++} from './views.js?v=20260714225646';
+ 
+ export function createSearchSettingsRenderers({
+   app,
+@@ -16,8 +16,6 @@ export function createSearchSettingsRenderers({
+   handleSearchAction,
+   handleSettingsAction,
+   handleImportFileSelection,
+-  handleTextExportFileSelection,
+-  handleTextDriveExportFileSelection,
+   searchResultsBatchSize,
+   helpers
+ }) {
+@@ -174,9 +172,7 @@ export function createSearchSettingsRenderers({
+       onAction: async (action) => {
+         await handleSettingsAction(action);
+       },
+-      onImportFile: handleImportFileSelection,
+-      onTextExportFile: handleTextExportFileSelection,
+-      onTextDriveExportFile: handleTextDriveExportFileSelection
++      onImportFile: handleImportFileSelection
+     });
+   }
+ 
+diff --git a/src/screen-renderers-work.js b/src/screen-renderers-work.js
+index c2f973a..37f8a8a 100644
+--- a/src/screen-renderers-work.js
++++ b/src/screen-renderers-work.js
+@@ -5,14 +5,14 @@ import {
+   getReadableWorkFragments,
+   getVisibleCountParam,
+   sliceWorkFragmentsForVisibleCount
+-} from './state.js?v=20260714224715';
++} from './state.js?v=20260714225646';
+ import {
+   buildCollectionHash,
+   buildWorkEndHash,
+   buildWorkFocusHash,
+   buildWorkHash,
+   buildWorkOutlineHash
+-} from './router.js?v=20260714224715';
++} from './router.js?v=20260714225646';
+ import {
+   bindReaderScaleControls,
+   bindWorkAutoLoad,
+@@ -22,19 +22,19 @@ import {
+   bindWorkStateActions,
+   focusFragmentCard,
+   updateWorkOverlayButton
+-} from './ui-bindings.js?v=20260714224715';
++} from './ui-bindings.js?v=20260714225646';
+ import {
+   breakCardMarkup,
+   readerActionStatusMarkup,
+   workBodyMarkup,
+   workEndingCardMarkup
+-} from './views.js?v=20260714224715';
++} from './views.js?v=20260714225646';
+ import {
+   WORK_END_MARKER_ID,
+   calculateRemainingPercent,
+   outlineLevelClassName,
+   renderWorkHeaderMeta
+-} from './renderer-shared.js?v=20260714224715';
++} from './renderer-shared.js?v=20260714225646';
+ 
+ export function createWorkRenderers({
+   app,
+diff --git a/src/screen-renderers.js b/src/screen-renderers.js
+index f5a453a..d197f3f 100644
+--- a/src/screen-renderers.js
++++ b/src/screen-renderers.js
+@@ -1,12 +1,12 @@
+ import {
+   errorBodyMarkup,
+   loadingBodyMarkup
+-} from './views.js?v=20260714224715';
+-import { createRendererHelpers } from './renderer-shared.js?v=20260714224715';
+-import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260714224715';
+-import { createLibraryRenderers } from './screen-renderers-library.js?v=20260714224715';
+-import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260714224715';
+-import { createWorkRenderers } from './screen-renderers-work.js?v=20260714224715';
++} from './views.js?v=20260714225646';
++import { createRendererHelpers } from './renderer-shared.js?v=20260714225646';
++import { createHomeDetailRenderers } from './screen-renderers-home-detail.js?v=20260714225646';
++import { createLibraryRenderers } from './screen-renderers-library.js?v=20260714225646';
++import { createSearchSettingsRenderers } from './screen-renderers-search-settings.js?v=20260714225646';
++import { createWorkRenderers } from './screen-renderers-work.js?v=20260714225646';
+ 
+ export function createScreenRenderers({
+   app,
+@@ -19,8 +19,6 @@ export function createScreenRenderers({
+   handleCollectionAction,
+   handleDetailAction,
+   handleImportFileSelection,
+-  handleTextExportFileSelection,
+-  handleTextDriveExportFileSelection,
+   handleSearchAction,
+   handleSettingsAction,
+   loadStateFromDb,
+@@ -109,8 +107,6 @@ export function createScreenRenderers({
+     handleSearchAction,
+     handleSettingsAction,
+     handleImportFileSelection,
+-    handleTextExportFileSelection,
+-    handleTextDriveExportFileSelection,
+     searchResultsBatchSize,
+     helpers
+   });
+diff --git a/src/ui-bindings.js b/src/ui-bindings.js
+index 5e77cb5..ca64dd8 100644
+--- a/src/ui-bindings.js
++++ b/src/ui-bindings.js
+@@ -212,7 +212,7 @@ export function bindSearchInteractions(root, { onSelectFile, onDropFile, onActio
+   });
+ }
+ 
+-export function bindSettingsInteractions(root, { onAction, onImportFile, onTextExportFile = async () => {}, onTextDriveExportFile = async () => {} }) {
++export function bindSettingsInteractions(root, { onAction, onImportFile }) {
+   root.querySelectorAll('[data-settings-action]').forEach((button) => {
+     button.addEventListener('click', async () => {
+       await onAction(button.dataset.settingsAction);
+@@ -227,21 +227,6 @@ export function bindSettingsInteractions(root, { onAction, onImportFile, onTextE
+     });
+   }
+ 
+-  const textExportInput = root.querySelector('[data-settings-input="export-texts-json"]');
+-  if (textExportInput) {
+-    textExportInput.addEventListener('change', async (event) => {
+-      await onTextExportFile(event.target.files?.[0] ?? null);
+-      event.target.value = '';
+-    });
+-  }
+-
+-  const textDriveExportInput = root.querySelector('[data-settings-input="export-texts-drive-json"]');
+-  if (textDriveExportInput) {
+-    textDriveExportInput.addEventListener('change', async (event) => {
+-      await onTextDriveExportFile(event.target.files?.[0] ?? null);
+-      event.target.value = '';
+-    });
+-  }
+ }
+ 
+ export function focusFragmentCard(root, fragmentId) {
+diff --git a/src/views.js b/src/views.js
+index 6732fb0..8ee1796 100644
+--- a/src/views.js
++++ b/src/views.js
+@@ -450,12 +450,9 @@ export function settingsBodyMarkup({ exportStatusHtml, textExportStatusHtml = ''
+       </article>
+       <article class="info-panel">
+         <h2 class="section-title">TXT出力</h2>
+-        <p class="section-text">エクスポートJSONから、作品ごとの統合TXTをZIPで書き出します。</p>
++        <p class="section-text">作品ごとの統合TXTをZIPで書き出します。</p>
+         <div class="settings-actions">
+-          <button type="button" class="detail-action-button settings-button" data-settings-action="pick-text-export-json">JSONからTXT ZIPを書き出す</button>
+-          <button type="button" class="detail-action-button settings-button" data-settings-action="pick-text-export-drive-json">Google Driveに保存</button>
+-          <input type="file" class="settings-file-input" accept="application/json,.json" data-settings-input="export-texts-json">
+-          <input type="file" class="settings-file-input" accept="application/json,.json" data-settings-input="export-texts-drive-json">
++          <button type="button" class="detail-action-button settings-button" data-settings-action="export-text-zip">TXT ZIPを書き出す</button>
+         </div>
+         ${textExportStatusHtml}
+       </article>

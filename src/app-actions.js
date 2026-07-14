@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260714224715';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260714224715';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260714225646';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260714225646';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -1585,8 +1585,7 @@ export function createSettingsActions({
   state,
   renderSettings,
   downloadExportJson,
-  downloadTextZipFromExportJsonFile,
-  shareTextZipToGoogleDriveFromExportJsonFile,
+  downloadExportTextZip,
   readImportFile,
   importJsonData,
   buildImportSummary,
@@ -1594,8 +1593,6 @@ export function createSettingsActions({
   clearAllStores,
   verifyUserStoresEmpty,
   pickImportInput,
-  pickTextExportInput,
-  pickTextDriveExportInput,
   saveWorkLoadMode
 }) {
   function focusResetConfirmationPanel() {
@@ -1697,39 +1694,16 @@ export function createSettingsActions({
     renderSettings();
   }
 
-  async function handleTextExportFileSelection(file) {
-    if (!file) {
-      return;
-    }
-
-    state.textExportStatus = 'JSON からTXT ZIPを準備しています。';
+  async function handleExportTextZip() {
+    state.textExportStatus = 'TXT ZIPを書き出しています。';
     renderSettings();
 
     try {
-      const result = await downloadTextZipFromExportJsonFile(file);
+      const result = await downloadExportTextZip();
       state.textExportStatus = `${result.downloadName} を書き出しました（${result.workCount}作品）。`;
     } catch (error) {
       console.error(error);
       state.textExportStatus = `TXT ZIPの書き出しに失敗しました: ${error?.message ?? '不明なエラー'}`;
-    }
-
-    renderSettings();
-  }
-
-  async function handleTextDriveExportFileSelection(file) {
-    if (!file) {
-      return;
-    }
-
-    state.textExportStatus = 'JSON からGoogle Drive保存用のTXT ZIPを準備しています。';
-    renderSettings();
-
-    try {
-      const result = await shareTextZipToGoogleDriveFromExportJsonFile(file);
-      state.textExportStatus = `${result.downloadName} を共有しました（${result.workCount}作品）。共有先でGoogle Driveを選んで保存してください。`;
-    } catch (error) {
-      console.error(error);
-      state.textExportStatus = `Google Drive保存に失敗しました: ${error?.message ?? '不明なエラー'}`;
     }
 
     renderSettings();
@@ -1791,13 +1765,8 @@ export function createSettingsActions({
       return;
     }
 
-    if (action === 'pick-text-export-json') {
-      pickTextExportInput();
-      return;
-    }
-
-    if (action === 'pick-text-export-drive-json') {
-      pickTextDriveExportInput();
+    if (action === 'export-text-zip') {
+      await handleExportTextZip();
       return;
     }
 
@@ -1871,5 +1840,5 @@ export function createSettingsActions({
     }
   }
 
-  return { handleImportFileSelection, handleSettingsAction, handleTextExportFileSelection, handleTextDriveExportFileSelection };
+  return { handleImportFileSelection, handleSettingsAction };
 }

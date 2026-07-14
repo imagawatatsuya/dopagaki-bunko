@@ -450,12 +450,9 @@ export function settingsBodyMarkup({ exportStatusHtml, textExportStatusHtml = ''
       </article>
       <article class="info-panel">
         <h2 class="section-title">TXT出力</h2>
-        <p class="section-text">エクスポートJSONから、作品ごとの統合TXTをZIPで書き出します。</p>
+        <p class="section-text">作品ごとの統合TXTをZIPで書き出します。</p>
         <div class="settings-actions">
-          <button type="button" class="detail-action-button settings-button" data-settings-action="pick-text-export-json">JSONからTXT ZIPを書き出す</button>
-          <button type="button" class="detail-action-button settings-button" data-settings-action="pick-text-export-drive-json">Google Driveに保存</button>
-          <input type="file" class="settings-file-input" accept="application/json,.json" data-settings-input="export-texts-json">
-          <input type="file" class="settings-file-input" accept="application/json,.json" data-settings-input="export-texts-drive-json">
+          <button type="button" class="detail-action-button settings-button" data-settings-action="export-text-zip">TXT ZIPを書き出す</button>
         </div>
         ${textExportStatusHtml}
       </article>
