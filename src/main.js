@@ -1,4 +1,4 @@
-import { createAppRuntime } from './app-runtime.js?v=20260714234008';
+import { createAppRuntime } from './app-runtime.js?v=20260715001413';
 
 const app = document.querySelector('#app');
 const runtime = createAppRuntime({ app });

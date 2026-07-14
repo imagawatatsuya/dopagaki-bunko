@@ -15,7 +15,8 @@ import {
   buildTextZipDownloadName,
   buildWorkTextEntriesFromStores,
   createExportPayload,
-  parseImportJson
+  parseImportJson,
+  validateStoredZipBlob
 } from '../src/export-import.js';
 import { STORE_NAMES, assertStoreCountsEmpty } from '../src/db.js';
 import { fragmentText } from '../src/fragmenter.js';
@@ -156,6 +157,10 @@ async function readStoredZipEntries(blob) {
   }
 
   return entries;
+}
+
+function utf8ByteLength(value) {
+  return new TextEncoder().encode(String(value)).byteLength;
 }
 
 test('ruby converts explicit notation and escapes html', () => {
@@ -1242,17 +1247,18 @@ test('exported JSON stores build per-work integrated text entries', () => {
     ]
   });
 
-  assert.deepEqual(entries.map((entry) => entry.path), [
+  const textEntries = entries.filter((entry) => entry.path.startsWith('works/'));
+  assert.deepEqual(textEntries.map((entry) => entry.path), [
     'works/001_猫_一_二_著_者.txt',
     'works/002_同じ題_著者.txt',
     'works/003_同じ題_著者.txt'
   ]);
   assert.equal(
-    entries[0].text,
+    textEntries[0].text,
     '猫:一/二\n著*者\n\n吾輩は猫である\n名前は\n未だない\n\nどこで&生れたか\n'
   );
-  assert.equal(entries[1].text, '同じ題\n著者\n\n二作目です。\n');
-  assert.equal(entries[2].text, '同じ題\n著者\n\n\n');
+  assert.equal(textEntries[1].text, '同じ題\n著者\n\n二作目です。\n');
+  assert.equal(textEntries[2].text, '同じ題\n著者\n\n\n');
 });
 
 test('stored ZIP writer exposes UTF-8 work text files through central directory', async () => {
@@ -1260,11 +1266,98 @@ test('stored ZIP writer exposes UTF-8 work text files through central directory'
     { path: 'works/001_猫_著者.txt', text: '猫\n著者\n\n本文です。\n' },
     { path: 'works/002_雨_著者.txt', text: '雨\n著者\n\n二作目です。\n' }
   ]);
+  const validation = await validateStoredZipBlob(blob, { expectedTextEntryCount: 2 });
   const entries = await readStoredZipEntries(blob);
 
+  assert.equal(validation.textEntryCount, 2);
   assert.equal(entries.size, 2);
   assert.equal(entries.get('works/001_猫_著者.txt'), '猫\n著者\n\n本文です。\n');
   assert.equal(entries.get('works/002_雨_著者.txt'), '雨\n著者\n\n二作目です。\n');
+});
+
+test('text ZIP entry names stay Windows Explorer compatible', async () => {
+  const regressionTitle = '『資本論』体系の方法(その三)';
+  const regressionAuthor = 'さて、最後は『資本論』体系「分析の方法」の混在の第三の領域、-すなわち、諸資本相互の競争関係をとおして、「価値法則」を資本主義生産の現実的法則として論証すべき領';
+  const longJapanese = '長い題名'.repeat(40);
+  const combining = 'Cafe\u0301'.repeat(60);
+  const works = [
+    { id: 'work-1', title: 'Ascii', author: 'Author' },
+    { id: 'work-2', title: '日本語の題名', author: '著者' },
+    { id: 'work-3', title: longJapanese, author: '著者' },
+    { id: 'work-4', title: 'A'.repeat(301), author: 'Author' },
+    { id: 'work-5', title: '絵文字😀題名'.repeat(30), author: '著者' },
+    { id: 'work-6', title: combining, author: '著者' },
+    { id: 'work-7', title: '禁<止>:/\\|?*文字', author: '著\"者' },
+    { id: 'work-8', title: 'CON', author: 'txt' },
+    { id: 'work-9', title: '末尾空白 ', author: '末尾.' },
+    { id: 'work-10', title: 'Cafe\u0301', author: '著者' },
+    { id: 'work-11', title: 'Caf\u00e9', author: '著者' },
+    { id: 'work-12', title: '長いディレクトリ名'.repeat(30), author: '著者' },
+    { id: 'work-13', title: regressionTitle, author: regressionAuthor },
+    ...Array.from({ length: 14 }, (_value, index) => ({
+      id: `work-bulk-${index}`,
+      title: `まとめ${String(index + 1).padStart(2, '0')}`,
+      author: '著者'
+    }))
+  ];
+  const entries = buildWorkTextEntriesFromStores({
+    works,
+    fragments: works.map((work, index) => ({
+      id: `${work.id}-fragment-0001`,
+      workId: work.id,
+      type: 'fragment',
+      sequence: 1,
+      plainText: `本文${index + 1}`
+    }))
+  });
+  const blob = buildStoredZipBlob(entries);
+  const validation = await validateStoredZipBlob(blob, { expectedTextEntryCount: works.length });
+  const zipEntries = await readStoredZipEntries(blob);
+  const textPaths = Array.from(zipEntries.keys()).filter((path) => path.startsWith('works/') && path.endsWith('.txt'));
+
+  assert.equal(validation.textEntryCount, works.length);
+  assert.equal(textPaths.length, 27);
+  assert.equal(textPaths[0], 'works/001_Ascii_Author.txt');
+  assert.equal(textPaths[1], 'works/002_日本語の題名_著者.txt');
+  assert.equal(new Set(textPaths).size, textPaths.length);
+  assert.equal(textPaths.some((path) => /[<>:"\\|?*]/u.test(path)), false);
+  assert.equal(textPaths.some((path) => /[. ]\.txt$/u.test(path)), false);
+  for (const path of textPaths) {
+    const fileName = path.split('/').pop();
+    assert.ok(path.length <= 240, path);
+    assert.ok(utf8ByteLength(fileName) <= 200, `${fileName}: ${utf8ByteLength(fileName)}`);
+  }
+
+  const filenameMap = JSON.parse(zipEntries.get('_filename-map.json'));
+  const mappedPaths = Object.keys(filenameMap);
+  assert.ok(mappedPaths.length >= 5);
+  assert.ok(mappedPaths.some((path) => path.startsWith('works/013_') && path.endsWith('.txt')));
+  const regressionPath = mappedPaths.find((path) => filenameMap[path].originalName.includes('資本論'));
+  assert.ok(regressionPath);
+  assert.equal(filenameMap[regressionPath].originalUtf8Bytes > 200, true);
+  assert.match(filenameMap[regressionPath].reason, /utf8-byte-length/u);
+});
+
+test('text ZIP validation rejects Explorer-incompatible entry names', async () => {
+  await assert.rejects(
+    () => validateStoredZipBlob(buildStoredZipBlob([
+      { path: 'works/CON.txt', text: 'reserved\n' }
+    ]), { expectedTextEntryCount: 1 }),
+    /Windows予約名/u
+  );
+  await assert.rejects(
+    () => validateStoredZipBlob(buildStoredZipBlob([
+      { path: 'works/same.txt', text: 'one\n' },
+      { path: 'works/same.txt', text: 'two\n' }
+    ]), { expectedTextEntryCount: 2 }),
+    /重複/u
+  );
+  await assert.rejects(
+    () => validateStoredZipBlob(buildStoredZipBlob([
+      { path: `works/${'あ'.repeat(70)}.txt`, text: 'long\n' }
+    ]), { expectedTextEntryCount: 1 }),
+    /UTF-8 200 バイト/u
+  );
 });
 
 test('import parser fills missing stores and ignores unknown stores', () => {
