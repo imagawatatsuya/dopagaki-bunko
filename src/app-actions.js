@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260715223058';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260715223058';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260715223508';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260715223508';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -530,26 +530,10 @@ export function createSearchActions({
     return parsedUrl.toString();
   }
 
-  async function buildPendingConverterWorkBridgeUrl(baseUrl) {
-    const shareRootUrl = buildConverterShareRootUrl(baseUrl);
-    const worksIndexUrl = new URL('works.json', shareRootUrl);
-    const response = await fetch(`${worksIndexUrl.toString()}?ts=${Date.now()}`, {
-      method: 'GET',
-      credentials: 'omit',
-      cache: 'no-store'
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const payload = await response.json();
-    const works = Array.isArray(payload.works) ? payload.works : [];
-    const work = works.find((candidate) => String(candidate?.txtPath ?? '').trim());
-    if (!work) {
-      throw new Error('PC側の送信リストに未受信作品がありません。');
-    }
-    const txtPath = String(work.txtPath ?? '').replaceAll('\\', '/').replace(/^\.?\//u, '');
-    const txtUrl = new URL(txtPath, shareRootUrl);
-    return buildBridgeImportUrl(txtUrl.toString());
+  function buildPendingConverterWorkBridgeUrl(baseUrl) {
+    const worksPageUrl = new URL(buildConverterWorksPageUrl(baseUrl));
+    worksPageUrl.searchParams.set('auto', 'first');
+    return worksPageUrl.toString();
   }
 
   function normalizeConverterLatestTextUrl(baseUrl) {
@@ -1247,10 +1231,10 @@ export function createSearchActions({
         const normalizedBaseUrl = normalizeConverterBaseUrl(payload.baseUrl ?? state.converterBaseUrl);
         void saveConverterBaseUrl(normalizedBaseUrl);
         state.importWorkNoticeTone = '';
-        state.importWorkStatus = 'PC側の送信リストから未受信作品を探しています。';
+        state.importWorkStatus = 'PC側の送信リストを開いて、未受信作品を探しています。';
         renderSearch();
-        const targetUrl = await buildPendingConverterWorkBridgeUrl(normalizedBaseUrl);
-        state.importWorkStatus = '未受信作品を中継ページで開いています。読み込み後、この画面にプレビューが戻ります。';
+        const targetUrl = buildPendingConverterWorkBridgeUrl(normalizedBaseUrl);
+        state.importWorkStatus = 'PC側の送信リストを開いています。未受信作品があれば中継ページへ進み、この画面にプレビューが戻ります。';
         renderSearch();
         const targetName = `dopagaki-delivery-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
         const openedWindow = globalThis.window.open(targetUrl, targetName);

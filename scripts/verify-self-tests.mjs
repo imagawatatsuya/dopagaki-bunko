@@ -1121,7 +1121,6 @@ test('converter pending recovery opens the first queued work directly', async ()
   const { actions, savedRecords } = createSearchActionsForTest(state);
   const previousWindow = globalThis.window;
   const previousLocation = globalThis.location;
-  const previousFetch = globalThis.fetch;
   let opened = null;
 
   globalThis.location = {
@@ -1133,22 +1132,6 @@ test('converter pending recovery opens the first queued work directly', async ()
       return {};
     }
   };
-  globalThis.fetch = async (url) => {
-    assert.match(String(url), /^http:\/\/192\.168\.0\.10:8765\/works\.json\?ts=/u);
-    return {
-      ok: true,
-      json: async () => ({
-        version: 2,
-        state: 'ready',
-        works: [
-          {
-            title: '未受信作品',
-            txtPath: 'works/pending-work.txt'
-          }
-        ]
-      })
-    };
-  };
 
   try {
     await actions.handleSearchAction('receive-pending-converter-work', {
@@ -1157,9 +1140,8 @@ test('converter pending recovery opens the first queued work directly', async ()
 
     assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765');
     assert.match(opened?.target ?? '', /^dopagaki-delivery-/u);
-    assert.match(opened?.url ?? '', /dopagaki-import-bridge\.html/u);
-    assert.match(opened?.url ?? '', /txt=http%3A%2F%2F192\.168\.0\.10%3A8765%2Fworks%2Fpending-work\.txt/u);
-    assert.match(state.importWorkStatus, /未受信作品を中継ページで開いています。/u);
+    assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html?auto=first');
+    assert.match(state.importWorkStatus, /PC側の送信リストを開いています。/u);
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
@@ -1170,11 +1152,6 @@ test('converter pending recovery opens the first queued work directly', async ()
       delete globalThis.location;
     } else {
       globalThis.location = previousLocation;
-    }
-    if (previousFetch === undefined) {
-      delete globalThis.fetch;
-    } else {
-      globalThis.fetch = previousFetch;
     }
   }
 });

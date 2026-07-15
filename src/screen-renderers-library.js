@@ -5,27 +5,27 @@ import {
   getBookmarkForWork,
   getLikeRecordsForWork,
   savedCollectionLabel
-} from './state.js?v=20260715223058';
+} from './state.js?v=20260715223508';
 import {
   buildCollectionHash,
   buildLibraryHash,
   buildWorkResumeHash
-} from './router.js?v=20260715223058';
+} from './router.js?v=20260715223508';
 import {
   bindCollectionActions,
   bindLibraryWorkActions
-} from './ui-bindings.js?v=20260715223058';
+} from './ui-bindings.js?v=20260715223508';
 import {
   collectionBodyMarkup,
   libraryBodyMarkup,
   libraryTabButtonMarkup
-} from './views.js?v=20260715223058';
+} from './views.js?v=20260715223508';
 import {
   LIBRARY_TAB_ORDER,
   libraryDeleteScopeLabel,
   normalizeLibraryTab,
   readingStatusLabel
-} from './renderer-shared.js?v=20260715223058';
+} from './renderer-shared.js?v=20260715223508';
 
 export function createLibraryRenderers({
   app,
