@@ -410,7 +410,7 @@ test('search import sheet exposes url, paste, file, and bridge import paths toge
   assert.match(markup, /http:\/\/192\.168\.0\.10:8765/u);
   assert.match(markup, /works\/作品名\.txt/u);
   assert.match(markup, /PCからプレビューを開く/u);
-  assert.match(markup, /送信リストを再表示/u);
+  assert.match(markup, /未受信作品を受け取る/u);
   assert.match(markup, /PCのURLだけなら作品一覧/u);
   assert.match(markup, /受け取りに失敗した作品/u);
   assert.match(markup, /クリックまたはタップ。ドラッグ&ドロップでも追加できます。/u);
@@ -1114,6 +1114,69 @@ test('outline jump helper opens a bounded range around the focused fragment', ()
   assert.equal(lateHref, '#/work/work-1?from=6496&visible=6519&focus=work-1-fragment-6500');
 
   assert.equal(buildWorkOutlineHash('work-1', { fragmentIndex: 3 }, 5), '');
+});
+
+test('converter pending recovery opens the first queued work directly', async () => {
+  const state = createInitialAppState();
+  const { actions, savedRecords } = createSearchActionsForTest(state);
+  const previousWindow = globalThis.window;
+  const previousLocation = globalThis.location;
+  const previousFetch = globalThis.fetch;
+  let opened = null;
+
+  globalThis.location = {
+    href: 'https://imagawatatsuya.github.io/dopagaki-bunko/#/search'
+  };
+  globalThis.window = {
+    open: (url, target) => {
+      opened = { url, target };
+      return {};
+    }
+  };
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /^http:\/\/192\.168\.0\.10:8765\/works\.json\?ts=/u);
+    return {
+      ok: true,
+      json: async () => ({
+        version: 2,
+        state: 'ready',
+        works: [
+          {
+            title: '未受信作品',
+            txtPath: 'works/pending-work.txt'
+          }
+        ]
+      })
+    };
+  };
+
+  try {
+    await actions.handleSearchAction('receive-pending-converter-work', {
+      baseUrl: 'http://192.168.0.10:8765'
+    });
+
+    assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765');
+    assert.match(opened?.target ?? '', /^dopagaki-delivery-/u);
+    assert.match(opened?.url ?? '', /dopagaki-import-bridge\.html/u);
+    assert.match(opened?.url ?? '', /txt=http%3A%2F%2F192\.168\.0\.10%3A8765%2Fworks%2Fpending-work\.txt/u);
+    assert.match(state.importWorkStatus, /未受信作品を中継ページで開いています。/u);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+    if (previousLocation === undefined) {
+      delete globalThis.location;
+    } else {
+      globalThis.location = previousLocation;
+    }
+    if (previousFetch === undefined) {
+      delete globalThis.fetch;
+    } else {
+      globalThis.fetch = previousFetch;
+    }
+  }
 });
 
 test('library work resume helper opens the bookmarked fragment range', () => {
