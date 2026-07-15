@@ -410,7 +410,9 @@ test('search import sheet exposes url, paste, file, and bridge import paths toge
   assert.match(markup, /http:\/\/192\.168\.0\.10:8765/u);
   assert.match(markup, /works\/作品名\.txt/u);
   assert.match(markup, /PCからプレビューを開く/u);
+  assert.match(markup, /送信リストを再表示/u);
   assert.match(markup, /PCのURLだけなら作品一覧/u);
+  assert.match(markup, /受け取りに失敗した作品/u);
   assert.match(markup, /クリックまたはタップ。ドラッグ&ドロップでも追加できます。/u);
   assert.doesNotMatch(markup, /上のボタン/u);
   assert.doesNotMatch(markup, /data-search-action="pick-aozora-zip"/u);
@@ -888,7 +890,7 @@ test('converter bridge accepts exact works txt urls', async () => {
     });
 
     assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765/works/serial-work.txt');
-    assert.equal(opened?.target, 'dopagaki-delivery');
+    assert.match(opened?.target ?? '', /^dopagaki-delivery-/u);
     assert.match(opened?.url ?? '', /txt=http%3A%2F%2F192\.168\.0\.10%3A8765%2Fworks%2Fserial-work\.txt/u);
     assert.match(state.importWorkStatus, /PC上の中継ページを別タブで開いています。/u);
   } finally {
@@ -928,7 +930,7 @@ test('converter bridge opens works list when given only the pc base url', async 
     });
 
     assert.equal(savedRecords.at(-1)?.record?.value, 'http://192.168.0.10:8765');
-    assert.equal(opened?.target, 'dopagaki-delivery');
+    assert.match(opened?.target ?? '', /^dopagaki-delivery-/u);
     assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
     assert.match(state.importWorkStatus, /PC上の作品一覧を別タブで開いています。/u);
   } finally {
@@ -967,7 +969,7 @@ test('converter bridge keeps an exact works page url stable', async () => {
       baseUrl: 'http://192.168.0.10:8765/dopagaki-import-works.html'
     });
 
-    assert.equal(opened?.target, 'dopagaki-delivery');
+    assert.match(opened?.target ?? '', /^dopagaki-delivery-/u);
     assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
   } finally {
     if (previousWindow === undefined) {
@@ -1005,7 +1007,7 @@ test('converter bridge treats latest txt as a works-list entrypoint', async () =
       baseUrl: 'http://192.168.0.10:8765/latest.txt'
     });
 
-    assert.equal(opened?.target, 'dopagaki-delivery');
+    assert.match(opened?.target ?? '', /^dopagaki-delivery-/u);
     assert.equal(opened?.url, 'http://192.168.0.10:8765/dopagaki-import-works.html');
     assert.match(state.importWorkStatus, /PC上の作品一覧を別タブで開いています。/u);
   } finally {
@@ -1044,7 +1046,7 @@ test('converter bridge rewrites exact works zip urls to txt', async () => {
       baseUrl: 'http://192.168.0.10:8765/works/serial-work.zip'
     });
 
-    assert.equal(opened?.target, 'dopagaki-delivery');
+    assert.match(opened?.target ?? '', /^dopagaki-delivery-/u);
     assert.match(opened?.url ?? '', /txt=http%3A%2F%2F192\.168\.0\.10%3A8765%2Fworks%2Fserial-work\.txt/u);
   } finally {
     if (previousWindow === undefined) {

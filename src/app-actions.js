@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260715001413';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260715001413';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260715222616';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260715222616';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -1202,7 +1202,8 @@ export function createSearchActions({
           state.importWorkStatus = 'PC上の作品一覧を別タブで開いています。開きたい作品を選ぶと、この画面にプレビューが戻ります。';
         }
         renderSearch();
-        const openedWindow = globalThis.window.open(targetUrl, 'dopagaki-delivery');
+        const targetName = `dopagaki-delivery-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+        const openedWindow = globalThis.window.open(targetUrl, targetName);
         if (!openedWindow) {
           globalThis.location.assign(targetUrl);
         } else {

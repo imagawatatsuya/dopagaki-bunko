@@ -239,8 +239,9 @@ export function searchImportSheetMarkup({
           >
           <div class="settings-button-grid">
             <button type="button" class="detail-action-button settings-button" data-search-action="open-converter-bridge">PCからプレビューを開く</button>
+            <button type="button" class="detail-action-button settings-button" data-search-action="open-converter-bridge">送信リストを再表示</button>
           </div>
-          <p class="settings-status settings-status-subtle import-help-text"><code>PCからプレビューを開く</code> を使うと、PCのURLだけなら作品一覧、<code>/works/作品名.txt</code> まで入れるとその作品を直接開けます。</p>
+          <p class="settings-status settings-status-subtle import-help-text"><code>PCからプレビューを開く</code> を使うと、PCのURLだけなら作品一覧、<code>/works/作品名.txt</code> まで入れるとその作品を直接開けます。受け取りに失敗した作品は、PC側の配信画面を開いたまま <code>送信リストを再表示</code> からもう一度選びます。</p>
         </div>
         ${importStatusHtml}
       </div>
