@@ -57,16 +57,16 @@ python -m http.server 8000 --bind 0.0.0.0
 - 対応: `store`, `deflate`, 単一 `.txt`
 - 非対応: `ZIP64`, パスワード付き ZIP, 分割 ZIP, 複数作品入り ZIP, 画像入り ZIP
 
-GitHub Pages の `https://` 版から `http://<PCのIP>:8765/latest.txt` のような一時LAN配信URLを読む実験導線もあります。ブラウザによっては Mixed Content / Private Network Access / ローカルネットワーク制限で失敗しますが、まずは fetch を試します。失敗した場合は、同じWi-Fi、PC側配信継続、Windowsファイアウォール、ブラウザのローカルネットワークアクセス許可を確認してください。確実な主導線は、`https://` で読める `TXT 公開URL` か、PC/スマホで開いた TXT 本文の貼り付けです。ローカル `http://` 版 `dopagaki-bunko` を同一Wi-Fi上のPCから開くフォールバックも残しています。
+GitHub Pages の `https://` 版から `http://<PCのIP>:<自動選択ポート>/latest.txt` のような一時LAN配信URLを読む実験導線もあります。ブラウザによっては Mixed Content / Private Network Access / ローカルネットワーク制限で失敗しますが、まずは fetch を試します。失敗した場合は、同じWi-Fi、PC側配信継続、Windowsファイアウォール、ブラウザのローカルネットワークアクセス許可を確認してください。確実な主導線は、`https://` で読める `TXT 公開URL` か、PC/スマホで開いた TXT 本文の貼り付けです。ローカル `http://` 版 `dopagaki-bunko` を同一Wi-Fi上のPCから開くフォールバックも残しています。
 
 ## GitHub Pages 版の使い方
 
 1. `#/search` の `作品を取り込む` を開く。
-2. 同一Wi-Fi上のPCから取り込むときは `PCのURL` に `http://<PCのIP>:8765` を入れ、`PCからプレビューを開く` を押す。
+2. 同一Wi-Fi上のPCから取り込むときは、converterの起動ログにある `[serve:pc-url]` のURLを `PCのURL` に入れ、`PCからプレビューを開く` を押す。受信成功後は選択ポート込みで自動保存される。
 3. 使えるなら `https://` の `TXT 公開URL` を入れて `URLのTXTを読む` を押す。
 4. URL が用意できないときは、TXT 本文を `TXT を貼り付ける` に入れて `貼り付け内容を読む` を押す。
 5. 端末内に ZIP/TXT があるときは、そのままファイル選択で読む。
-6. PC連携で失敗した場合は、`http://<PCのIP>:8765/` がスマホから開けるか確認し、画面の確認項目に従って切り分ける。
+6. PC連携で失敗した場合は、起動ログの `[serve:pc-url]` がスマホから開けるか確認し、画面の確認項目に従って切り分ける。
 
 `#/search?remoteImportUrl=...` の深いリンクで開いた場合は、取り込みシートを自動で開き、`TXT 公開URL` 欄へその値を自動入力します。`URLのTXTを読む` を押すと取り込みを試し、ローカルネットワーク制限などで失敗した場合は確認項目付きのエラーを表示します。
 

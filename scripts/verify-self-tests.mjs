@@ -411,6 +411,8 @@ test('search import sheet exposes url, paste, file, and bridge import paths toge
   assert.match(markup, /works\/作品名\.txt/u);
   assert.match(markup, /PCからプレビューを開く/u);
   assert.match(markup, /未受信作品を受け取る/u);
+  assert.match(markup, /\[serve:pc-url\]/u);
+  assert.match(markup, /選択されたポートを含むURLを自動保存/u);
   assert.match(markup, /PCのURLだけなら作品一覧/u);
   assert.match(markup, /受け取りに失敗した作品/u);
   assert.match(markup, /クリックまたはタップ。ドラッグ&ドロップでも追加できます。/u);
@@ -511,6 +513,48 @@ test('bridge import does not replace an unsaved pasted draft', async () => {
   await actions.handleSearchAction('save-imported-work');
 
   assert.equal(state.importTextDraft, '未保存の手入力\n作者\n\n消さない本文です。');
+});
+
+test('bridge import saves the selected converter port after validating its origin', async () => {
+  const state = createInitialAppState();
+  state.converterBaseUrl = 'http://192.168.0.10:8765';
+  const { actions, savedRecords } = createSearchActionsForTest(state);
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      converterBaseUrl: 'http://192.168.0.10:8766/',
+      bridgeSourceOrigin: 'http://192.168.0.10:8766',
+      text: 'PC作品\n作者\n\nPCから受け取った本文です。'
+    }
+  });
+
+  assert.equal(state.converterBaseUrl, 'http://192.168.0.10:8766');
+  assert.equal(
+    savedRecords.some(({ storeName, record }) => (
+      storeName === 'settings'
+      && record.id === 'setting:converter-base-url'
+      && record.value === 'http://192.168.0.10:8766'
+    )),
+    true
+  );
+});
+
+test('bridge import rejects a converter url from a different origin', async () => {
+  const state = createInitialAppState();
+  state.converterBaseUrl = 'http://192.168.0.10:8765';
+  const { actions } = createSearchActionsForTest(state);
+
+  await actions.handleSearchAction('import-bridge-message', {
+    bridgePayload: {
+      type: 'dopagaki-bridge-import-v1',
+      converterBaseUrl: 'http://192.168.0.99:9999/',
+      bridgeSourceOrigin: 'http://192.168.0.10:8766',
+      text: 'PC作品\n作者\n\nPCから受け取った本文です。'
+    }
+  });
+
+  assert.equal(state.converterBaseUrl, 'http://192.168.0.10:8765');
 });
 
 test('duplicate bridge delivery does not recreate an import preview', async () => {

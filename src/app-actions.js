@@ -1,5 +1,5 @@
-import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260715223508';
-import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260715223508';
+import { SEARCH_RESULTS_BATCH_SIZE } from './app-config.js?v=20260720203109';
+import { normalizeAozoraTextZipUrl } from './aozora-catalog.js?v=20260720203109';
 
 function normalizeImportedWorkIdentityUrl(value) {
   const source = String(value ?? '').trim();
@@ -347,6 +347,7 @@ export function createSearchActions({
     if (!text.trim()) {
       throw new Error('PC側から本文を受け取れませんでした。');
     }
+    await rememberConverterBaseUrlFromBridge(payload);
     const bridgeImportId = String(payload.bridgeImportId ?? '');
     const deliveryId = String(payload.bridgeAckPayload?.deliveryId ?? bridgeImportId);
     if (deliveryId) {
@@ -661,6 +662,24 @@ export function createSearchActions({
       value: state.converterBaseUrl,
       updatedAt: new Date().toISOString()
     });
+  }
+
+  async function rememberConverterBaseUrlFromBridge(payload = {}) {
+    const candidate = String(payload.converterBaseUrl ?? '').trim();
+    const sourceOrigin = String(payload.bridgeSourceOrigin ?? '').trim();
+    if (!candidate || !sourceOrigin) {
+      return;
+    }
+
+    try {
+      const normalizedBaseUrl = normalizeConverterBaseUrl(candidate);
+      if (new URL(normalizedBaseUrl).origin !== new URL(sourceOrigin).origin) {
+        return;
+      }
+      await saveConverterBaseUrl(normalizedBaseUrl);
+    } catch (error) {
+      console.error('PCのURLを中継元から保存できませんでした。', error);
+    }
   }
 
   function scrollSearchPreviewIntoView() {

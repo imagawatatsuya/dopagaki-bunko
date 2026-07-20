@@ -233,7 +233,7 @@ export function searchImportSheetMarkup({
             type="url"
             class="search-input"
             value="${converterBaseUrl}"
-            placeholder="http://192.168.0.10:8765 または /works/作品名.txt"
+            placeholder="起動ログの [serve:pc-url] または /works/作品名.txt"
             inputmode="url"
             data-search-input="converter-base-url"
           >
@@ -241,7 +241,7 @@ export function searchImportSheetMarkup({
             <button type="button" class="detail-action-button settings-button" data-search-action="open-converter-bridge">PCからプレビューを開く</button>
             <button type="button" class="detail-action-button settings-button" data-search-action="receive-pending-converter-work">未受信作品を受け取る</button>
           </div>
-          <p class="settings-status settings-status-subtle import-help-text"><code>PCからプレビューを開く</code> を使うと、PCのURLだけなら作品一覧、<code>/works/作品名.txt</code> まで入れるとその作品を直接開けます。受け取りに失敗した作品は、PC側の配信画面を開いたまま <code>未受信作品を受け取る</code> からもう一度プレビューへ送ります。</p>
+          <p class="settings-status settings-status-subtle import-help-text">PC側の起動ログにある <code>[serve:pc-url]</code> のURLを入力してください。受信成功後は、選択されたポートを含むURLを自動保存します。<code>PCからプレビューを開く</code> を使うと、PCのURLだけなら作品一覧、<code>/works/作品名.txt</code> まで入れるとその作品を直接開けます。受け取りに失敗した作品は、PC側の配信画面を開いたまま <code>未受信作品を受け取る</code> からもう一度プレビューへ送ります。</p>
         </div>
         ${importStatusHtml}
       </div>

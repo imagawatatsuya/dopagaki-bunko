@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Converterが自動選択したポートを中継メッセージから検証して `PCのURL` へ保存し、固定ポート8765前提の案内を `[serve:pc-url]` 基準へ更新した。
 - Added a settings-screen TXT output flow that matches the current JSON export behavior and writes a dependency-free ZIP containing one integrated `.txt` per work.
 - Hardened TXT ZIP output for Windows Explorer by normalizing entry names, limiting UTF-8 filename bytes, adding deterministic shortened-name hashes and `_filename-map.json`, and validating generated ZIP entries and CRCs before download.
 - `aozora-converter-for-dopagaki` との任意の実行時依存、作品一覧・中継タブ・保存後ACKの連携契約を文書化した。
